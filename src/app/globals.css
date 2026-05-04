@@ -1,0 +1,160 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme inline {
+  /* === Nature / Mediterranean Palette === */
+  --color-background: #FBF5EC;
+  --color-foreground: #2A2016;
+
+  /* Sable & crème */
+  --color-sand: #FBF5EC;
+  --color-sand-warm: #F5E6C8;
+  --color-sand-deep: #EDD9A3;
+  --color-linen: #F0E8D6;
+
+  /* Terracotta */
+  --color-terra: #C4714A;
+  --color-terra-light: #D4866A;
+  --color-terra-dark: #A35A38;
+  --color-terra-pale: #F7EBE4;
+
+  /* Vert Olive / Sage */
+  --color-olive: #5A7A4E;
+  --color-olive-light: #7A9E6A;
+  --color-olive-dark: #3F5836;
+  --color-olive-pale: #EBF0E6;
+
+  /* Bleu Méditerranée */
+  --color-ocean: #2B5F75;
+  --color-ocean-light: #4A849E;
+  --color-ocean-dark: #1A3F52;
+  --color-ocean-pale: #E4EEF3;
+
+  /* Doré soleil */
+  --color-sun: #D4A34A;
+  --color-sun-light: #E8BE72;
+  --color-sun-pale: #FDF3DC;
+
+  /* Neutres */
+  --color-bark: #5C3D2E;
+  --color-bark-light: #7A5544;
+  --color-bark-pale: #F2EBE4;
+  --color-dusk: #2A2016;
+  --color-dusk-muted: #6B5D4E;
+  --color-white: #FFFFFF;
+  --color-white-warm: #FFFDF8;
+
+  /* Fonts */
+  --font-display: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+}
+
+/* ── Base ─────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-sand);
+  color: var(--color-dusk);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--color-olive-light);
+  color: var(--color-white);
+}
+
+/* ── Scrollbar ─────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-sand); }
+::-webkit-scrollbar-thumb { background: var(--color-sand-deep); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-terra-light); }
+
+/* ── Text gradients ────────────────────────── */
+.text-gradient-terra {
+  background: linear-gradient(135deg, var(--color-terra), var(--color-sun));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-ocean {
+  background: linear-gradient(135deg, var(--color-ocean), var(--color-olive));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Organic texture overlay ───────────────── */
+.bg-grain::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Card effects ──────────────────────────── */
+.card-hover {
+  transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+}
+.card-hover:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 24px 48px rgba(90, 61, 46, 0.1);
+}
+
+/* ── Button effects ────────────────────────── */
+.btn-press:active { transform: scale(0.97); }
+
+/* ── FAQ ───────────────────────────────────── */
+.faq-content {
+  overflow: hidden;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+/* ── Leaf SVG decoration (CSS) ─────────────── */
+.leaf-deco {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0.12;
+}
+
+/* ── Wave divider fill ─────────────────────── */
+.fill-sand { fill: var(--color-sand); }
+.fill-sand-warm { fill: var(--color-sand-warm); }
+.fill-linen { fill: var(--color-linen); }
+.fill-white-warm { fill: var(--color-white-warm); }
+
+/* ── Section label pill ────────────────────── */
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: var(--color-olive-pale);
+  border: 1px solid color-mix(in srgb, var(--color-olive) 25%, transparent);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-olive-dark);
+}
+
+.section-label-terra {
+  background: var(--color-terra-pale);
+  border-color: color-mix(in srgb, var(--color-terra) 25%, transparent);
+  color: var(--color-terra-dark);
+}
+
+.section-label-ocean {
+  background: var(--color-ocean-pale);
+  border-color: color-mix(in srgb, var(--color-ocean) 25%, transparent);
+  color: var(--color-ocean-dark);
+}
