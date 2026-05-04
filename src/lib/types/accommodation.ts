@@ -1,4 +1,5 @@
 export type OfferType = "essential" | "comfort";
+export type PlanType = OfferType; // alias
 
 export interface ContactInfo {
   label: string;
@@ -33,6 +34,8 @@ export interface Accommodation {
   slug: string;
   offerType: OfferType;
   isActive: boolean;
+  mustChangePassword?: boolean; // true à la 1ère connexion propriétaire
+  ownerUid?: string; // UID Firebase Auth du propriétaire
   
   owner: {
     name: string;

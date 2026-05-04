@@ -41,6 +41,16 @@ export const getAccommodationBySlug = async (slug: string): Promise<Accommodatio
   return null;
 };
 
+export const getAccommodationByOwnerEmail = async (email: string): Promise<Accommodation | null> => {
+  const q = query(collection(db, COLLECTION_NAME), where("owner.email", "==", email));
+  const querySnapshot = await getDocs(q);
+  if (!querySnapshot.empty) {
+    const docSnap = querySnapshot.docs[0];
+    return { id: docSnap.id, ...docSnap.data() } as Accommodation;
+  }
+  return null;
+};
+
 export const createAccommodation = async (data: Omit<Accommodation, "id" | "createdAt" | "updatedAt">): Promise<string> => {
   const now = Date.now();
   const docRef = await addDoc(collection(db, COLLECTION_NAME), {
