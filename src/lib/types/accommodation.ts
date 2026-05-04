@@ -71,6 +71,12 @@ export interface Accommodation {
   recommendations: Recommendation[];
   pointsOfInterest: PointOfInterest[];
   
+  standardEmergencies?: {
+    samu?: string;
+    pompiers?: string;
+    police?: string;
+    europe?: string;
+  };
   comfortOptions?: {
     enabledLanguages?: string[];
     transports?: string;

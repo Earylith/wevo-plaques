@@ -35,8 +35,7 @@ export default function EditAccommodationPage({ params }: Props) {
         const acc = await getAccommodationById(id);
         if (acc) {
           setData(acc);
-          setOwnerEmail(acc.owner.email || "");
-          setOwnerName(acc.owner.name || "");
+          // On ne pré-remplit plus l'email et le nom pour la création du compte
         } else {
           router.push("/admin/hebergements");
         }
@@ -78,9 +77,15 @@ export default function EditAccommodationPage({ params }: Props) {
         setAccountMessage({ type: "error", text: result.error || "Erreur lors de la création du compte." });
         return;
       }
-      // Stocker l'UID Firebase dans Firestore
-      await updateAccommodation(id, { ownerUid: result.uid, mustChangePassword: true });
-      setData(prev => prev ? { ...prev, ownerUid: result.uid, mustChangePassword: true } : prev);
+      // Stocker l'UID Firebase et mettre à jour l'email du propriétaire dans Firestore
+      const updatedOwner = { ...data!.owner, email: ownerEmail, name: ownerName || data!.owner.name };
+      
+      await updateAccommodation(id, { 
+        ownerUid: result.uid, 
+        mustChangePassword: true,
+        owner: updatedOwner
+      });
+      setData(prev => prev ? { ...prev, ownerUid: result.uid, mustChangePassword: true, owner: updatedOwner } : prev);
       setAccountMessage({ type: "success", text: `Compte créé ! UID : ${result.uid}` });
       setShowCreateForm(false);
       setOwnerPassword("");
@@ -97,17 +102,15 @@ export default function EditAccommodationPage({ params }: Props) {
     setDeletingAccount(true);
     setAccountMessage(null);
     try {
-      const response = await fetch("/api/admin/delete-owner", {
+      const response = await fetch(`/api/admin/delete-owner?uid=${data.ownerUid}`, {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ uid: data.ownerUid }),
       });
       const result = await response.json();
       if (!response.ok) {
         setAccountMessage({ type: "error", text: result.error || "Erreur lors de la suppression." });
         return;
       }
-      await updateAccommodation(id, { ownerUid: undefined, mustChangePassword: undefined });
+      await updateAccommodation(id, { ownerUid: null as any, mustChangePassword: null as any });
       setData(prev => prev ? { ...prev, ownerUid: undefined, mustChangePassword: undefined } : prev);
       setAccountMessage({ type: "success", text: "Compte propriétaire supprimé." });
     } catch {
@@ -200,7 +203,12 @@ export default function EditAccommodationPage({ params }: Props) {
                 <div className="text-center py-4">
                   <p className="text-sm text-[#6B5D4E] mb-4">Aucun compte propriétaire créé pour cet hébergement.</p>
                   <button
-                    onClick={() => setShowCreateForm(true)}
+                    onClick={() => {
+                      setOwnerName("");
+                      setOwnerEmail("");
+                      setOwnerPassword("");
+                      setShowCreateForm(true);
+                    }}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C4714A] text-white font-semibold hover:bg-[#A35A38] transition-colors shadow-sm mx-auto text-sm"
                   >
                     <UserPlus size={18} />

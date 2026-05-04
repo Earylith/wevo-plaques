@@ -462,6 +462,29 @@ export default function AdminAccommodationForm({ initialData, onSubmit, isLoadin
         </button>
       </div>
 
+      {/* Urgences */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
+        <h2 className="text-xl font-bold text-[#2A2016] mb-4">Numéros d'urgence</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-[#6B5D4E] mb-1">SAMU</label>
+            <input type="text" placeholder="Par défaut: 15" value={formData.standardEmergencies?.samu || ""} onChange={(e) => handleChange("standardEmergencies", "samu", e.target.value)} className="w-full px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-[#6B5D4E] mb-1">Pompiers</label>
+            <input type="text" placeholder="Par défaut: 18" value={formData.standardEmergencies?.pompiers || ""} onChange={(e) => handleChange("standardEmergencies", "pompiers", e.target.value)} className="w-full px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-[#6B5D4E] mb-1">Police</label>
+            <input type="text" placeholder="Par défaut: 17" value={formData.standardEmergencies?.police || ""} onChange={(e) => handleChange("standardEmergencies", "police", e.target.value)} className="w-full px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-[#6B5D4E] mb-1">Europe</label>
+            <input type="text" placeholder="Par défaut: 112" value={formData.standardEmergencies?.europe || ""} onChange={(e) => handleChange("standardEmergencies", "europe", e.target.value)} className="w-full px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white" />
+          </div>
+        </div>
+      </div>
+
       {/* Règles */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
         <h2 className="text-xl font-bold text-[#2A2016] mb-4">Règles du logement</h2>

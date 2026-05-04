@@ -212,41 +212,56 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
                   </p>
                   
                   <div className="grid grid-cols-2 gap-3 mb-6 text-center">
-                    <a href="tel:15" className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
+                    <a href={`tel:${data.standardEmergencies?.samu || "15"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
                       <Siren size={20} className="text-red-500 mb-1" />
                       <span className="text-[10px] uppercase font-bold text-red-700">SAMU</span>
-                      <span className="text-sm font-bold text-red-600">15</span>
+                      <span className="text-sm font-bold text-red-600">{data.standardEmergencies?.samu || "15"}</span>
                     </a>
-                    <a href="tel:18" className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
+                    <a href={`tel:${data.standardEmergencies?.pompiers || "18"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
                       <FirstAid size={20} className="text-red-500 mb-1" />
                       <span className="text-[10px] uppercase font-bold text-red-700">Pompiers</span>
-                      <span className="text-sm font-bold text-red-600">18</span>
+                      <span className="text-sm font-bold text-red-600">{data.standardEmergencies?.pompiers || "18"}</span>
                     </a>
-                    <a href="tel:17" className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
+                    <a href={`tel:${data.standardEmergencies?.police || "17"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
                       <PoliceCar size={20} className="text-red-500 mb-1" />
                       <span className="text-[10px] uppercase font-bold text-red-700">Police</span>
-                      <span className="text-sm font-bold text-red-600">17</span>
+                      <span className="text-sm font-bold text-red-600">{data.standardEmergencies?.police || "17"}</span>
                     </a>
-                    <a href="tel:112" className="flex flex-col items-center p-3 rounded-2xl bg-red-600 border border-red-700">
+                    <a href={`tel:${data.standardEmergencies?.europe || "112"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-600 border border-red-700">
                       <Warning size={20} className="text-white mb-1" />
                       <span className="text-[10px] uppercase font-bold text-white/80">Europe</span>
-                      <span className="text-sm font-bold text-white">112</span>
+                      <span className="text-sm font-bold text-white">{data.standardEmergencies?.europe || "112"}</span>
                     </a>
                   </div>
 
                   <div className="space-y-3">
                     <p className="text-xs font-bold text-[#6B5D4E] uppercase tracking-widest">Urgence logement</p>
-                    <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
-                      <div className="flex items-center gap-3">
-                        <House size={20} className="text-[#C4714A]" />
-                        <span className="text-sm font-semibold">Contact Hôte</span>
+                    {data.contacts?.filter(c => c.type === 'owner').map((ownerContact, idx) => (
+                      <div key={`owner-${idx}`} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <House size={20} className="text-[#C4714A]" />
+                          <span className="text-sm font-semibold">{ownerContact.label || "Contact Hôte"}</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <a href={`tel:${ownerContact.phone.replace(/\s+/g, '')}`} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-[#EDD9A3] text-[#C4714A]">
+                            <Phone size={16} weight="bold" />
+                          </a>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <a href={`tel:${data.owner.phone}`} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-[#EDD9A3] text-[#C4714A]">
-                          <Phone size={16} weight="bold" />
-                        </a>
+                    ))}
+                    {(!data.contacts || !data.contacts.some(c => c.type === 'owner')) && data.owner.phone && (
+                      <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                        <div className="flex items-center gap-3">
+                          <House size={20} className="text-[#C4714A]" />
+                          <span className="text-sm font-semibold">Contact Hôte</span>
+                        </div>
+                        <div className="flex gap-2">
+                          <a href={`tel:${data.owner.phone}`} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-[#EDD9A3] text-[#C4714A]">
+                            <Phone size={16} weight="bold" />
+                          </a>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </MobileAccordion>

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Accommodation, ContactInfo, Recommendation } from "@/lib/types/accommodation";
-import { WifiHigh, Clock, ListChecks, Phone, Star, MapPin, Question, Plus, Trash } from "@phosphor-icons/react";
+import { Accommodation, OfferType, ContactInfo, Recommendation } from "@/lib/types/accommodation";
+import { Plus, Trash, Image as ImageIcon } from "@phosphor-icons/react";
+import { uploadImage } from "@/lib/firebase/storage";
 
 interface Props {
   initialData: Accommodation;
@@ -10,348 +11,599 @@ interface Props {
   isLoading: boolean;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
-  return (
-    <div className="bg-white rounded-2xl border border-[#EDD9A3]/40 shadow-sm overflow-hidden mb-6">
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-[#EDD9A3]/30 bg-[#FBF5EC]">
-        <span className="text-[#C4714A]">{icon}</span>
-        <h3 className="font-semibold text-[#2A2016]">{title}</h3>
-      </div>
-      <div className="p-6 space-y-4">{children}</div>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-[#6B5D4E] uppercase tracking-wider mb-1.5">{label}</label>
-      {children}
-    </div>
-  );
-}
-
-const inputCls = "w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/40 bg-[#FBF5EC] text-[#2A2016] text-sm placeholder-[#B0A090]";
-
-// ─── Main Component ───────────────────────────────────────────────────────────
-
 export default function OwnerAccommodationForm({ initialData, onSubmit, isLoading }: Props) {
   const isComfort = initialData.offerType === "comfort";
 
-  // ── WiFi ──────────────────────────────────────────────────────────────────
-  const [wifiSsid, setWifiSsid] = useState(initialData.wifi.ssid);
-  const [wifiPassword, setWifiPassword] = useState(initialData.wifi.password || "");
+  const [formData, setFormData] = useState<Partial<Accommodation>>({
+    owner: initialData.owner || { name: "", email: "", phone: "" },
+    property: initialData.property || { name: "", type: "", city: "", address: "", welcomeMessage: "" },
+    wifi: initialData.wifi || { ssid: "", password: "" },
+    practicalInfo: initialData.practicalInfo || { checkin: "", checkout: "" },
+    rules: initialData.rules || [""],
+    contacts: initialData.contacts || [],
+    recommendations: initialData.recommendations || [],
+    comfortOptions: initialData.comfortOptions || {
+      transports: "",
+      faq: [],
+      theme: { primaryColor: "#C4714A" }
+    }
+  });
 
-  // ── Practical Info ────────────────────────────────────────────────────────
-  const [checkin, setCheckin] = useState(initialData.practicalInfo.checkin);
-  const [checkout, setCheckout] = useState(initialData.practicalInfo.checkout);
-  const [parking, setParking] = useState(initialData.practicalInfo.parking || "");
-  const [breakfast, setBreakfast] = useState(initialData.practicalInfo.breakfast || "");
+  const handleChange = (section: keyof Accommodation, field: string, value: any) => {
+    if (section === "comfortOptions") {
+      setFormData((prev) => ({
+        ...prev,
+        comfortOptions: {
+          ...prev.comfortOptions,
+          [field]: value,
+        }
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [section]: {
+          ...(prev[section] as any),
+          [field]: value,
+        },
+      }));
+    }
+  };
 
-  // ── Rules ─────────────────────────────────────────────────────────────────
-  const [rules, setRules] = useState<string[]>(initialData.rules || []);
+  const handleNestedChange = (section: "comfortOptions", subSection: "theme", field: string, value: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      comfortOptions: {
+        ...prev.comfortOptions,
+        [subSection]: {
+          ...prev.comfortOptions?.[subSection],
+          [field]: value
+        }
+      }
+    }));
+  };
 
-  // ── Contacts ──────────────────────────────────────────────────────────────
-  const [contacts, setContacts] = useState<ContactInfo[]>(initialData.contacts || []);
+  const handleArrayChange = (section: "rules", index: number, value: string) => {
+    const newArray = [...(formData[section] || [])];
+    newArray[index] = value;
+    setFormData((prev) => ({ ...prev, [section]: newArray }));
+  };
 
-  // ── Recommendations (Comfort only) ────────────────────────────────────────
-  const [recommendations, setRecommendations] = useState<Recommendation[]>(initialData.recommendations || []);
+  const handleComplexArrayChange = (section: "contacts" | "recommendations", index: number, field: string, value: any) => {
+    const newArray = formData[section] ? [...(formData[section] as any[])] : [];
+    newArray[index] = { ...newArray[index], [field]: value };
+    setFormData((prev) => ({ ...prev, [section]: newArray }));
+  };
 
-  // ── FAQ (Comfort only) ────────────────────────────────────────────────────
-  const [faq, setFaq] = useState<{ question: string; answer: string }[]>(
-    initialData.comfortOptions?.faq || []
-  );
+  const handleFaqChange = (index: number, field: "question" | "answer", value: string) => {
+    const newFaq = [...(formData.comfortOptions?.faq || [])];
+    newFaq[index] = { ...newFaq[index], [field]: value };
+    setFormData((prev) => ({
+      ...prev,
+      comfortOptions: { ...prev.comfortOptions, faq: newFaq }
+    }));
+  };
 
-  // ── Welcome Message ───────────────────────────────────────────────────────
-  const [welcomeMessage, setWelcomeMessage] = useState(initialData.property.welcomeMessage);
+  const addArrayItem = (section: string) => {
+    if (section === "rules") {
+      setFormData((prev) => ({ ...prev, rules: [...(prev.rules || []), ""] }));
+    } else if (section === "contacts") {
+      setFormData((prev) => ({ ...prev, contacts: [...(prev.contacts || []), { label: "", name: "", phone: "", email: "", whatsapp: "", type: "other" }] }));
+    } else if (section === "recommendations") {
+      setFormData((prev) => ({ ...prev, recommendations: [...(prev.recommendations || []), { title: "", category: "", type: "restaurant" as const, description: "" }] }));
+    } else if (section === "faq") {
+      setFormData((prev) => ({
+        ...prev,
+        comfortOptions: { ...prev.comfortOptions, faq: [...(prev.comfortOptions?.faq || []), { question: "", answer: "" }] }
+      }));
+    }
+  };
 
-  // ── Submit ────────────────────────────────────────────────────────────────
-  const handleSubmit = async (e: React.FormEvent) => {
+  const removeArrayItem = (section: string, index: number) => {
+    if (section === "faq") {
+      const newFaq = [...(formData.comfortOptions?.faq || [])];
+      newFaq.splice(index, 1);
+      setFormData((prev) => ({
+        ...prev,
+        comfortOptions: { ...prev.comfortOptions, faq: newFaq }
+      }));
+      return;
+    }
+    const newArray = [...(formData[section as keyof Accommodation] as any[])];
+    newArray.splice(index, 1);
+    setFormData((prev) => ({ ...prev, [section]: newArray }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const payload: Partial<Accommodation> = {
-      property: { ...initialData.property, welcomeMessage },
-      wifi: { ssid: wifiSsid, password: wifiPassword },
-      practicalInfo: { checkin, checkout, parking, breakfast },
-      rules: rules.filter(r => r.trim()),
-      contacts,
-      recommendations,
-      comfortOptions: isComfort
-        ? { ...initialData.comfortOptions, faq }
-        : initialData.comfortOptions,
+    // Nettoyer les tableaux vides
+    const payload = {
+      ...formData,
+      rules: formData.rules?.filter(r => r.trim()) || [],
     };
-    await onSubmit(payload);
+    onSubmit(payload);
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      {/* Message d'accueil */}
-      <Section icon={<WifiHigh size={20} />} title="Message d'accueil">
-        <Field label="Message de bienvenue">
-          <textarea
-            rows={3}
-            value={welcomeMessage}
-            onChange={e => setWelcomeMessage(e.target.value)}
-            className={inputCls + " resize-none"}
-            placeholder="Bienvenue dans notre logement…"
+    <form onSubmit={handleSubmit} className="space-y-8 pb-24">
+      {/* Propriétaire */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
+        <h2 className="text-xl font-bold text-[#2A2016] mb-4">Vos informations</h2>
+        <div className="grid sm:grid-cols-3 gap-4">
+          <input
+            type="text"
+            placeholder="Nom complet"
+            value={formData.owner?.name || ""}
+            onChange={(e) => handleChange("owner", "name", e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+            required
           />
-        </Field>
-      </Section>
-
-      {/* WiFi */}
-      <Section icon={<WifiHigh size={20} />} title="WiFi">
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Nom du réseau (SSID)">
-            <input type="text" value={wifiSsid} onChange={e => setWifiSsid(e.target.value)} className={inputCls} placeholder="MonWifi" />
-          </Field>
-          <Field label="Mot de passe">
-            <input type="text" value={wifiPassword} onChange={e => setWifiPassword(e.target.value)} className={inputCls} placeholder="••••••••" />
-          </Field>
+          <input
+            type="email"
+            placeholder="Email (contact)"
+            value={formData.owner?.email || ""}
+            onChange={(e) => handleChange("owner", "email", e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+            required
+          />
+          <input
+            type="text"
+            placeholder="Téléphone"
+            value={formData.owner?.phone || ""}
+            onChange={(e) => handleChange("owner", "phone", e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+          />
         </div>
-      </Section>
+      </div>
 
-      {/* Infos pratiques */}
-      <Section icon={<Clock size={20} />} title="Informations pratiques">
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Check-in">
-            <input type="text" value={checkin} onChange={e => setCheckin(e.target.value)} className={inputCls} placeholder="Dès 15h00" />
-          </Field>
-          <Field label="Check-out">
-            <input type="text" value={checkout} onChange={e => setCheckout(e.target.value)} className={inputCls} placeholder="Avant 11h00" />
-          </Field>
-          <Field label="Parking">
-            <input type="text" value={parking} onChange={e => setParking(e.target.value)} className={inputCls} placeholder="Parking gratuit devant…" />
-          </Field>
-          <Field label="Petit-déjeuner">
-            <input type="text" value={breakfast} onChange={e => setBreakfast(e.target.value)} className={inputCls} placeholder="Non inclus / Inclus…" />
-          </Field>
+      {/* Logement */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
+        <h2 className="text-xl font-bold text-[#2A2016] mb-4">Le logement</h2>
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-[#6B5D4E] mb-1">Nom du logement</label>
+          <input
+            type="text"
+            value={formData.property?.name || ""}
+            onChange={(e) => handleChange("property", "name", e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+            required
+          />
         </div>
-      </Section>
+        
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-[#6B5D4E] mb-1">Message de bienvenue</label>
+          <textarea
+            value={formData.property?.welcomeMessage || ""}
+            onChange={(e) => handleChange("property", "welcomeMessage", e.target.value)}
+            rows={3}
+            className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+            required
+          />
+        </div>
 
-      {/* Règles */}
-      <Section icon={<ListChecks size={20} />} title="Règles du logement">
-        <div className="space-y-2">
-          {rules.map((rule, i) => (
-            <div key={i} className="flex items-center gap-2">
+        <div className="grid sm:grid-cols-3 gap-4">
+           <div>
+            <label className="block text-sm font-medium text-[#6B5D4E] mb-1">Type (ex: Villa)</label>
+            <input
+              type="text"
+              value={formData.property?.type || ""}
+              onChange={(e) => handleChange("property", "type", e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+            />
+          </div>
+           <div>
+            <label className="block text-sm font-medium text-[#6B5D4E] mb-1">Ville</label>
+            <input
+              type="text"
+              value={formData.property?.city || ""}
+              onChange={(e) => handleChange("property", "city", e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-[#6B5D4E] mb-1">Image principale</label>
+            <div className="flex gap-2 items-center">
+              {formData.property?.mainImageUrl && (
+                <img src={formData.property.mainImageUrl} alt="Main" className="w-10 h-10 rounded object-cover shrink-0" />
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    try {
+                      const url = await uploadImage(file, "accommodations/main");
+                      handleChange("property", "mainImageUrl", url);
+                    } catch (err) {
+                      console.error(err);
+                      alert("Erreur lors de l'upload");
+                    }
+                  }
+                }}
+                className="w-full px-2 py-1.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC] text-sm file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-[#C4714A]/10 file:text-[#C4714A] hover:file:bg-[#C4714A]/20"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-sm font-medium text-[#6B5D4E] mb-1">Adresse (pour le bouton itinéraire)</label>
+          <input
+            type="text"
+            placeholder="Ex: 5 rue de la Paix, 37000 Tours"
+            value={formData.property?.address || ""}
+            onChange={(e) => handleChange("property", "address", e.target.value)}
+            className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+          />
+        </div>
+      </div>
+
+      {/* Wifi & Infos pratiques */}
+      <div className="grid lg:grid-cols-2 gap-8">
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
+          <h2 className="text-xl font-bold text-[#2A2016] mb-4">Wi-Fi</h2>
+          <div className="space-y-4">
+            <input
+              type="text"
+              placeholder="Nom du réseau (SSID)"
+              value={formData.wifi?.ssid || ""}
+              onChange={(e) => handleChange("wifi", "ssid", e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+              required
+            />
+            <input
+              type="text"
+              placeholder="Mot de passe"
+              value={formData.wifi?.password || ""}
+              onChange={(e) => handleChange("wifi", "password", e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+            />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
+          <h2 className="text-xl font-bold text-[#2A2016] mb-4">Infos pratiques</h2>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <input
                 type="text"
-                value={rule}
-                onChange={e => {
-                  const updated = [...rules];
-                  updated[i] = e.target.value;
-                  setRules(updated);
-                }}
-                className={inputCls}
-                placeholder={`Règle ${i + 1}`}
+                placeholder="Heure d'arrivée (ex: 15h00)"
+                value={formData.practicalInfo?.checkin || ""}
+                onChange={(e) => handleChange("practicalInfo", "checkin", e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+                required
               />
-              <button
-                type="button"
-                onClick={() => setRules(rules.filter((_, idx) => idx !== i))}
-                className="text-red-400 hover:text-red-600 p-1 shrink-0"
-              >
+              <input
+                type="text"
+                placeholder="Heure de départ (ex: 11h00)"
+                value={formData.practicalInfo?.checkout || ""}
+                onChange={(e) => handleChange("practicalInfo", "checkout", e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Stationnement"
+                value={formData.practicalInfo?.parking || ""}
+                onChange={(e) => handleChange("practicalInfo", "parking", e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+              />
+              <input
+                type="text"
+                placeholder="Petit-déjeuner"
+                value={formData.practicalInfo?.breakfast || ""}
+                onChange={(e) => handleChange("practicalInfo", "breakfast", e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contacts */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
+        <h2 className="text-xl font-bold text-[#2A2016] mb-4">Contacts utiles</h2>
+        <div className="space-y-4 mb-4">
+          {formData.contacts?.map((contact, index) => (
+            <div key={index} className="flex flex-wrap sm:flex-nowrap gap-2 bg-[#FBF5EC] p-3 rounded-xl border border-[#EDD9A3]/50">
+              <div className="w-full grid sm:grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="Label (ex: Propriétaire)"
+                  value={contact.label}
+                  onChange={(e) => handleComplexArrayChange("contacts", index, "label", e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white"
+                />
+                <input
+                  type="text"
+                  placeholder="Nom"
+                  value={contact.name}
+                  onChange={(e) => handleComplexArrayChange("contacts", index, "name", e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white"
+                />
+                <input
+                  type="text"
+                  placeholder="Téléphone"
+                  value={contact.phone}
+                  onChange={(e) => handleComplexArrayChange("contacts", index, "phone", e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white"
+                />
+                <input
+                  type="email"
+                  placeholder="Email (optionnel)"
+                  value={contact.email || ""}
+                  onChange={(e) => handleComplexArrayChange("contacts", index, "email", e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white"
+                />
+                <input
+                  type="text"
+                  placeholder="WhatsApp (optionnel, ex: +336...)"
+                  value={contact.whatsapp || ""}
+                  onChange={(e) => handleComplexArrayChange("contacts", index, "whatsapp", e.target.value)}
+                  className="flex-1 px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white"
+                />
+                <select
+                  value={contact.type}
+                  onChange={(e) => handleComplexArrayChange("contacts", index, "type", e.target.value)}
+                  className="px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white"
+                >
+                  <option value="owner">Propriétaire</option>
+                  <option value="emergency">Urgence</option>
+                  <option value="service">Service/Concierge</option>
+                  <option value="other">Autre</option>
+                </select>
+              </div>
+              <button type="button" onClick={() => removeArrayItem("contacts", index)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg self-start">
                 <Trash size={18} />
               </button>
             </div>
           ))}
-          <button
-            type="button"
-            onClick={() => setRules([...rules, ""])}
-            className="flex items-center gap-2 text-sm text-[#C4714A] hover:text-[#A35A38] font-medium mt-1"
-          >
-            <Plus size={16} /> Ajouter une règle
-          </button>
         </div>
-      </Section>
+        <button type="button" onClick={() => addArrayItem("contacts")} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#5A7A4E] bg-[#EBF0E6] rounded-lg hover:bg-[#DCE6D5] transition-colors">
+          <Plus size={16} /> Ajouter un contact
+        </button>
+      </div>
 
-      {/* Contacts */}
-      <Section icon={<Phone size={20} />} title="Contacts">
-        <div className="space-y-4">
-          {contacts.map((contact, i) => (
-            <div key={i} className="p-4 rounded-xl border border-[#EDD9A3]/60 bg-[#FBF5EC]/50 space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Nom">
-                  <input type="text" value={contact.name} onChange={e => {
-                    const updated = [...contacts];
-                    updated[i] = { ...updated[i], name: e.target.value };
-                    setContacts(updated);
-                  }} className={inputCls} placeholder="Jean Dupont" />
-                </Field>
-                <Field label="Rôle">
-                  <input type="text" value={contact.label} onChange={e => {
-                    const updated = [...contacts];
-                    updated[i] = { ...updated[i], label: e.target.value };
-                    setContacts(updated);
-                  }} className={inputCls} placeholder="Propriétaire" />
-                </Field>
-                <Field label="Téléphone">
-                  <input type="tel" value={contact.phone} onChange={e => {
-                    const updated = [...contacts];
-                    updated[i] = { ...updated[i], phone: e.target.value };
-                    setContacts(updated);
-                  }} className={inputCls} placeholder="+33 6 00 00 00 00" />
-                </Field>
-                <Field label="Email (optionnel)">
-                  <input type="email" value={contact.email || ""} onChange={e => {
-                    const updated = [...contacts];
-                    updated[i] = { ...updated[i], email: e.target.value };
-                    setContacts(updated);
-                  }} className={inputCls} placeholder="contact@email.com" />
-                </Field>
-              </div>
-              <button
-                type="button"
-                onClick={() => setContacts(contacts.filter((_, idx) => idx !== i))}
-                className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600"
-              >
-                <Trash size={14} /> Supprimer ce contact
+      {/* Urgences */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
+        <h2 className="text-xl font-bold text-[#2A2016] mb-4">Numéros d'urgence</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-[#6B5D4E] mb-1">SAMU</label>
+            <input type="text" placeholder="Par défaut: 15" value={formData.standardEmergencies?.samu || ""} onChange={(e) => handleChange("standardEmergencies", "samu", e.target.value)} className="w-full px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-[#6B5D4E] mb-1">Pompiers</label>
+            <input type="text" placeholder="Par défaut: 18" value={formData.standardEmergencies?.pompiers || ""} onChange={(e) => handleChange("standardEmergencies", "pompiers", e.target.value)} className="w-full px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-[#6B5D4E] mb-1">Police</label>
+            <input type="text" placeholder="Par défaut: 17" value={formData.standardEmergencies?.police || ""} onChange={(e) => handleChange("standardEmergencies", "police", e.target.value)} className="w-full px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-[#6B5D4E] mb-1">Europe</label>
+            <input type="text" placeholder="Par défaut: 112" value={formData.standardEmergencies?.europe || ""} onChange={(e) => handleChange("standardEmergencies", "europe", e.target.value)} className="w-full px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white" />
+          </div>
+        </div>
+      </div>
+
+      {/* Règles */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
+        <h2 className="text-xl font-bold text-[#2A2016] mb-4">Règles du logement</h2>
+        <div className="space-y-3 mb-4">
+          {formData.rules?.map((rule, index) => (
+            <div key={index} className="flex gap-2">
+              <input
+                type="text"
+                value={rule}
+                onChange={(e) => handleArrayChange("rules", index, e.target.value)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
+                placeholder="Règle (ex: Animaux non autorisés)"
+              />
+              <button type="button" onClick={() => removeArrayItem("rules", index)} className="p-2 text-red-500 hover:bg-red-50 rounded-xl">
+                <Trash size={20} />
               </button>
             </div>
           ))}
-          <button
-            type="button"
-            onClick={() => setContacts([...contacts, { label: "", name: "", phone: "", type: "other" }])}
-            className="flex items-center gap-2 text-sm text-[#C4714A] hover:text-[#A35A38] font-medium"
-          >
-            <Plus size={16} /> Ajouter un contact
+        </div>
+        <button type="button" onClick={() => addArrayItem("rules")} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#5A7A4E] bg-[#EBF0E6] rounded-lg hover:bg-[#DCE6D5] transition-colors">
+          <Plus size={16} /> Ajouter une règle
+        </button>
+      </div>
+
+      {/* Recommandations */}
+      <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
+        <h2 className="text-xl font-bold text-[#2A2016] mb-4">Recommandations & Adresses</h2>
+        <div className="space-y-4 mb-4">
+          {formData.recommendations?.map((rec, index) => (
+              <div key={index} className="bg-[#FBF5EC] p-4 rounded-xl border border-[#EDD9A3]/50 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="grid sm:grid-cols-2 gap-3 w-full mr-4">
+                    <input
+                      type="text"
+                      placeholder="Titre (ex: La Pizzeria du Coin)"
+                      value={rec.title}
+                      onChange={(e) => handleComplexArrayChange("recommendations", index, "title", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Catégorie (ex: Restaurant)"
+                      value={rec.category}
+                      onChange={(e) => handleComplexArrayChange("recommendations", index, "category", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Distance (ex: 5 min à pied)"
+                      value={rec.distance || ""}
+                      onChange={(e) => handleComplexArrayChange("recommendations", index, "distance", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Lien Google Maps"
+                      value={rec.mapsUrl || ""}
+                      onChange={(e) => handleComplexArrayChange("recommendations", index, "mapsUrl", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white"
+                    />
+                    <div>
+                      <label className="block text-xs font-medium text-[#6B5D4E] mb-1">Type de rubrique</label>
+                      <select
+                        value={rec.type || "restaurant"}
+                        onChange={(e) => handleComplexArrayChange("recommendations", index, "type", e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white"
+                      >
+                        <option value="restaurant">🍽️ Restaurant / Bar / Café</option>
+                        <option value="decouvrir">🗺️ À découvrir / Activité</option>
+                      </select>
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Site web (optionnel)"
+                      value={rec.websiteUrl || ""}
+                      onChange={(e) => handleComplexArrayChange("recommendations", index, "websiteUrl", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white"
+                    />
+                    <textarea
+                      placeholder="Description courte..."
+                      value={rec.description}
+                      onChange={(e) => handleComplexArrayChange("recommendations", index, "description", e.target.value)}
+                      className="w-full sm:col-span-2 px-3 py-2 rounded-lg border border-[#EDD9A3] text-sm bg-white"
+                      rows={2}
+                    />
+                    {isComfort && (
+                      <div className="w-full sm:col-span-2">
+                        <label className="block text-xs font-medium text-[#6B5D4E] mb-1">Image d'illustration</label>
+                        <div className="flex gap-2 items-center">
+                          {rec.imageUrl && (
+                            <img src={rec.imageUrl} alt="Rec" className="w-8 h-8 rounded object-cover shrink-0" />
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                try {
+                                  const url = await uploadImage(file, "accommodations/recs");
+                                  handleComplexArrayChange("recommendations", index, "imageUrl", url);
+                                } catch (err) {
+                                  alert("Erreur upload");
+                                }
+                              }
+                            }}
+                            className="w-full px-2 py-1 rounded-lg border border-[#EDD9A3] text-sm bg-white file:mr-2 file:py-1 file:px-2 file:rounded-full file:border-0 file:text-[10px] file:font-semibold file:bg-[#C4714A]/10 file:text-[#C4714A]"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <button type="button" onClick={() => removeArrayItem("recommendations", index)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg shrink-0">
+                    <Trash size={18} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={() => addArrayItem("recommendations")} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#5A7A4E] bg-[#EBF0E6] rounded-lg hover:bg-[#DCE6D5] transition-colors">
+            <Plus size={16} /> Ajouter une adresse
           </button>
         </div>
-      </Section>
 
-      {/* ── Sections Confort uniquement ───────────────────────────────────────── */}
-      {isComfort && (
-        <>
-          {/* Recommandations */}
-          <Section icon={<MapPin size={20} />} title="Recommandations">
-            <div className="space-y-4">
-              {recommendations.map((rec, i) => (
-                <div key={i} className="p-4 rounded-xl border border-[#EDD9A3]/60 bg-[#FBF5EC]/50 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <Field label="Nom">
-                      <input type="text" value={rec.title} onChange={e => {
-                        const updated = [...recommendations];
-                        updated[i] = { ...updated[i], title: e.target.value };
-                        setRecommendations(updated);
-                      }} className={inputCls} placeholder="Le Bistrot du Coin" />
-                    </Field>
-                    <Field label="Catégorie">
-                      <input type="text" value={rec.category} onChange={e => {
-                        const updated = [...recommendations];
-                        updated[i] = { ...updated[i], category: e.target.value };
-                        setRecommendations(updated);
-                      }} className={inputCls} placeholder="Restaurant, Musée…" />
-                    </Field>
-                    <Field label="Description">
-                      <input type="text" value={rec.description} onChange={e => {
-                        const updated = [...recommendations];
-                        updated[i] = { ...updated[i], description: e.target.value };
-                        setRecommendations(updated);
-                      }} className={inputCls} placeholder="Notre coup de cœur…" />
-                    </Field>
-                    <Field label="Distance">
-                      <input type="text" value={rec.distance || ""} onChange={e => {
-                        const updated = [...recommendations];
-                        updated[i] = { ...updated[i], distance: e.target.value };
-                        setRecommendations(updated);
-                      }} className={inputCls} placeholder="5 min à pied" />
-                    </Field>
-                    <Field label="Lien Google Maps">
-                      <input type="url" value={rec.mapsUrl || ""} onChange={e => {
-                        const updated = [...recommendations];
-                        updated[i] = { ...updated[i], mapsUrl: e.target.value };
-                        setRecommendations(updated);
-                      }} className={inputCls} placeholder="https://maps.google.com/…" />
-                    </Field>
-                    <Field label="Site web">
-                      <input type="url" value={rec.websiteUrl || ""} onChange={e => {
-                        const updated = [...recommendations];
-                        updated[i] = { ...updated[i], websiteUrl: e.target.value };
-                        setRecommendations(updated);
-                      }} className={inputCls} placeholder="https://…" />
-                    </Field>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setRecommendations(recommendations.filter((_, idx) => idx !== i))}
-                    className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600"
-                  >
-                    <Trash size={14} /> Supprimer
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => setRecommendations([...recommendations, { title: "", category: "", description: "" }])}
-                className="flex items-center gap-2 text-sm text-[#C4714A] hover:text-[#A35A38] font-medium"
-              >
-                <Plus size={16} /> Ajouter une recommandation
-              </button>
+      {/* Options Confort (Premium) ou Bandeau Essentiel */}
+      {isComfort ? (
+        <div className="bg-[#2A2016] text-white rounded-3xl p-6 shadow-md border border-[#D4A34A]/30">
+          <h2 className="text-xl font-bold text-[#E8BE72] mb-4">Options Offre Confort</h2>
+          
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1">Couleur Principale (Thème)</label>
+              <div className="flex gap-3">
+                <input
+                  type="color"
+                  value={formData.comfortOptions?.theme?.primaryColor || "#C4714A"}
+                  onChange={(e) => handleNestedChange("comfortOptions", "theme", "primaryColor", e.target.value)}
+                  className="w-12 h-10 rounded cursor-pointer border-0 p-0"
+                />
+                <input
+                  type="text"
+                  value={formData.comfortOptions?.theme?.primaryColor || "#C4714A"}
+                  onChange={(e) => handleNestedChange("comfortOptions", "theme", "primaryColor", e.target.value)}
+                  className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm w-32"
+                />
+              </div>
             </div>
-          </Section>
 
-          {/* FAQ */}
-          <Section icon={<Question size={20} />} title="FAQ — Questions fréquentes">
-            <div className="space-y-4">
-              {faq.map((item, i) => (
-                <div key={i} className="p-4 rounded-xl border border-[#EDD9A3]/60 bg-[#FBF5EC]/50 space-y-3">
-                  <Field label="Question">
-                    <input type="text" value={item.question} onChange={e => {
-                      const updated = [...faq];
-                      updated[i] = { ...updated[i], question: e.target.value };
-                      setFaq(updated);
-                    }} className={inputCls} placeholder="Y a-t-il une machine à laver ?" />
-                  </Field>
-                  <Field label="Réponse">
-                    <textarea rows={2} value={item.answer} onChange={e => {
-                      const updated = [...faq];
-                      updated[i] = { ...updated[i], answer: e.target.value };
-                      setFaq(updated);
-                    }} className={inputCls + " resize-none"} placeholder="Oui, elle se trouve…" />
-                  </Field>
-                  <button
-                    type="button"
-                    onClick={() => setFaq(faq.filter((_, idx) => idx !== i))}
-                    className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600"
-                  >
-                    <Trash size={14} /> Supprimer
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => setFaq([...faq, { question: "", answer: "" }])}
-                className="flex items-center gap-2 text-sm text-[#C4714A] hover:text-[#A35A38] font-medium"
-              >
+            <div>
+              <label className="block text-sm font-medium text-white/70 mb-1">Accès & Transports</label>
+              <textarea
+                value={formData.comfortOptions?.transports || ""}
+                onChange={(e) => handleChange("comfortOptions", "transports", e.target.value)}
+                rows={3}
+                placeholder="Comment venir depuis la gare, aéroport, métro..."
+                className="w-full px-4 py-2.5 rounded-xl border border-white/20 bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#D4A34A]"
+              />
+            </div>
+
+            <div>
+              <h3 className="text-lg font-medium text-white mb-3">Foire Aux Questions (FAQ)</h3>
+              <div className="space-y-4 mb-4">
+                {formData.comfortOptions?.faq?.map((item, index) => (
+                  <div key={index} className="bg-white/5 p-4 rounded-xl border border-white/10 flex gap-3">
+                    <div className="flex-1 space-y-3">
+                      <input
+                        type="text"
+                        placeholder="Question"
+                        value={item.question}
+                        onChange={(e) => handleFaqChange(index, "question", e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-white/20 bg-transparent text-sm"
+                      />
+                      <textarea
+                        placeholder="Réponse"
+                        value={item.answer}
+                        onChange={(e) => handleFaqChange(index, "answer", e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-white/20 bg-transparent text-sm"
+                        rows={2}
+                      />
+                    </div>
+                    <button type="button" onClick={() => removeArrayItem("faq", index)} className="p-2 text-red-400 hover:bg-white/5 rounded-lg h-fit">
+                      <Trash size={18} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={() => addArrayItem("faq")} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#2A2016] bg-[#E8BE72] rounded-lg hover:bg-[#D4A34A] transition-colors">
                 <Plus size={16} /> Ajouter une question
               </button>
             </div>
-          </Section>
-        </>
-      )}
-
-      {/* Confort badge si essentiel */}
-      {!isComfort && (
-        <div className="bg-[#FDF3DC] border border-[#EDD9A3] rounded-2xl p-5 mb-6 flex items-start gap-3">
-          <Star size={20} className="text-[#D4A34A] shrink-0 mt-0.5" weight="fill" />
+          </div>
+        </div>
+      ) : (
+        <div className="bg-[#FDF3DC] border border-[#EDD9A3] rounded-3xl p-6 mb-6 flex items-start gap-3 shadow-sm">
+          <Star size={24} className="text-[#D4A34A] shrink-0 mt-0.5" weight="fill" />
           <div>
-            <p className="font-semibold text-[#A07828] text-sm">Passez au pack Confort</p>
-            <p className="text-xs text-[#B08A30] mt-0.5">
-              Débloquez les recommandations, FAQ, points d&apos;intérêt et la personnalisation avancée en contactant WEVO.
+            <p className="font-bold text-[#A07828] text-lg">Passez au pack Confort</p>
+            <p className="text-sm text-[#B08A30] mt-1">
+              Débloquez l'ajout d'images dans vos recommandations, la FAQ, les informations de transports et la personnalisation avancée (couleurs) en contactant l'équipe WEVO.
             </p>
           </div>
         </div>
       )}
 
-      {/* Submit */}
-      <div className="flex justify-end">
+      {/* Bouton de sauvegarde */}
+      <div className="fixed bottom-0 left-0 md:left-64 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-gray-200 flex justify-end z-50">
         <button
           type="submit"
           disabled={isLoading}
-          className="px-8 py-3 rounded-xl bg-[#C4714A] text-white font-semibold hover:bg-[#A35A38] transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+          className="px-8 py-3 rounded-xl bg-[#C4714A] text-white font-bold hover:bg-[#A35A38] transition-colors shadow-lg disabled:opacity-50"
         >
-          {isLoading ? "Enregistrement…" : "Enregistrer les modifications"}
+          {isLoading ? "Enregistrement..." : "Enregistrer les modifications"}
         </button>
       </div>
     </form>
   );
 }
+

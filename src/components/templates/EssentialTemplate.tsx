@@ -163,34 +163,48 @@ export default function EssentialTemplate({ data }: { data: Accommodation }) {
             </div>
             
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-              <a href="tel:15" className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
+              <a href={`tel:${data.standardEmergencies?.samu || "15"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
                 <span className="text-[10px] font-bold text-red-700 mb-1">SAMU</span>
-                <span className="text-base font-bold text-red-600">15</span>
+                <span className="text-base font-bold text-red-600">{data.standardEmergencies?.samu || "15"}</span>
               </a>
-              <a href="tel:18" className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
+              <a href={`tel:${data.standardEmergencies?.pompiers || "18"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
                 <span className="text-[10px] font-bold text-red-700 mb-1">POMPIERS</span>
-                <span className="text-base font-bold text-red-600">18</span>
+                <span className="text-base font-bold text-red-600">{data.standardEmergencies?.pompiers || "18"}</span>
               </a>
-              <a href="tel:17" className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
+              <a href={`tel:${data.standardEmergencies?.police || "17"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
                 <span className="text-[10px] font-bold text-red-700 mb-1">POLICE</span>
-                <span className="text-base font-bold text-red-600">17</span>
+                <span className="text-base font-bold text-red-600">{data.standardEmergencies?.police || "17"}</span>
               </a>
-              <a href="tel:112" className="flex flex-col items-center p-3 rounded-2xl bg-red-600 text-white">
+              <a href={`tel:${data.standardEmergencies?.europe || "112"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-600 text-white">
                 <span className="text-[10px] font-bold text-white/80 mb-1">EUROPE</span>
-                <span className="text-base font-bold text-white">112</span>
+                <span className="text-base font-bold text-white">{data.standardEmergencies?.europe || "112"}</span>
               </a>
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
-              <div className="flex items-center gap-3">
-                <House size={20} className="text-[#C4714A]" />
-                <span className="text-sm font-semibold">Contact Hôte</span>
+            {data.contacts?.filter(c => c.type === 'owner').map((ownerContact, idx) => (
+              <div key={`owner-${idx}`} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100 mb-4 last:mb-0">
+                <div className="flex items-center gap-3">
+                  <House size={20} className="text-[#C4714A]" />
+                  <span className="text-sm font-semibold">{ownerContact.label || "Contact Hôte"}</span>
+                </div>
+                <a href={`tel:${ownerContact.phone.replace(/\s+/g, '')}`} className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#C4714A] text-white text-xs font-bold">
+                  <Phone size={14} weight="bold" />
+                  Appeler
+                </a>
               </div>
-              <a href={`tel:${data.owner.phone}`} className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#C4714A] text-white text-xs font-bold">
-                <Phone size={14} weight="bold" />
-                Appeler
-              </a>
-            </div>
+            ))}
+            {(!data.contacts || !data.contacts.some(c => c.type === 'owner')) && data.owner.phone && (
+              <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                <div className="flex items-center gap-3">
+                  <House size={20} className="text-[#C4714A]" />
+                  <span className="text-sm font-semibold">Contact Hôte</span>
+                </div>
+                <a href={`tel:${data.owner.phone}`} className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#C4714A] text-white text-xs font-bold">
+                  <Phone size={14} weight="bold" />
+                  Appeler
+                </a>
+              </div>
+            )}
           </div>
 
           <div className="grid lg:grid-cols-2 gap-0 sm:gap-8">
