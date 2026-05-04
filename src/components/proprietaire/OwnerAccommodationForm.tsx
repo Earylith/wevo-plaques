@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Accommodation, OfferType, ContactInfo, Recommendation } from "@/lib/types/accommodation";
-import { Plus, Trash, Image as ImageIcon } from "@phosphor-icons/react";
+import { Plus, Trash, Image as ImageIcon, Star } from "@phosphor-icons/react";
 import { uploadImage } from "@/lib/firebase/storage";
 
 interface Props {
