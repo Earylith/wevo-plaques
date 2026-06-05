@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getAccommodationBySlug } from "@/lib/firebase/firestore";
+import { getAccommodationBySlugAdmin } from "@/lib/firebase/admin-firestore";
 import EssentialTemplate from "@/components/templates/EssentialTemplate";
 import ComfortTemplate from "@/components/templates/ComfortTemplate";
 import { Info } from "lucide-react";
@@ -11,7 +11,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const data = await getAccommodationBySlug(slug);
+  const data = await getAccommodationBySlugAdmin(slug);
 
   if (!data || !data.isActive) {
     return {
@@ -27,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function AccommodationPage({ params }: Props) {
   const { slug } = await params;
-  const data = await getAccommodationBySlug(slug);
+  const data = await getAccommodationBySlugAdmin(slug);
 
   if (!data) {
     return notFound();
