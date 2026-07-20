@@ -55,7 +55,7 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
   // Animations
   const fadeUp = {
     hidden: { opacity: 0, y: 30 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" as const } }
   };
 
   return (
@@ -72,7 +72,7 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
             >
               <div style={{ color: primaryColor }}>
                 {/* Clone icon to adjust size for mobile */}
-                {React.cloneElement(link.icon as React.ReactElement, { size: 24, weight: "duotone" })}
+                {React.cloneElement(link.icon as React.ReactElement<any>, { size: 24, weight: "duotone" })}
               </div>
             </a>
           ))}
