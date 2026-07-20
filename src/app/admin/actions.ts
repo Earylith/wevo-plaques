@@ -140,7 +140,8 @@ export async function uploadAdminImageAction(formData: FormData, folder: string)
     // Pour simplifier et éviter une dépendance, on génère un UUID simple
     const token = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
     
-    const bucket = (await import("@/lib/firebase/admin")).adminStorage.bucket();
+    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "plaques-digital.firebasestorage.app";
+    const bucket = (await import("@/lib/firebase/admin")).adminStorage.bucket(bucketName);
     const fileRef = bucket.file(filePath);
     
     await fileRef.save(buffer, {
