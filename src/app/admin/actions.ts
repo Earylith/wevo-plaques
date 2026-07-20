@@ -80,3 +80,47 @@ export async function seedDemos(demoEssentielle: any, demoConfort: any) {
   }
 }
 
+export async function getAdminAccommodationById(id: string): Promise<Accommodation | null> {
+  await requireAdminAuth();
+  try {
+    const doc = await adminDb.collection(COLLECTION_NAME).doc(id).get();
+    if (!doc.exists) return null;
+    return { id: doc.id, ...doc.data() } as Accommodation;
+  } catch (error) {
+    console.error("Error fetching accommodation", error);
+    return null;
+  }
+}
+
+export async function updateAdminAccommodation(id: string, data: Partial<Accommodation>) {
+  await requireAdminAuth();
+  try {
+    await adminDb.collection(COLLECTION_NAME).doc(id).update({
+      ...data,
+      updatedAt: Date.now()
+    });
+    revalidatePath("/admin/hebergements");
+    revalidatePath(`/admin/hebergements/${id}`);
+  } catch (error) {
+    console.error("Error updating accommodation", error);
+    throw new Error("Failed to update accommodation");
+  }
+}
+
+export async function createAdminAccommodation(data: Omit<Accommodation, "id" | "createdAt" | "updatedAt">) {
+  await requireAdminAuth();
+  try {
+    const timestamp = Date.now();
+    const docRef = await adminDb.collection(COLLECTION_NAME).add({
+      ...data,
+      createdAt: timestamp,
+      updatedAt: timestamp
+    });
+    revalidatePath("/admin/hebergements");
+    return docRef.id;
+  } catch (error) {
+    console.error("Error creating accommodation", error);
+    throw new Error("Failed to create accommodation");
+  }
+}
+

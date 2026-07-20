@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminAccommodationForm from "@/components/admin/AdminAccommodationForm";
-import { createAccommodation } from "@/lib/firebase/firestore";
+import { createAdminAccommodation } from "../../actions";
 import { Accommodation } from "@/lib/types/accommodation";
 
 export default function NewAccommodationPage() {
@@ -13,7 +13,7 @@ export default function NewAccommodationPage() {
   const handleSubmit = async (data: Omit<Accommodation, "id" | "createdAt" | "updatedAt">) => {
     setIsSubmitting(true);
     try {
-      await createAccommodation(data);
+      await createAdminAccommodation(data);
       router.push("/admin/hebergements");
       router.refresh();
     } catch (error) {

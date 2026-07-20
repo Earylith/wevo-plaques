@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { use } from "react";
 import AdminAccommodationForm from "@/components/admin/AdminAccommodationForm";
-import { getAccommodationById, updateAccommodation } from "@/lib/firebase/firestore";
+import { getAdminAccommodationById, updateAdminAccommodation } from "../../actions";
 import { Accommodation } from "@/lib/types/accommodation";
 import { UserPlus, Trash, CheckCircle, Copy } from "@phosphor-icons/react";
 
@@ -32,7 +32,7 @@ export default function EditAccommodationPage({ params }: Props) {
   useEffect(() => {
     const fetchAccommodation = async () => {
       try {
-        const acc = await getAccommodationById(id);
+        const acc = await getAdminAccommodationById(id);
         if (acc) {
           setData(acc);
           // On ne pré-remplit plus l'email et le nom pour la création du compte
@@ -51,7 +51,7 @@ export default function EditAccommodationPage({ params }: Props) {
   const handleSubmit = async (updatedData: Omit<Accommodation, "id" | "createdAt" | "updatedAt">) => {
     setIsSubmitting(true);
     try {
-      await updateAccommodation(id, updatedData);
+      await updateAdminAccommodation(id, updatedData);
       router.push("/admin/hebergements");
       router.refresh();
     } catch (error) {
@@ -80,7 +80,7 @@ export default function EditAccommodationPage({ params }: Props) {
       // Stocker l'UID Firebase et mettre à jour l'email du propriétaire dans Firestore
       const updatedOwner = { ...data!.owner, email: ownerEmail, name: ownerName || data!.owner.name };
       
-      await updateAccommodation(id, { 
+      await updateAdminAccommodation(id, { 
         ownerUid: result.uid, 
         mustChangePassword: true,
         owner: updatedOwner
@@ -110,7 +110,7 @@ export default function EditAccommodationPage({ params }: Props) {
         setAccountMessage({ type: "error", text: result.error || "Erreur lors de la suppression." });
         return;
       }
-      await updateAccommodation(id, { ownerUid: null as any, mustChangePassword: null as any });
+      await updateAdminAccommodation(id, { ownerUid: null as any, mustChangePassword: null as any });
       setData(prev => prev ? { ...prev, ownerUid: undefined, mustChangePassword: undefined } : prev);
       setAccountMessage({ type: "success", text: "Compte propriétaire supprimé." });
     } catch {
