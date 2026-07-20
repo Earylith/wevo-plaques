@@ -9,23 +9,23 @@ const steps = [
     step: "01",
     title: "Choisissez votre formule",
     description:
-      "Essentielle, Confort ou Pro : sélectionnez l'offre adaptée à vos besoins et au nombre de logements.",
+      "Essentiel, Confort, Multi-biens, Signature : sélectionnez l'offre adaptée à votre hébergement.",
     accent: { bg: "bg-[#F7EBE4]", icon: "#C4714A" },
   },
   {
     Icon: PencilLine,
     step: "02",
-    title: "Nous créons le support et la page",
+    title: "Nous préparons votre Guidz",
     description:
-      "Créart fabrique votre support d'accueil en bois. Wevo configure votre livret d'accueil digital avec toutes vos informations utiles.",
+      "Nous créons votre support gravé, le QR code et la page web avec les informations utiles de votre logement.",
     accent: { bg: "bg-[#EBF0E6]", icon: "#5A7A4E" },
   },
   {
     Icon: QrCode,
     step: "03",
-    title: "Vos voyageurs scannent",
+    title: "Vos locataires scannent",
     description:
-      "Placez le support dans votre logement. En scannant le QR code, vos voyageurs accèdent à toutes les informations du séjour.",
+      "Placez votre Guidz dans le logement. Vos voyageurs accèdent au Wi‑Fi, aux consignes, aux contacts et aux recommandations sans application.",
     accent: { bg: "bg-[#FDF3DC]", icon: "#D4A34A" },
   },
 ];
@@ -45,11 +45,11 @@ export default function SolutionSection() {
               Comment ça marche
             </span>
             <h2 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl lg:text-6xl font-bold text-[#2A2016] leading-tight mt-5 mb-5">
-              Votre accueil digital{" "}
+              Votre Guidz prêt{" "}
               <em className="not-italic text-gradient-terra">en 3 étapes</em>
             </h2>
             <p className="text-lg text-[#6B5D4E] leading-relaxed">
-              Vous nous transmettez vos informations, nous créons le support et la page, vos voyageurs scannent à leur arrivée.
+              Vous choisissez votre formule, vous nous transmettez vos informations, nous préparons votre support et sa page digitale.
             </p>
           </div>
         </AnimateOnScroll>

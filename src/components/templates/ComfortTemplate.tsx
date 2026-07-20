@@ -1,178 +1,191 @@
 "use client";
 
 import { Accommodation } from "@/lib/types/accommodation";
-import { useState, useEffect } from "react";
-import { List, X, WifiHigh, Info, BookOpen, ForkKnife, MapPin, Phone, Question, Bus, Warning, WarningCircle, Siren, PoliceCar, FirstAid, House } from "@phosphor-icons/react";
+import React, { useState, useEffect } from "react";
+import { List, X, WifiHigh, Info, BookOpen, ForkKnife, MapPin, Phone, Bus, WarningCircle, Siren, PoliceCar, FirstAid, House } from "@phosphor-icons/react";
 import WifiCard from "../cards/WifiCard";
 import PracticalInfoCard from "../cards/PracticalInfoCard";
 import RulesCard from "../cards/RulesCard";
 import ContactsCard from "../cards/ContactsCard";
 import RecommendationsCard from "../cards/RecommendationsCard";
-import MobileAccordion from "../ui/MobileAccordion";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ComfortTemplate({ data }: { data: Accommodation }) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
     handleResize();
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", handleScroll);
+    
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
-  const navLinks = [
-    { label: "Bienvenue", href: "#accueil", icon: <Info size={20} /> },
-    { label: "Wi-Fi", href: "#wifi", icon: <WifiHigh size={20} /> },
-    { label: "Arrivée / départ", href: "#infos", icon: <Bus size={20} /> },
-    { label: "Règles", href: "#regles", icon: <BookOpen size={20} /> },
-    { label: "Contacts", href: "#contacts", icon: <Phone size={20} /> },
-    { label: "Urgences", href: "#urgences", icon: <Warning size={20} className="text-red-500" /> },
-    { label: "Restaurants", href: "#restaurants", icon: <ForkKnife size={20} /> },
-    { label: "À découvrir", href: "#decouvrir", icon: <MapPin size={20} /> },
-  ];
-
-  const quickLinks = [
-    { label: "Wi-Fi", icon: <WifiHigh size={24} />, href: "#wifi" },
-    { label: "Arrivée / départ", icon: <Bus size={24} />, href: "#infos" },
-    { label: "Règles", icon: <BookOpen size={24} />, href: "#regles" },
-    { label: "Restaurants", icon: <ForkKnife size={24} />, href: "#restaurants" },
-    { label: "À découvrir", icon: <MapPin size={24} />, href: "#decouvrir" },
-    { label: "Contacts", icon: <Phone size={24} />, href: "#contacts" },
-  ];
-
   const primaryColor = data.comfortOptions?.theme?.primaryColor || "#C4714A";
+  const fontFamilyType = data.comfortOptions?.theme?.fontFamily || "classic";
 
-  // Restaurant filter
+  let fontClass = "font-[family-name:var(--font-sans)]";
+  if (fontFamilyType === "classic") fontClass = "font-serif";
+  else if (fontFamilyType === "modern") fontClass = "font-[family-name:var(--font-display)]";
+
+  // Navigation Links
+  const navLinks = [
+    { label: "Wi-Fi", href: "#wifi", icon: <WifiHigh size={24} weight="duotone" /> },
+    { label: "Arrivée / départ", href: "#infos", icon: <Bus size={24} weight="duotone" /> },
+    { label: "Règles", href: "#regles", icon: <BookOpen size={24} weight="duotone" /> },
+    { label: "Contacts", href: "#contacts", icon: <Phone size={24} weight="duotone" /> },
+    { label: "Urgences", href: "#urgences", icon: <WarningCircle size={24} weight="duotone" /> },
+    { label: "À découvrir", href: "#decouvrir", icon: <MapPin size={24} weight="duotone" /> },
+  ];
+
+  // Filtre Restaurants vs Découvrir
   const isRestaurantCategory = (cat: string) =>
-    cat.toLowerCase().includes('resto') ||
-    cat.toLowerCase().includes('bist') ||
-    cat.toLowerCase().includes('caf') ||
-    cat.toLowerCase().includes('pizza') ||
-    cat.toLowerCase().includes('gastro') ||
-    cat.toLowerCase().includes('cuisine') ||
-    cat.toLowerCase().includes('table');
+    cat.toLowerCase().includes('resto') || cat.toLowerCase().includes('bist') || cat.toLowerCase().includes('caf') || cat.toLowerCase().includes('pizza') || cat.toLowerCase().includes('gastro') || cat.toLowerCase().includes('cuisine') || cat.toLowerCase().includes('table');
 
-  const restaurants = data.recommendations.filter(r =>
-    r.type === 'restaurant' || (!r.type && isRestaurantCategory(r.category))
-  );
-  const decouvrir = data.recommendations.filter(r =>
-    r.type === 'decouvrir' || (!r.type && !isRestaurantCategory(r.category))
-  );
+  const restaurants = data.recommendations.filter(r => r.type === 'restaurant' || (!r.type && isRestaurantCategory(r.category)));
+  const decouvrir = data.recommendations.filter(r => r.type === 'decouvrir' || (!r.type && !isRestaurantCategory(r.category)));
+
+  // Animations
+  const fadeUp = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } }
+  };
 
   return (
-    <div className="min-h-screen bg-[#EBE7DF] font-[family-name:var(--font-sans)] text-[#2A2016] flex flex-col lg:flex-row overflow-x-hidden">
-      {/* Mobile Header */}
-      <header className="lg:hidden sticky top-0 z-50 bg-[#FDFBF7] border-b border-[#EDD9A3]/30 px-4 sm:px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center" style={{ borderColor: primaryColor }}>
-            <span className="font-serif font-bold text-xs" style={{ color: primaryColor }}>
-              {data.property.name.charAt(0)}
-            </span>
-          </div>
-          <h1 className="font-[family-name:var(--font-display)] font-bold text-sm leading-tight uppercase tracking-widest">
-            {data.property.name}
-          </h1>
-        </div>
-        <button className="p-2 text-[#2A2016]" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-          {isMenuOpen ? <X size={24} /> : <List size={24} />}
-        </button>
-      </header>
-
-      {/* Desktop Sidebar & Mobile Menu Content */}
-      <aside className={`
-        ${isMenuOpen ? "fixed inset-0 top-[57px] bg-[#FDFBF7] z-40 p-6 overflow-y-auto" : "hidden"} 
-        lg:block lg:w-72 lg:shrink-0 lg:h-screen lg:sticky lg:top-0 lg:bg-[#FDFBF7] lg:border-r lg:border-[#EDD9A3]/30 lg:p-8 lg:overflow-y-auto
-        flex flex-col
-      `}>
-        <div className="hidden lg:flex flex-col items-center mb-12">
-          <div className="w-16 h-16 rounded-full border-2 flex items-center justify-center mb-4" style={{ borderColor: primaryColor }}>
-             <span className="font-serif font-bold text-2xl" style={{ color: primaryColor }}>
-               {data.property.name.charAt(0)}
-             </span>
-          </div>
-          <h1 className="font-[family-name:var(--font-display)] font-bold text-xl text-center leading-tight uppercase tracking-widest">
-            {data.property.name}
-          </h1>
-          <p className="text-xs text-[#6B5D4E] uppercase tracking-wider mt-1">{data.property.type}</p>
-        </div>
-
-        <nav className="flex-1 space-y-2">
-          {navLinks.map((link) => (
+    <div className={`min-h-screen bg-[#FDFBF7] text-[#2A2016] overflow-x-hidden ${fontClass}`}>
+      
+      {/* Mobile Floating Bottom Navigation (Dynamic Island Style) */}
+      <div className="lg:hidden fixed bottom-6 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
+        <nav className="flex items-center justify-between w-full max-w-sm bg-white/80 backdrop-blur-3xl px-6 py-4 rounded-full shadow-[0_8px_40px_rgba(0,0,0,0.12)] border border-white/60 pointer-events-auto">
+          {navLinks.map(link => (
             <a 
               key={link.label} 
               href={link.href} 
-              onClick={() => isMobile && setIsMenuOpen(false)}
-              className="flex items-center gap-4 py-3 px-4 rounded-xl text-sm font-medium text-[#6B5D4E] hover:bg-[#F5E6C8]/50 transition-colors"
-              style={{ '--hover-color': primaryColor } as React.CSSProperties}
+              className="flex flex-col items-center gap-1 text-[#6B5D4E] hover:text-[#C4714A] transition-colors active:scale-95"
             >
-              {link.icon}
-              {link.label}
+              <div style={{ color: primaryColor }}>
+                {/* Clone icon to adjust size for mobile */}
+                {React.cloneElement(link.icon as React.ReactElement, { size: 24, weight: "duotone" })}
+              </div>
             </a>
           ))}
         </nav>
-      </aside>
+      </div>
 
-      {/* Main Content */}
-      <main className="flex-1 w-full max-w-[1200px] mx-auto lg:p-6 pb-24">
-        {/* Hero Section */}
-        <div id="accueil" className="relative h-[50vh] sm:h-[60vh] lg:h-[70vh] lg:rounded-3xl overflow-hidden shadow-sm">
-          {data.property.mainImageUrl ? (
-            <img src={data.property.mainImageUrl} alt="" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full" style={{ backgroundColor: primaryColor, opacity: 0.8 }} />
-          )}
-          <div className="absolute inset-0 bg-black/20" />
-          
-          <div className="absolute inset-0 flex flex-col items-center justify-center pt-6 lg:pt-10">
-            <h2 className="font-[family-name:var(--font-display)] text-3xl sm:text-5xl lg:text-6xl font-bold text-white mb-1 lg:mb-2 text-center drop-shadow-md">
-              Bienvenue
-            </h2>
-            <h2 className="font-[family-name:var(--font-display)] text-2xl sm:text-4xl lg:text-5xl font-bold text-white text-center drop-shadow-md">
-              chez vous !
-            </h2>
-          </div>
+      {/* Main Content Area */}
+      <main className="relative pb-28 lg:pb-0">
+        
+        {/* Parallax Hero Section */}
+        <section className="relative h-[50vh] lg:h-[80vh] w-full overflow-hidden flex items-end pb-12 lg:pb-24 px-6 lg:px-12">
+          <motion.div 
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 20, ease: "easeInOut", repeat: Infinity }}
+            className="absolute inset-0 z-0 origin-center"
+          >
+            {data.property.mainImageUrl ? (
+              <img src={data.property.mainImageUrl} alt="Main" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full" style={{ backgroundColor: primaryColor }} />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#1A1510]/90 via-[#1A1510]/40 to-transparent" />
+          </motion.div>
 
-          {/* Welcome Box overlapping */}
-          <div className="absolute bottom-6 left-4 right-4 sm:bottom-8 sm:left-8 sm:right-8 lg:left-12 lg:right-auto lg:w-[480px]">
-            <div className="bg-[#FDFBF7]/95 backdrop-blur-md p-5 sm:p-8 rounded-2xl shadow-xl">
-              <h3 className="font-[family-name:var(--font-display)] text-xl font-bold mb-3">Bienvenue à {data.property.name}</h3>
-              <p className="text-[#2A2016] text-xs sm:text-sm lg:text-[15px] leading-relaxed line-clamp-4 lg:line-clamp-none">
-                Nous sommes ravis de vous accueillir. Vous trouverez ici toutes les informations utiles pour votre séjour : Wi-Fi, horaires, règles de la maison, bonnes adresses et contacts pratiques.
+          <div className="relative z-10 w-full max-w-6xl mx-auto flex flex-col lg:flex-row justify-between items-end gap-6">
+            <motion.div initial="hidden" animate="visible" variants={fadeUp} className="text-white">
+              {data.property.logoUrl && (
+                <div className="w-20 h-20 lg:w-32 lg:h-32 mb-6 bg-white/10 backdrop-blur-md p-4 rounded-3xl border border-white/20 shadow-2xl">
+                  <img src={data.property.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                </div>
+              )}
+              <h1 className={`text-4xl sm:text-5xl lg:text-7xl font-bold leading-tight mb-4 ${fontFamilyType === 'classic' ? 'font-serif' : ''}`}>
+                {data.property.name}
+              </h1>
+              <p className="text-lg lg:text-2xl font-light text-white/90 max-w-2xl tracking-wide">
+                Votre guide de séjour numérique
               </p>
-              <p className="text-xs sm:text-sm font-medium text-[#6B5D4E] mt-3 lg:mt-4 italic">
-                — L&apos;équipe {data.property.name}
-              </p>
-            </div>
+            </motion.div>
           </div>
+        </section>
+
+        {/* Floating Welcome Message (Glassmorphism) */}
+        <div className="relative z-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-12 -mt-10 lg:-mt-16">
+          <motion.div 
+            initial="hidden" animate="visible" variants={fadeUp}
+            className="bg-white/80 backdrop-blur-3xl p-6 lg:p-10 rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.04)] border border-white/60"
+          >
+            <h2 className="text-xl lg:text-3xl font-bold mb-4" style={{ color: primaryColor }}>Bienvenue chez vous</h2>
+            <p className="text-[#4A3D30] text-sm lg:text-lg leading-relaxed font-medium">
+              {data.property.welcomeMessage}
+            </p>
+          </motion.div>
         </div>
 
-        <div className="px-4 sm:px-6 lg:px-6 pb-12 pt-8 lg:pt-12">
-          {/* Quick Links */}
-          <div className="mb-10 lg:mb-16">
-            <h3 className="lg:hidden font-semibold text-lg mb-4 px-2">Accès rapides</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap lg:justify-center gap-3 lg:gap-6 bg-[#FDFBF7] p-4 lg:p-6 rounded-3xl border border-[#EDD9A3]/20 shadow-sm">
-              {quickLinks.map((link) => (
-                <a 
-                  key={link.label}
-                  href={link.href}
-                  className="flex flex-col items-center gap-2 lg:gap-3 p-3 lg:p-4 bg-white lg:bg-transparent rounded-2xl border border-[#EDD9A3]/30 lg:border-none hover:scale-105 transition-transform text-[#6B5D4E] hover:text-[#C4714A]"
-                >
-                  <div className="text-[#6B5D4E]">{link.icon}</div>
-                  <span className="text-[10px] lg:text-xs font-bold text-center">{link.label}</span>
-                </a>
-              ))}
-            </div>
-          </div>
+        {/* Desktop Horizontal Smart Shortcuts */}
+        <div className="hidden lg:flex sticky top-6 z-40 max-w-4xl mx-auto px-4 justify-center mt-12 mb-[-2rem]">
+          <nav className="flex items-center gap-2 p-2 bg-white/70 backdrop-blur-xl rounded-full shadow-xl border border-white/40">
+            {navLinks.map(link => (
+              <a 
+                key={link.label} 
+                href={link.href} 
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full text-[#6B5D4E] hover:bg-white hover:text-[#C4714A] hover:shadow-sm transition-all font-medium text-sm border border-transparent hover:border-white/50"
+              >
+                <div style={{ color: primaryColor }}>{link.icon}</div>
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        </div>
 
-          {/* Content — 2 columns */}
-          <div className="grid md:grid-cols-2 gap-6 lg:gap-8 items-start">
-            {/* Column 1 */}
-            <div className="space-y-6 lg:space-y-8">
-              <div id="wifi"><WifiCard ssid={data.wifi.ssid} password={data.wifi.password} /></div>
-              
-              <MobileAccordion title="Arrivée / départ" icon={<Bus size={24} weight="duotone" color="#D4A34A" />}>
-                <div id="infos">
+        {/* Bento Grid Content */}
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-12 lg:py-24">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            
+            {/* Colonne 1 : Wi-Fi, Contacts, Urgences */}
+            <div className="flex flex-col gap-8">
+              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} id="wifi" whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
+                <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-white/60 hover:shadow-[0_8px_40px_rgba(212,163,74,0.12)] hover:border-[#D4A34A]/30 transition-all duration-500 group">
+                  <WifiCard ssid={data.wifi.ssid} password={data.wifi.password} />
+                </div>
+              </motion.div>
+
+              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} id="contacts" whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
+                <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-white/60 hover:shadow-[0_8px_40px_rgba(212,163,74,0.12)] hover:border-[#D4A34A]/30 transition-all duration-500">
+                  <ContactsCard contacts={data.contacts} />
+                </div>
+              </motion.div>
+
+              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} id="urgences" whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
+                <div className="bg-[#FFF5F5]/90 backdrop-blur-xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgba(239,68,68,0.05)] border border-red-100/50 hover:shadow-[0_8px_40px_rgba(239,68,68,0.15)] transition-all duration-500">
+                  <h3 className="flex items-center gap-2 font-bold text-red-600 mb-4">
+                    <WarningCircle size={24} weight="fill" /> Urgences
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <a href={`tel:${data.standardEmergencies?.samu || "15"}`} className="bg-white p-3 rounded-xl flex flex-col items-center shadow-sm border border-red-50 hover:scale-105 transition-transform">
+                      <Siren size={24} className="text-red-500 mb-1" weight="duotone" />
+                      <span className="text-[10px] uppercase font-bold text-red-400">SAMU</span>
+                      <span className="text-sm font-bold text-red-700">{data.standardEmergencies?.samu || "15"}</span>
+                    </a>
+                    <a href={`tel:${data.standardEmergencies?.pompiers || "18"}`} className="bg-white p-3 rounded-xl flex flex-col items-center shadow-sm border border-red-50 hover:scale-105 transition-transform">
+                      <FirstAid size={24} className="text-red-500 mb-1" weight="duotone" />
+                      <span className="text-[10px] uppercase font-bold text-red-400">Pompiers</span>
+                      <span className="text-sm font-bold text-red-700">{data.standardEmergencies?.pompiers || "18"}</span>
+                    </a>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Colonne 2 : Arrivée/Départ, Règles */}
+            <div className="flex flex-col gap-8">
+              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} id="infos" whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
+                <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-white/60 hover:shadow-[0_8px_40px_rgba(212,163,74,0.12)] hover:border-[#D4A34A]/30 transition-all duration-500">
                   <PracticalInfoCard 
                     checkin={data.practicalInfo.checkin} 
                     checkout={data.practicalInfo.checkout} 
@@ -181,162 +194,59 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
                     address={data.property.address}
                   />
                 </div>
-              </MobileAccordion>
+              </motion.div>
 
-              <MobileAccordion title="Règles de la maison" icon={<BookOpen size={24} weight="duotone" color="#5A7A4E" />}>
-                <div id="regles" className="lg:bg-white lg:rounded-3xl lg:p-6 lg:shadow-sm lg:border lg:border-[#EDD9A3]/40">
+              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} id="regles" whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
+                <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-white/60 hover:shadow-[0_8px_40px_rgba(212,163,74,0.12)] hover:border-[#D4A34A]/30 transition-all duration-500">
                   <RulesCard rules={data.rules} />
                 </div>
-              </MobileAccordion>
-
-              <MobileAccordion title="Contacts utiles" icon={<Phone size={24} weight="duotone" color="#C4714A" />}>
-                <div id="contacts" className="lg:bg-white lg:rounded-3xl lg:p-6 lg:shadow-sm lg:border lg:border-[#EDD9A3]/40">
-                  <ContactsCard contacts={data.contacts} />
-                </div>
-              </MobileAccordion>
+              </motion.div>
             </div>
 
-            {/* Column 2 */}
-            <div className="space-y-6 lg:space-y-8">
-              {/* Urgences */}
-              <MobileAccordion title="Urgences" icon={<WarningCircle size={24} weight="duotone" color="#EF4444" />}>
-                <div id="urgences" className="bg-white rounded-3xl p-6 shadow-sm border border-red-100">
-                  <div className="hidden lg:flex items-center gap-4 mb-5">
-                    <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center shrink-0">
-                      <WarningCircle size={24} weight="duotone" color="#EF4444" />
-                    </div>
-                    <h3 className="font-semibold text-[#2A2016]">Urgences</h3>
-                  </div>
-                  <p className="text-sm text-[#6B5D4E] mb-6 leading-relaxed">
-                    En cas d&apos;urgence, contactez directement les services concernés. Pour un problème lié au logement, vous pouvez joindre votre hôte via les boutons ci-dessous.
-                  </p>
-                  
-                  <div className="grid grid-cols-2 gap-3 mb-6 text-center">
-                    <a href={`tel:${data.standardEmergencies?.samu || "15"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
-                      <Siren size={20} className="text-red-500 mb-1" />
-                      <span className="text-[10px] uppercase font-bold text-red-700">SAMU</span>
-                      <span className="text-sm font-bold text-red-600">{data.standardEmergencies?.samu || "15"}</span>
-                    </a>
-                    <a href={`tel:${data.standardEmergencies?.pompiers || "18"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
-                      <FirstAid size={20} className="text-red-500 mb-1" />
-                      <span className="text-[10px] uppercase font-bold text-red-700">Pompiers</span>
-                      <span className="text-sm font-bold text-red-600">{data.standardEmergencies?.pompiers || "18"}</span>
-                    </a>
-                    <a href={`tel:${data.standardEmergencies?.police || "17"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
-                      <PoliceCar size={20} className="text-red-500 mb-1" />
-                      <span className="text-[10px] uppercase font-bold text-red-700">Police</span>
-                      <span className="text-sm font-bold text-red-600">{data.standardEmergencies?.police || "17"}</span>
-                    </a>
-                    <a href={`tel:${data.standardEmergencies?.europe || "112"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-600 border border-red-700">
-                      <Warning size={20} className="text-white mb-1" />
-                      <span className="text-[10px] uppercase font-bold text-white/80">Europe</span>
-                      <span className="text-sm font-bold text-white">{data.standardEmergencies?.europe || "112"}</span>
-                    </a>
-                  </div>
-
-                  <div className="space-y-3">
-                    <p className="text-xs font-bold text-[#6B5D4E] uppercase tracking-widest">Urgence logement</p>
-                    {data.contacts?.filter(c => c.type === 'owner').map((ownerContact, idx) => (
-                      <div key={`owner-${idx}`} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
-                        <div className="flex items-center gap-3">
-                          <House size={20} className="text-[#C4714A]" />
-                          <span className="text-sm font-semibold">{ownerContact.label || "Contact Hôte"}</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <a href={`tel:${ownerContact.phone.replace(/\s+/g, '')}`} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-[#EDD9A3] text-[#C4714A]">
-                            <Phone size={16} weight="bold" />
-                          </a>
-                        </div>
-                      </div>
-                    ))}
-                    {(!data.contacts || !data.contacts.some(c => c.type === 'owner')) && data.owner.phone && (
-                      <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
-                        <div className="flex items-center gap-3">
-                          <House size={20} className="text-[#C4714A]" />
-                          <span className="text-sm font-semibold">Contact Hôte</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <a href={`tel:${data.owner.phone}`} className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-[#EDD9A3] text-[#C4714A]">
-                            <Phone size={16} weight="bold" />
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </MobileAccordion>
-
-              {/* Restaurants */}
-              <MobileAccordion title="Restaurants" icon={<ForkKnife size={24} weight="duotone" color="#C4714A" />}>
-                <div id="restaurants" className="lg:bg-white lg:rounded-3xl lg:p-6 lg:shadow-sm lg:border lg:border-[#EDD9A3]/40">
+            {/* Colonne 3 : Recommandations (Restaurants & À découvrir) */}
+            <div className="flex flex-col gap-8">
+              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} id="restaurants" whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
+                <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-white/60 hover:shadow-[0_8px_40px_rgba(212,163,74,0.12)] hover:border-[#D4A34A]/30 transition-all duration-500">
                   <RecommendationsCard 
                     title="Restaurants"
-                    subtitle="Les bonnes adresses du coin"
+                    subtitle="Nos meilleures tables"
                     recommendations={restaurants} 
                     showImages={true} 
                   />
                 </div>
-              </MobileAccordion>
-              
-              {/* À découvrir */}
-              <MobileAccordion title="À découvrir" icon={<MapPin size={24} weight="duotone" color="#5A7A4E" />}>
-                <div id="decouvrir" className="lg:bg-white lg:rounded-3xl lg:p-6 lg:shadow-sm lg:border lg:border-[#EDD9A3]/40">
+              </motion.div>
+
+              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} id="decouvrir" whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
+                <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-white/60 hover:shadow-[0_8px_40px_rgba(212,163,74,0.12)] hover:border-[#D4A34A]/30 transition-all duration-500">
                   <RecommendationsCard 
                     title="À découvrir"
-                    subtitle="Sites, activités et bons plans"
+                    subtitle="Activités et lieux incontournables"
                     recommendations={decouvrir} 
                     showImages={true} 
                   />
                 </div>
-              </MobileAccordion>
+              </motion.div>
             </div>
+
           </div>
-
-          {/* Full-width: Transports & FAQ */}
-          {(data.comfortOptions?.transports || (data.comfortOptions?.faq && data.comfortOptions.faq.length > 0)) && (
-            <div className="space-y-6 mt-6 lg:mt-8">
-              {data.comfortOptions?.transports && (
-                <MobileAccordion title="Accès & Transports" icon={<Bus size={24} weight="duotone" />}>
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
-                    <div className="hidden lg:flex items-center gap-4 mb-4">
-                      <div className="w-12 h-12 rounded-2xl bg-[#FDF3DC] flex items-center justify-center shrink-0">
-                        <Bus size={24} weight="duotone" color="#D4A34A" />
-                      </div>
-                      <h3 className="font-semibold text-[#2A2016]">Accès &amp; Transports</h3>
-                    </div>
-                    <p className="text-sm text-[#6B5D4E] leading-relaxed whitespace-pre-wrap">{data.comfortOptions.transports}</p>
-                  </div>
-                </MobileAccordion>
-              )}
-
-              {data.comfortOptions?.faq && data.comfortOptions.faq.length > 0 && (
-                <MobileAccordion title="FAQ" icon={<Question size={24} weight="duotone" />}>
-                  <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
-                    <div className="hidden lg:flex items-center gap-4 mb-5">
-                      <div className="w-12 h-12 rounded-2xl bg-[#E4EEF3] flex items-center justify-center shrink-0">
-                        <Question size={24} weight="duotone" color="#2B5F75" />
-                      </div>
-                      <h3 className="font-semibold text-[#2A2016]">FAQ</h3>
-                    </div>
-                    <div className="space-y-4">
-                      {data.comfortOptions.faq.map((item, idx) => (
-                        <div key={idx} className="border-b border-[#F5E6C8] pb-3 last:border-0 last:pb-0">
-                          <h4 className="font-medium text-sm text-[#2A2016] mb-1">{item.question}</h4>
-                          <p className="text-xs text-[#6B5D4E] leading-relaxed">{item.answer}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </MobileAccordion>
-              )}
-            </div>
-          )}
         </div>
 
-        <footer className="bg-[#7A624E] text-white py-8 text-center lg:m-6 lg:rounded-2xl mb-0 lg:mb-12">
-          <p className="text-xs sm:text-sm font-medium mb-1">Bon séjour à {data.property.name} !</p>
-          <a href="https://wevo-creart.fr" className="text-[10px] sm:text-xs text-[#EDD9A3] hover:underline opacity-80">Livret d&apos;accueil digital par WEVO × CRÉART</a>
+        {/* Footer */}
+        <footer className="bg-[#1A1510] text-white py-12 text-center lg:rounded-t-[3rem] mt-12 mx-0 lg:mx-6 shadow-[0_-20px_40px_rgba(0,0,0,0.1)]">
+          <div className="w-16 h-16 mx-auto mb-6 bg-white/10 rounded-full flex items-center justify-center border border-white/20">
+            {data.property.logoUrl ? (
+              <img src={data.property.logoUrl} alt="Logo" className="w-8 h-8 object-contain" />
+            ) : (
+              <span className="font-serif font-bold text-2xl" style={{ color: primaryColor }}>{data.property.name.charAt(0)}</span>
+            )}
+          </div>
+          <h2 className={`text-2xl font-bold mb-2 ${fontFamilyType === 'classic' ? 'font-serif' : ''}`}>{data.property.name}</h2>
+          <p className="text-white/60 text-sm mb-8">Nous vous souhaitons un excellent séjour.</p>
+          <a href="https://wevo-creart.fr" className="text-xs text-white/40 hover:text-white transition-colors tracking-widest uppercase">
+            Propulsé par WEVO × CRÉART
+          </a>
         </footer>
+
       </main>
     </div>
   );

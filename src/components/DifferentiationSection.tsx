@@ -9,18 +9,18 @@ import AnimateOnScroll from "./AnimateOnScroll";
 
 const creart = [
   { icon: TreePine, text: "Fabrication française" },
-  { icon: Layers, text: "Noyer écosourcé" },
   { icon: Paintbrush, text: "Gravure et découpe laser" },
+  { icon: TreePine, text: "Finition soignée" },
+  { icon: QrCode, text: "QR code unique" },
   { icon: Award, text: "Personnalisation selon la formule" },
-  { icon: TreePine, text: "Finition premium" },
 ];
 
 const wevo = [
   { icon: Globe, text: "Page dédiée à chaque logement" },
   { icon: QrCode, text: "QR code relié à une URL stable" },
-  { icon: Server, text: "Hébergement et maintenance" },
-  { icon: Wrench, text: "Informations modifiables sans refaire le support" },
-  { icon: Zap, text: "Compatible mobile, sans application" },
+  { icon: Wrench, text: "Informations modifiables selon la formule" },
+  { icon: Zap, text: "Compatible mobile" },
+  { icon: Server, text: "Hébergement et maintenance inclus" },
 ];
 
 const phoneSections = [
@@ -36,136 +36,142 @@ const phoneSections = [
 export default function DifferentiationSection() {
   return (
     <section
-      className="py-20 lg:py-28 relative overflow-hidden"
+      className="py-24 lg:py-32 relative overflow-hidden"
       style={{ background: "linear-gradient(160deg, #F5E6C8 0%, #FBF5EC 60%)" }}
+      id="concept"
     >
-      <div className="absolute -right-32 top-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-[#5A7A4E]/5 pointer-events-none" />
+      <div className="absolute -right-32 top-1/4 w-[800px] h-[800px] rounded-full bg-[#5A7A4E]/5 pointer-events-none blur-[100px]" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
-        <AnimateOnScroll>
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <span className="section-label mb-5 inline-flex">
-              Le meilleur des deux mondes
-            </span>
-            <h2 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl lg:text-6xl font-bold text-[#2A2016] leading-tight mt-5">
-              Le charme du bois,{" "}
-              <em className="not-italic text-gradient-terra">la simplicité du digital</em>
-            </h2>
-          </div>
-        </AnimateOnScroll>
-
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
-          {/* Créart */}
-          <AnimateOnScroll direction="left">
-            <div className="bg-white rounded-3xl p-8 lg:p-10 border border-[#EDD9A3]/50 h-full shadow-md">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#C4714A] to-[#A35A38] flex items-center justify-center shadow-sm">
-                  <TreePine size={22} className="text-white" />
-                </div>
-                <div>
-                  <p className="text-xs text-[#6B5D4E] tracking-widest uppercase font-medium">L&apos;artisan</p>
-                  <h3 className="font-[family-name:var(--font-display)] text-2xl font-bold text-[#2A2016]">
-                    Créart
-                  </h3>
-                </div>
-              </div>
-              <p className="text-sm text-[#6B5D4E] mb-7 leading-relaxed">
-                L&apos;artisanat au service de l&apos;hospitalité. Chaque support est fabriqué avec soin en noyer écosourcé, avec une finition premium pensée pour s&apos;intégrer dans votre logement.
+        <div className="lg:grid lg:grid-cols-12 lg:gap-16 items-start">
+          
+          {/* STICKY LEFT COLUMN */}
+          <div className="lg:col-span-5 lg:sticky lg:top-32 mb-16 lg:mb-0">
+            <AnimateOnScroll>
+              <span className="section-label mb-5 inline-flex">
+                Le meilleur des deux mondes
+              </span>
+              <h2 className="font-[family-name:var(--font-display)] text-5xl lg:text-[4rem] font-bold text-[#2A2016] leading-[1.05] mt-5 mb-8 tracking-tight">
+                Le charme du bois,{" "}
+                <em className="not-italic text-gradient-terra">la flexibilité du digital</em>
+              </h2>
+              <p className="text-lg text-[#6B5D4E] leading-relaxed max-w-md">
+                Associez l'authenticité d'un bel objet physique fabriqué en France à la puissance d'une application web toujours à jour, sans rien avoir à télécharger.
               </p>
-              <ul className="space-y-3.5">
-                {creart.map((item) => (
-                  <li key={item.text} className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-[#F7EBE4] flex items-center justify-center shrink-0">
-                      <item.icon size={16} className="text-[#C4714A]" />
-                    </div>
-                    <span className="text-sm font-medium text-[#2A2016]">{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-8 rounded-2xl overflow-hidden border-2 border-[#EDD9A3]/60 shadow-sm">
-                <img src="/plaque-photo.jpg" alt="Plaque en bois Créart" className="w-full h-auto" />
-              </div>
-            </div>
-          </AnimateOnScroll>
+            </AnimateOnScroll>
+          </div>
 
-          {/* Wevo — warm olive forest instead of ocean blue */}
-          <AnimateOnScroll direction="right">
-            <div
-              className="rounded-3xl p-8 lg:p-10 h-full shadow-xl relative overflow-hidden"
-              style={{ background: "linear-gradient(145deg, #3F5836, #2D4A22)" }}
-            >
-              {/* Decorative warm light */}
-              <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-[#D4A34A]/15 pointer-events-none" />
-              <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-[#C4714A]/10 pointer-events-none" />
-
-              {/* Leaf SVG */}
-              <svg viewBox="0 0 200 300" className="absolute right-6 bottom-6 w-20 h-30 text-white/5 pointer-events-none" fill="currentColor">
-                <path d="M180,10 C80,20 20,120 100,290 C120,230 200,150 180,10Z" />
-              </svg>
-
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center">
-                    <Globe size={22} className="text-white" />
+          {/* SCROLLING RIGHT COLUMN */}
+          <div className="lg:col-span-7 space-y-12 lg:space-y-16">
+            
+            {/* Créart */}
+            <AnimateOnScroll>
+              <div className="bg-white rounded-[40px] p-8 lg:p-12 border border-[#EDD9A3]/50 shadow-[0_20px_40px_rgba(0,0,0,0.04)]">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#C4714A] to-[#A35A38] flex items-center justify-center shadow-md">
+                    <TreePine size={24} className="text-white" />
                   </div>
                   <div>
-                    <p className="text-xs text-white/50 tracking-widest uppercase font-medium">Le digital</p>
-                    <h3 className="font-[family-name:var(--font-display)] text-2xl font-bold text-white">
-                      Wevo
+                    <p className="text-[11px] text-[#C4714A] tracking-widest uppercase font-bold mb-1">Le support</p>
+                    <h3 className="font-[family-name:var(--font-display)] text-3xl font-bold text-[#2A2016]">
+                      Guidz Physique
                     </h3>
                   </div>
                 </div>
-                <p className="text-sm text-white/65 mb-7 leading-relaxed">
-                  La technologie web au service de votre accueil. Simple, rapide, sans application pour vos voyageurs.
+                <p className="text-base text-[#6B5D4E] mb-8 leading-relaxed">
+                  Un support en bois gravé, pensé pour s&apos;intégrer naturellement dans votre hébergement et guider vos locataires dès leur arrivée.
                 </p>
-                <ul className="space-y-3.5">
-                  {wevo.map((item) => (
-                    <li key={item.text} className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                        <item.icon size={16} className="text-[#E8BE72]" />
+                <ul className="space-y-4 mb-10">
+                  {creart.map((item) => (
+                    <li key={item.text} className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-[#F7EBE4] flex items-center justify-center shrink-0">
+                        <item.icon size={18} className="text-[#C4714A]" />
                       </div>
-                      <span className="text-sm font-medium text-white/90">{item.text}</span>
+                      <span className="text-base font-medium text-[#2A2016]">{item.text}</span>
                     </li>
                   ))}
                 </ul>
+                <div className="rounded-3xl overflow-hidden shadow-inner bg-gray-100">
+                  <img src="/lifestyle.png" alt="Support Guidz" className="w-full h-auto object-cover" />
+                </div>
+              </div>
+            </AnimateOnScroll>
 
-                {/* Phone Mockup */}
-                <div className="mt-8 flex justify-center">
-                  <div className="relative w-[210px]">
-                    <div className="bg-[#111] rounded-[2rem] p-2 shadow-2xl border border-white/10">
-                      <div className="absolute top-2 left-1/2 -translate-x-1/2 w-16 h-3.5 bg-[#111] rounded-b-xl z-20" />
-                      <div className="bg-[#FBF5EC] rounded-[1.5rem] overflow-hidden h-[420px] flex flex-col">
-                        <div className="h-6 bg-gradient-to-b from-[#EDD9A3]/30 to-transparent shrink-0" />
-                        <div className="px-4 pb-4 flex-1">
-                          <div className="text-center mb-3">
-                            <p className="text-[8px] text-[#6B5D4E]/60 tracking-widest uppercase">Bienvenue à</p>
-                            <h3 className="font-[family-name:var(--font-display)] text-[13px] font-bold text-[#2A2016]">
-                              Le Mas des Oliviers
-                            </h3>
-                            <div className="w-5 h-0.5 bg-[#C4714A] mx-auto mt-1" />
-                          </div>
-                          <div className="space-y-1.5">
-                            {phoneSections.map((s) => (
-                              <div key={s.label} className="flex items-center gap-2 bg-white rounded-xl px-2.5 py-1.5 shadow-sm">
-                                <div className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${s.color}`}>
-                                  <s.icon size={10} />
-                                </div>
-                                <div className="min-w-0">
-                                  <p className="text-[8px] text-[#6B5D4E]">{s.label}</p>
-                                  <p className="text-[9px] font-medium text-[#2A2016] truncate">{s.value}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+            {/* Wevo */}
+            <AnimateOnScroll>
+              <div
+                className="rounded-[40px] p-8 lg:p-12 shadow-[0_20px_40px_rgba(45,74,34,0.15)] relative overflow-hidden"
+                style={{ background: "linear-gradient(145deg, #3F5836, #2D4A22)" }}
+              >
+                {/* Decorative warm light */}
+                <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-[#D4A34A]/20 pointer-events-none blur-3xl" />
+                <div className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full bg-[#C4714A]/15 pointer-events-none blur-3xl" />
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-4 mb-8">
+                    <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center border border-white/20">
+                      <Globe size={24} className="text-white" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-[#E8BE72] tracking-widest uppercase font-bold mb-1">La page</p>
+                      <h3 className="font-[family-name:var(--font-display)] text-3xl font-bold text-white">
+                        Guidz Digitale
+                      </h3>
+                    </div>
+                  </div>
+                  <p className="text-base text-white/80 mb-8 leading-relaxed">
+                    Une page mobile claire, accessible en un scan, qui regroupe toutes les informations utiles du séjour sans application à installer.
+                  </p>
+                  <ul className="space-y-4 mb-10">
+                    {wevo.map((item) => (
+                      <li key={item.text} className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/5">
+                          <item.icon size={18} className="text-[#E8BE72]" />
                         </div>
-                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-16 h-0.5 bg-[#2A2016]/20 rounded-full" />
+                        <span className="text-base font-medium text-white/90">{item.text}</span>
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Phone Mockup */}
+                  <div className="flex justify-center">
+                    <div className="relative w-[240px]">
+                      <div className="bg-[#111] rounded-[2.5rem] p-3 shadow-2xl border border-white/10 relative transition-transform duration-500 hover:-translate-y-2">
+                        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-20 h-4 bg-[#111] rounded-b-xl z-20" />
+                        <div className="bg-[#FBF5EC] rounded-[1.8rem] overflow-hidden h-[460px] flex flex-col">
+                          <div className="h-8 bg-gradient-to-b from-[#EDD9A3]/30 to-transparent shrink-0" />
+                          <div className="px-5 pb-5 flex-1">
+                            <div className="text-center mb-4">
+                              <p className="text-[9px] text-[#6B5D4E]/60 tracking-widest uppercase font-bold mb-0.5">Bienvenue à</p>
+                              <h3 className="font-[family-name:var(--font-display)] text-[15px] font-bold text-[#2A2016]">
+                                Le Mas des Oliviers
+                              </h3>
+                              <div className="w-6 h-0.5 bg-[#C4714A] mx-auto mt-1.5" />
+                            </div>
+                            <div className="space-y-2">
+                              {phoneSections.map((s) => (
+                                <div key={s.label} className="flex items-center gap-2.5 bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-50">
+                                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${s.color}`}>
+                                    <s.icon size={12} />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-[9px] text-[#6B5D4E] uppercase tracking-wide font-semibold">{s.label}</p>
+                                    <p className="text-[10px] font-bold text-[#2A2016] truncate">{s.value}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-20 h-1 bg-[#2A2016]/20 rounded-full" />
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </AnimateOnScroll>
+            </AnimateOnScroll>
+
+          </div>
         </div>
       </div>
     </section>

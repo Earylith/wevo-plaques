@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAccommodations, deleteAccommodation, updateAccommodation } from "@/lib/firebase/firestore";
+import { getAdminAccommodations, toggleAccommodationStatus, deleteAdminAccommodation } from "../actions";
 import { Accommodation } from "@/lib/types/accommodation";
 import Link from "next/link";
 import { Plus, PencilSimple, Trash, Link as LinkIcon, QrCode } from "@phosphor-icons/react";
@@ -16,7 +16,7 @@ export default function AccommodationsList() {
 
   const fetchAccommodations = async () => {
     try {
-      const data = await getAccommodations();
+      const data = await getAdminAccommodations();
       setAccommodations(data);
     } catch (error) {
       console.error("Error fetching accommodations:", error);
@@ -27,7 +27,7 @@ export default function AccommodationsList() {
 
   const handleToggleActive = async (id: string, currentStatus: boolean) => {
     try {
-      await updateAccommodation(id, { isActive: !currentStatus });
+      await toggleAccommodationStatus(id, currentStatus);
       fetchAccommodations();
     } catch (error) {
       console.error("Error updating status:", error);
@@ -37,7 +37,7 @@ export default function AccommodationsList() {
   const handleDelete = async (id: string) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer cet hébergement ? Cette action est irréversible.")) {
       try {
-        await deleteAccommodation(id);
+        await deleteAdminAccommodation(id);
         fetchAccommodations();
       } catch (error) {
         console.error("Error deleting accommodation:", error);

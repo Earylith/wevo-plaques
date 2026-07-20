@@ -1,230 +1,270 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ArrowRight, Leaf } from "lucide-react";
-import AnimateOnScroll from "./AnimateOnScroll";
+import { Check, ArrowRight, X, Zap, Sparkles, Plus } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function PricingSection() {
-  const [isOneTime, setIsOneTime] = useState(false);
+  const [showCompare, setShowCompare] = useState(false);
 
   const plans = [
     {
-      name: "Essentielle",
-      price: isOneTime ? "109" : "59",
-      badge: "Simple et efficace",
+      name: "Essentiel",
+      price: "49",
       popular: false,
-      accent: { bg: "bg-[#EBF0E6]", border: "border-[#5A7A4E]/20", text: "text-[#5A7A4E]", check: "bg-[#5A7A4E]/15 text-[#5A7A4E]" },
+      badge: "Simple et efficace",
+      desc: "Une solution simple en paiement unique, avec page fixe et modifications à la demande.",
       features: [
-        "1 support d'accueil en bois standard",
-        "1 QR code unique",
-        "1 page dédiée",
-        "Mise en ligne initiale",
-        "Wifi, horaires, consignes",
-        "Contacts, règlement, bonnes adresses",
-        "Personnalisation du support non incluse",
-        ...(isOneTime ? [] : ["6 mois de service inclus"]),
+        "1 support Guidz standard",
+        "Choix parmi 4 thèmes",
+        "QR code unique",
+        "Page mobile dédiée",
+        "Wi‑Fi",
+        "Arrivée / départ",
+        "Règles du logement",
+        "Contacts & urgences",
+        "Page hébergée en ligne",
+        "Modifications possibles à la demande (25€/modification de page)",
       ],
-      after: isOneTime ? "Paiement unique et définitif" : "6 mois inclus, puis 29 €/an",
-      cta: "Choisir cette offre",
+      after: "Paiement unique",
+      cta: "Choisir l'Essentiel",
     },
     {
       name: "Confort",
-      price: isOneTime ? "149" : "69",
-      badge: "La plus populaire",
+      price: "69",
       popular: true,
-      accent: null,
+      badge: "La plus populaire",
+      desc: "Modifiez votre Guidz quand vous voulez depuis votre espace",
       features: [
-        "Tout du pack Essentiel (Wifi, contacts, règlement...)",
-        "1 support d'accueil personnalisé",
-        "Nom, logo et phrase gravée",
-        "Page enrichie bilingue",
-        "Transports, urgences, FAQ",
+        "Toutes les fonctionnalité de l'Essentiel",
+        "1 Support Guidz personnalisé",
+        "Couleurs personnalisées",
+        "Nom du logement",
+        "Logo ou visuel du logement",
+        "Message de bienvenue",
         "Recommandations locales",
-        ...(isOneTime ? ["Modifications à la demande"] : ["6 mois de service inclus", "Petites modifs incluses"]),
+        "Page multilingue",
+        "Espace propriétaire",
+        "Modifications illimitées en autonomie",
       ],
-      after: isOneTime ? "Paiement unique et définitif" : "6 mois inclus, puis 48 €/an",
-      cta: "Choisir cette offre",
-    },
-    {
-      name: "Pro multi-biens",
-      price: "99",
-      badge: "Conciergeries",
-      popular: false,
-      accent: { bg: "bg-[#E4EEF3]", border: "border-[#2B5F75]/20", text: "text-[#2B5F75]", check: "bg-[#2B5F75]/15 text-[#2B5F75]" },
-      features: [
-        "Structure multi-biens",
-        "Jusqu'à 3 hébergements configurés",
-        "Pages harmonisées et duplication",
-        "Personnalisation par logement",
-        "6 mois de service inclus",
-        "Support prioritaire",
-        "Supports physiques en supplément",
-      ],
-      after: "Mise en place, puis 59 €/an/logement",
-      cta: "Demander un devis Pro",
+      after: "Puis 1,99 €/mois ou 19 €/an",
+      cta: "Choisir le Confort",
     },
   ];
 
   return (
-    <section className="py-20 lg:py-28 bg-white relative overflow-hidden" id="offres">
-      {/* Background deco */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 left-0 w-80 h-80 rounded-full bg-[#F5E6C8]/60 blur-3xl -translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 rounded-full bg-[#EBF0E6]/60 blur-3xl translate-x-1/2 translate-y-1/2" />
-      </div>
+    <section className="py-16 bg-[#FAFAF8] relative" id="offres">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="bg-[#2A2016] rounded-[40px] p-8 lg:p-12 shadow-[0_30px_80px_rgba(42,32,22,0.15)] relative overflow-hidden flex flex-col xl:flex-row gap-10 items-stretch border border-[#3A2D20]"
+        >
+          {/* Ambient background for the dark container */}
+          <div className="absolute top-0 right-1/4 w-[600px] h-[600px] bg-[#C4714A]/20 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#E8BE72]/10 blur-[100px] rounded-full pointer-events-none" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
-        <AnimateOnScroll>
-          <div className="text-center max-w-3xl mx-auto mb-10">
-            <span className="section-label section-label-terra mb-5 inline-flex">
-              Deux façons de profiter de votre support
-            </span>
-            <h2 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl lg:text-6xl font-bold text-[#2A2016] leading-tight mt-5 mb-5">
-              Choisissez la formule{" "}
-              <em className="not-italic text-gradient-terra">qui vous correspond</em>
-            </h2>
-            <div className="bg-[#FBF5EC] p-6 rounded-3xl border border-[#EDD9A3]/60 max-w-2xl mx-auto text-left">
-              <p className="text-base font-semibold text-[#2A2016] mb-4 text-center">
-                Comment souhaitez-vous fonctionner ?
+          {/* LEFT COLUMN: INTRO */}
+          <div className="xl:w-[35%] flex flex-col justify-between relative z-10">
+            <div>
+              <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#C4714A]/20 border border-[#C4714A]/30 text-[#E8BE72] text-[10px] font-bold tracking-[0.2em] uppercase mb-8 backdrop-blur-md">
+                <Zap size={12} className="text-[#C4714A]" /> Nos formules
+              </span>
+              <h2 className="font-[family-name:var(--font-display)] text-5xl lg:text-6xl font-bold text-white leading-[1.05] tracking-tight mb-6">
+                Choisissez <br/> l'offre qui vous <span className="text-[#C4714A] italic">correspond.</span>
+              </h2>
+              <p className="text-[#FBF5EC]/70 text-[15px] leading-relaxed mb-8 max-w-sm">
+                Une tarification claire et sans surprise. Optez pour la simplicité d'un paiement unique ou la liberté d'une gestion 100% autonome de vos informations.
               </p>
-              <ul className="space-y-3 text-[#6B5D4E] text-sm">
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-[#C4714A]/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <Check size={12} className="text-[#C4714A]" />
-                  </div>
-                  <span className="leading-relaxed">
-                    <strong className="text-[#2A2016]">Avec abonnement :</strong> le moins cher au départ. Inclut les petites modifications de votre page web pour la garder à jour.
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-[#C4714A]/10 flex items-center justify-center shrink-0 mt-0.5">
-                    <Check size={12} className="text-[#C4714A]" />
-                  </div>
-                  <span className="leading-relaxed">
-                    <strong className="text-[#2A2016]">Paiement unique :</strong> aucun frais récurrent. Votre page reste en ligne sans abonnement (modifications facturées à la demande).
-                  </span>
-                </li>
-              </ul>
             </div>
+            
+            <button
+              onClick={() => setShowCompare(true)}
+              className="group inline-flex items-center gap-2 text-[13px] font-bold tracking-wide uppercase text-[#E8BE72] hover:text-white transition-colors self-start mt-4 xl:mt-auto py-2"
+            >
+              Comparer en détail
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </button>
           </div>
-        </AnimateOnScroll>
 
-        {/* Toggle Avec Suivi / Paiement Unique */}
-        <AnimateOnScroll delay={0.1}>
-          <div className="flex justify-center mb-12">
-            <div className="bg-[#FBF5EC] p-1.5 rounded-full inline-flex border border-[#EDD9A3]/50">
-              <button
-                onClick={() => setIsOneTime(false)}
-                className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
-                  !isOneTime ? "bg-white text-[#C4714A] shadow-sm" : "text-[#6B5D4E] hover:text-[#2A2016]"
+          {/* RIGHT COLUMN: PRICING CARDS */}
+          <div className="xl:w-[65%] grid md:grid-cols-2 gap-4 lg:gap-5 relative z-10">
+            {plans.map((plan, i) => (
+              <motion.div 
+                key={plan.name}
+                initial={{ opacity: 0, x: 20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.15 }}
+                className={`rounded-[32px] p-6 sm:p-8 flex flex-col relative group overflow-hidden transition-all duration-500 ${
+                  plan.popular 
+                    ? "bg-gradient-to-b from-[#C4714A] to-[#A35A38] shadow-[0_10px_40px_rgba(196,113,74,0.4)] border border-[#D4866A]/40 scale-[1.02]" 
+                    : "bg-[#FBF5EC] border border-[#EDD9A3]/60 shadow-lg"
                 }`}
               >
-                Avec abonnement (6 mois inclus)
-              </button>
-              <button
-                onClick={() => setIsOneTime(true)}
-                className={`px-6 py-2.5 rounded-full text-sm font-medium transition-all ${
-                  isOneTime ? "bg-white text-[#C4714A] shadow-sm" : "text-[#6B5D4E] hover:text-[#2A2016]"
-                }`}
-              >
-                Sans abonnement (Paiement unique)
-              </button>
-            </div>
-          </div>
-        </AnimateOnScroll>
+                {/* Shine Sweep Effect for Popular Card */}
+                {plan.popular && (
+                  <motion.div 
+                    initial={{ left: "-100%" }}
+                    animate={{ left: "200%" }}
+                    transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 4, ease: "easeInOut" }}
+                    className="absolute top-0 bottom-0 w-1/2 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-[-20deg] z-20 pointer-events-none"
+                  />
+                )}
 
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-          {plans.map((plan, index) => (
-            <AnimateOnScroll key={plan.name} delay={index * 0.1}>
-              {plan.popular ? (
-                /* Popular card */
-                <div className="relative rounded-3xl p-8 h-full flex flex-col shadow-2xl scale-[1.02] lg:scale-105"
-                  style={{ background: "linear-gradient(145deg, #C4714A, #A35A38)" }}
-                >
-                  <div className="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
-                    <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-[#E8BE72]/20" />
+                {/* Header */}
+                <div className="flex justify-between items-start mb-5 relative z-10 min-h-[60px]">
+                  <div>
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <h3 className={`text-2xl font-bold font-[family-name:var(--font-display)] ${plan.popular ? "text-white" : "text-[#2A2016]"}`}>{plan.name}</h3>
+                      {plan.badge && (
+                        <span className={`${plan.popular ? "bg-white/20 text-white border-white/20" : "bg-[#2A2016]/10 text-[#2A2016] border-[#2A2016]/10"} backdrop-blur-md text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border`}>
+                          {plan.badge}
+                        </span>
+                      )}
+                    </div>
+                    <p className={`text-[11px] leading-snug max-w-[180px] ${plan.popular ? "text-white/80" : "text-[#6B5D4E]/80"}`}>{plan.desc}</p>
                   </div>
-
-                  <div className="relative z-10 flex flex-col h-full">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Leaf size={13} className="text-[#E8BE72]" />
-                      <span className="text-xs font-semibold tracking-wide uppercase text-[#E8BE72]">
-                        {plan.badge}
-                      </span>
+                  <div className="text-right shrink-0">
+                    <div className={`text-4xl font-bold tracking-tighter mb-0.5 ${plan.popular ? "text-white" : "text-[#2A2016]"}`}>
+                      {plan.price}<span className={`text-2xl ${plan.popular ? "text-white/70" : "text-[#2A2016]/50"}`}>€</span>
                     </div>
+                    <div className={`text-[9px] uppercase tracking-widest font-semibold ${plan.popular ? "text-white/60" : "text-[#6B5D4E]/60"}`}>{plan.after}</div>
+                  </div>
+                </div>
 
-                    <h3 className="font-[family-name:var(--font-display)] text-2xl font-bold text-white mb-2">
-                      {plan.name}
-                    </h3>
+                {/* Features List (Compact) */}
+                <div className={`rounded-[20px] p-4 sm:p-5 flex-1 mb-6 relative z-10 ${
+                  plan.popular ? "bg-black/15 border border-white/10 shadow-inner" : "bg-white/60 border border-[#EDD9A3]/30"
+                }`}>
 
-                    <div className="flex items-baseline gap-1 mb-1">
-                      <span className="text-5xl font-bold text-white">{plan.price} €</span>
-                      <span className="text-sm text-white/60">TTC</span>
-                    </div>
-                    <p className="text-xs text-white/50 mb-6">{plan.after}</p>
+                  <ul className="space-y-2.5">
+                    {plan.features.map((f, index) => {
+                      const isBaseFeature = plan.name === "Confort" && index === 0;
+                      const isPremiumFeature = plan.name === "Confort" && index > 0;
+                      const isPremiumDivider = plan.name === "Confort" && index === 1;
 
-                    <ul className="space-y-3 mb-8 flex-1">
-                      {plan.features.map((f) => (
-                        <li key={f} className="flex items-start gap-2.5">
-                          <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0 mt-0.5">
-                            <Check size={11} className="text-white" />
+                      return (
+                        <li key={index} className="flex flex-col">
+                          {isPremiumDivider && (
+                            <div className="flex items-center gap-2 mb-3 mt-2 pt-3 border-t border-white/10">
+                              <Sparkles size={13} className="text-[#E8BE72] fill-[#E8BE72]" />
+                              <span className="text-[10px] font-bold uppercase tracking-widest text-[#E8BE72]">En plus, vous obtenez :</span>
+                            </div>
+                          )}
+                          <div className={`flex items-start gap-3 ${isPremiumFeature ? 'pl-2' : ''}`}>
+                            {isPremiumFeature ? (
+                              <Check size={14} className="shrink-0 mt-0.5 text-[#E8BE72]" strokeWidth={4} />
+                            ) : isBaseFeature ? (
+                              <Plus size={14} className="shrink-0 mt-0.5 text-white/60" strokeWidth={3} />
+                            ) : (
+                              <Check size={14} className="shrink-0 mt-0.5 text-[#5A7A4E]" strokeWidth={3} />
+                            )}
+                            <span className={`text-[13px] leading-tight ${
+                              isPremiumFeature ? 'font-semibold text-white' : 
+                              isBaseFeature ? 'font-medium text-white/60' : 
+                              'font-medium text-[#6B5D4E]'
+                            }`}>
+                              {f}
+                            </span>
                           </div>
-                          <span className="text-sm text-white/85 leading-relaxed">{f}</span>
                         </li>
-                      ))}
-                    </ul>
-
-                    <a
-                      href="#contact"
-                      className="inline-flex items-center justify-center gap-2 w-full py-3.5 rounded-full bg-white text-[#C4714A] font-semibold text-sm hover:bg-[#FBF5EC] transition-all btn-press group shadow-lg"
-                    >
-                      {plan.cta}
-                      <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
-                    </a>
-                  </div>
-                </div>
-              ) : (
-                /* Regular cards */
-                <div className="relative rounded-3xl p-8 h-full flex flex-col bg-[#FBF5EC] border border-[#EDD9A3]/60 card-hover shadow-sm">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className={`text-xs font-semibold tracking-wide uppercase ${plan.accent!.text}`}>
-                      {plan.badge}
-                    </span>
-                  </div>
-
-                  <h3 className="font-[family-name:var(--font-display)] text-2xl font-bold text-[#2A2016] mb-2">
-                    {plan.name}
-                  </h3>
-
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-5xl font-bold text-[#2A2016]">{plan.price} €</span>
-                    <span className="text-sm text-[#6B5D4E]">TTC</span>
-                  </div>
-                  <p className="text-xs text-[#6B5D4E]/70 mb-6">{plan.after}</p>
-
-                  <ul className="space-y-3 mb-8 flex-1">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2.5">
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${plan.accent!.check}`}>
-                          <Check size={11} />
-                        </div>
-                        <span className="text-sm text-[#6B5D4E] leading-relaxed">{f}</span>
-                      </li>
-                    ))}
+                      );
+                    })}
                   </ul>
-
-                  <a
-                    href="#contact"
-                    className="inline-flex items-center justify-center gap-2 w-full py-3.5 rounded-full bg-[#2A2016] text-white font-medium text-sm hover:bg-[#5C3D2E] transition-all btn-press group"
-                  >
-                    {plan.cta}
-                    <ArrowRight size={15} className="group-hover:translate-x-1 transition-transform" />
-                  </a>
                 </div>
-              )}
-            </AnimateOnScroll>
-          ))}
-        </div>
+
+                {/* CTA Button */}
+                <a
+                  href="#contact"
+                  className={`relative z-10 w-full py-3.5 rounded-2xl font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 group/btn ${
+                    plan.popular
+                      ? "bg-white text-[#C4714A] hover:bg-[#FBF5EC] shadow-[0_4px_20px_rgba(0,0,0,0.15)] hover:scale-[1.02]"
+                      : "bg-[#2A2016] text-white hover:bg-[#5C3D2E] shadow-[0_4px_14px_rgba(0,0,0,0.1)] hover:scale-[1.02]"
+                  }`}
+                >
+                  {plan.cta}
+                  <ArrowRight size={15} className="group-hover/btn:translate-x-1 transition-transform" />
+                </a>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Modal Comparatif */}
+        <AnimatePresence>
+          {showCompare && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-[#1A1512]/60 backdrop-blur-xl"
+            >
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="bg-white rounded-[2rem] w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.2)] flex flex-col relative z-[101]"
+              >
+                <div className="p-8 border-b border-gray-100 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 z-10">
+                  <h3 className="font-[family-name:var(--font-display)] text-3xl font-bold text-[#2A2016]">
+                    Comparatif détaillé
+                  </h3>
+                  <button
+                    onClick={() => setShowCompare(false)}
+                    className="p-3 bg-gray-50 text-gray-400 hover:text-[#C4714A] hover:bg-[#C4714A]/10 rounded-full transition-all duration-300"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="p-8 overflow-y-auto">
+                  <table className="w-full text-left text-[15px]">
+                    <thead>
+                      <tr>
+                        <th className="py-5 px-6 font-semibold text-[#2A2016]/40 uppercase tracking-widest text-xs">Fonctionnalité</th>
+                        <th className="py-5 px-6 font-bold text-[#2A2016] text-center bg-gray-50 rounded-t-2xl w-1/4 text-lg">Essentiel</th>
+                        <th className="py-5 px-6 font-bold text-white text-center bg-[#C4714A] rounded-t-2xl w-1/4 text-lg shadow-inner">Confort</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {[
+                        { name: "Support Guidz en bois", ess: "Standard (4 thèmes)", conf: "100% Personnalisé", hl: true },
+                        { name: "Nom & Logo sur le support", ess: "-", conf: "check", hl: false },
+                        { name: "Page mobile dédiée", ess: "check-green", conf: "check", hl: false },
+                        { name: "Wi-Fi, Horaires, Consignes, Contacts", ess: "check-green", conf: "check", hl: false },
+                        { name: "Transports & Recommandations", ess: "-", conf: "check", hl: false },
+                        { name: "Page multilingue automatique", ess: "-", conf: "check", hl: false },
+                        { name: "Espace propriétaire en ligne", ess: "-", conf: "check", hl: false },
+                        { name: "Mises à jour des informations", ess: "À la demande (25€)", conf: "Illimitées et autonomes", hl: true, last: true },
+                      ].map((row, i) => (
+                        <motion.tr 
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          key={i} 
+                          className="hover:bg-gray-50/50 transition-colors"
+                        >
+                          <td className={`py-5 px-6 text-[#2A2016]/80 font-light ${row.last ? 'rounded-bl-2xl' : ''}`}>{row.name}</td>
+                          <td className="py-5 px-6 text-center bg-gray-50/50 text-[#6B5D4E]">
+                            {row.ess === "check-green" ? <Check size={20} className="mx-auto text-[#5A7A4E]" /> : row.ess === "-" ? <span className="text-gray-300">-</span> : row.ess}
+                          </td>
+                          <td className={`py-5 px-6 text-center bg-[#C4714A]/5 ${row.hl ? 'font-semibold text-[#C4714A]' : ''} ${row.last ? 'rounded-br-2xl' : ''}`}>
+                            {row.conf === "check" ? <Check size={20} className="mx-auto text-[#C4714A]" strokeWidth={3} /> : row.conf}
+                          </td>
+                        </motion.tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       </div>
     </section>
   );

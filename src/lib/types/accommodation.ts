@@ -50,6 +50,7 @@ export interface Accommodation {
     city: string;
     welcomeMessage: string;
     mainImageUrl?: string;
+    logoUrl?: string;
     gallery?: string[];
   };
   
@@ -87,6 +88,7 @@ export interface Accommodation {
       primaryColor?: string;
       backgroundColor?: string;
       style?: "nature" | "modern" | "classic";
+      fontFamily?: "modern" | "classic" | "nature";
     };
   };
   

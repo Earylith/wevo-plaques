@@ -615,20 +615,61 @@ export default function AdminAccommodationForm({ initialData, onSubmit, isLoadin
           <h2 className="text-xl font-bold text-[#E8BE72] mb-4">Options Offre Confort</h2>
           
           <div className="space-y-6">
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1">Couleur Principale (Thème)</label>
+                <div className="flex gap-3">
+                  <input
+                    type="color"
+                    value={formData.comfortOptions?.theme?.primaryColor || "#C4714A"}
+                    onChange={(e) => handleNestedChange("comfortOptions", "theme", "primaryColor", e.target.value)}
+                    className="w-12 h-10 rounded cursor-pointer border-0 p-0"
+                  />
+                  <input
+                    type="text"
+                    value={formData.comfortOptions?.theme?.primaryColor || "#C4714A"}
+                    onChange={(e) => handleNestedChange("comfortOptions", "theme", "primaryColor", e.target.value)}
+                    className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm w-32"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-white/70 mb-1">Police d'écriture</label>
+                <select
+                  value={formData.comfortOptions?.theme?.fontFamily || "classic"}
+                  onChange={(e) => handleNestedChange("comfortOptions", "theme", "fontFamily", e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-lg bg-white/10 border border-white/20 text-sm focus:outline-none focus:ring-2 focus:ring-[#D4A34A] text-white"
+                >
+                  <option value="classic" className="text-black">Classique (Serif)</option>
+                  <option value="modern" className="text-black">Moderne (Sans-serif)</option>
+                  <option value="nature" className="text-black">Nature (Arrondie)</option>
+                </select>
+              </div>
+            </div>
+
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-1">Couleur Principale (Thème)</label>
-              <div className="flex gap-3">
+              <label className="block text-sm font-medium text-white/70 mb-1">Logo du logement</label>
+              <div className="flex gap-4 items-center">
+                {formData.property?.logoUrl ? (
+                  <img src={formData.property.logoUrl} alt="Logo" className="w-16 h-16 rounded object-contain bg-white/10 p-2 shrink-0 border border-white/20" />
+                ) : (
+                  <div className="w-16 h-16 rounded flex items-center justify-center bg-white/5 border border-white/10 shrink-0 text-white/30 text-xs">Aucun</div>
+                )}
                 <input
-                  type="color"
-                  value={formData.comfortOptions?.theme?.primaryColor || "#C4714A"}
-                  onChange={(e) => handleNestedChange("comfortOptions", "theme", "primaryColor", e.target.value)}
-                  className="w-12 h-10 rounded cursor-pointer border-0 p-0"
-                />
-                <input
-                  type="text"
-                  value={formData.comfortOptions?.theme?.primaryColor || "#C4714A"}
-                  onChange={(e) => handleNestedChange("comfortOptions", "theme", "primaryColor", e.target.value)}
-                  className="px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-sm w-32"
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      try {
+                        const url = await uploadImage(file, "accommodations/logos");
+                        handleChange("property", "logoUrl", url);
+                      } catch (err) {
+                        alert("Erreur upload");
+                      }
+                    }
+                  }}
+                  className="w-full px-2 py-1.5 rounded-xl border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#D4A34A] bg-white/5 text-sm file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:bg-[#E8BE72] file:text-[#2A2016] hover:file:bg-[#D4A34A]"
                 />
               </div>
             </div>

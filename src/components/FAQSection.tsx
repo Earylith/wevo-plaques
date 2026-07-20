@@ -8,31 +8,31 @@ import AnimateOnScroll from "./AnimateOnScroll";
 const faqs = [
   {
     q: "Suis-je obligé de prendre un abonnement ?",
-    a: "Non. Deux options sont possibles : une formule avec suivi, qui inclut les petites modifications selon l'offre, ou un paiement unique sans abonnement. En paiement unique, la page reste accessible et les modifications sont facturées uniquement si besoin.",
+    a: "Non. La formule Essentiel est disponible en paiement unique. La formule Confort inclut un abonnement qui donne accès à l'espace propriétaire et aux modifications illimitées.",
   },
   {
-    q: "Que se passe-t-il après les 6 mois inclus ?",
-    a: "Si vous avez choisi la formule avec suivi, vous pouvez continuer avec un renouvellement annuel ou mensuel. Si vous préférez éviter les frais récurrents, vous pouvez choisir dès le départ le paiement unique.",
+    q: "Que comprend le paiement initial ?",
+    a: "Il comprend la création de votre Guidz, la mise en place du QR code et la création de la page digitale associée à votre logement.",
   },
   {
-    q: "Que se passe-t-il si mon wifi ou mes consignes changent ?",
-    a: "Avec la formule avec suivi, les petites modifications sont incluses selon votre offre. En paiement unique, les modifications sont facturées à la demande. Dans les deux cas, le QR code reste le même.",
+    q: "Que se passe-t-il si mon Wi‑Fi ou mes consignes changent ?",
+    a: "Avec la formule Essentiel, les modifications sont possibles à la demande. Avec la formule Confort, vous pouvez modifier vos informations vous-même depuis votre espace propriétaire, sans limite.",
   },
   {
     q: "Le QR code change-t-il si je modifie les informations ?",
-    a: "Non. Le QR code reste identique. Les informations de la page peuvent être modifiées sans refaire le support.",
+    a: "Non. Le QR code reste le même. Les informations changent sur la page associée, sans avoir besoin de refaire le support.",
   },
   {
-    q: "Le voyageur doit-il installer une application ?",
-    a: "Non. Le voyageur scanne simplement le QR code avec son téléphone et accède à la page depuis son navigateur.",
+    q: "Le locataire doit-il installer une application ?",
+    a: "Non. Le locataire scanne simplement le QR code avec son téléphone et accède à la page Guidz depuis son navigateur.",
   },
   {
     q: "Le support est-il personnalisable ?",
-    a: "Oui, à partir de l'offre Confort : nom ou logo de l'hébergement, ainsi qu'une phrase personnalisée gravée.",
+    a: "Oui, selon la formule choisie. La formule Essentiel propose un Guidz standard, tandis que la formule Confort permet une personnalisation plus avancée.",
   },
   {
-    q: "Est-ce adapté à plusieurs logements ?",
-    a: "Oui. L'offre Pro est pensée pour les conciergeries, gestionnaires et propriétaires de plusieurs biens. Elle permet de créer une page dédiée par hébergement et des supports harmonisés.",
+    q: "Puis-je équiper plusieurs logements ?",
+    a: "Oui. La formule Multi-biens est pensée pour les propriétaires et conciergeries qui souhaitent équiper plusieurs logements avec une gestion centralisée.",
   },
 ];
 
@@ -40,7 +40,7 @@ export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section className="py-20 lg:py-28 bg-[#FBF5EC] relative overflow-hidden">
+    <section className="py-20 lg:py-28 bg-[#FBF5EC] relative overflow-hidden" id="faq">
       {/* Subtle background decoration */}
       <div className="absolute top-0 right-0 w-72 h-72 rounded-full bg-[#EDD9A3]/40 blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-56 h-56 rounded-full bg-[#EBF0E6]/60 blur-3xl pointer-events-none" />

@@ -74,6 +74,14 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--color-sand-deep); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-terra-light); }
 
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* ── Text gradients ────────────────────────── */
 .text-gradient-terra {
   background: linear-gradient(135deg, var(--color-terra), var(--color-sun));

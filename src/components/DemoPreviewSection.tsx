@@ -8,11 +8,9 @@ import AnimateOnScroll from "./AnimateOnScroll";
 
 const sectionsEssentiel = [
   { icon: Wifi, label: "Réseau Wifi", value: "MasOliviers_5G", color: "bg-[#E4EEF3] text-[#2B5F75]" },
-  { icon: Clock, label: "Arrivée", value: "16h00 – 20h00", color: "bg-[#FDF3DC] text-[#D4A34A]" },
-  { icon: Clock, label: "Départ", value: "Avant 11h00", color: "bg-[#FDF3DC] text-[#D4A34A]" },
-  { icon: ClipboardList, label: "Consignes", value: "Voir les détails →", color: "bg-[#EBF0E6] text-[#5A7A4E]" },
-  { icon: MapPin, label: "À découvrir", value: "8 lieux recommandés", color: "bg-[#F7EBE4] text-[#C4714A]" },
-  { icon: AlertTriangle, label: "Urgences", value: "Numéros et assistance", color: "bg-red-50 text-red-500" },
+  { icon: Clock, label: "Arrivée / Départ", value: "16h00 – Avant 11h00", color: "bg-[#FDF3DC] text-[#D4A34A]" },
+  { icon: ClipboardList, label: "Règles du logement", value: "Voir les détails →", color: "bg-[#EBF0E6] text-[#5A7A4E]" },
+  { icon: AlertTriangle, label: "Contacts & urgences", value: "Numéros et assistance", color: "bg-red-50 text-red-500" },
 ];
 
 const sectionsConfort = [
@@ -43,14 +41,14 @@ export default function DemoPreviewSection() {
           <AnimateOnScroll direction="left">
             <div>
               <span className="section-label section-label-ocean mb-5 inline-flex">
-                Aperçu des packs
+                Côté locataires
               </span>
               <h2 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-bold text-[#2A2016] leading-tight mb-5 mt-5">
-                Ce que vos voyageurs{" "}
+                Ce que vos locataires{" "}
                 <em className="not-italic text-gradient-terra">verront</em>
               </h2>
               <p className="text-lg text-[#6B5D4E] leading-relaxed mb-8">
-                Une interface claire, ultra-rapide et parfaitement adaptée au mobile. Découvrez les différences entre nos deux offres.
+                Une page web claire et simple, pensée pour être consultée dès l&apos;arrivée dans le logement.
               </p>
               
               {/* Toggle Switch */}
@@ -63,7 +61,7 @@ export default function DemoPreviewSection() {
                       : "text-[#6B5D4E] hover:text-[#C4714A]"
                   }`}
                 >
-                  Pack Confort
+                  Formule Confort
                 </button>
                 <button
                   onClick={() => setActiveDemo("essentielle")}
@@ -73,7 +71,7 @@ export default function DemoPreviewSection() {
                       : "text-[#6B5D4E] hover:text-[#5A7A4E]"
                   }`}
                 >
-                  Pack Essentiel
+                  Formule Essentiel
                 </button>
               </div>
 
@@ -128,7 +126,7 @@ export default function DemoPreviewSection() {
                         )}
                         <div className="absolute inset-0 flex flex-col justify-center items-center text-center mt-4">
                           <h3 className="font-[family-name:var(--font-display)] text-xl font-bold text-[#2A2016]">
-                            Domaine des Cépages
+                            {activeDemo === "confort" ? "Domaine des Cépages" : "Bienvenue"}
                           </h3>
                           {activeDemo === "confort" && (
                             <div className="w-8 h-0.5 mt-1.5 transition-all duration-500" style={{ backgroundColor: primaryColor }} />
@@ -137,14 +135,16 @@ export default function DemoPreviewSection() {
                       </div>
 
                       {/* Content */}
-                      <div className="px-5 pb-6 -mt-4 relative z-10">
-                        <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-white mb-4">
-                          <p className="text-[10px] text-[#6B5D4E] text-center leading-relaxed">
-                            Nous sommes ravis de vous accueillir. Retrouvez ici toutes les informations utiles pour votre séjour.
-                          </p>
-                        </div>
+                      <div className="px-5 pb-6 -mt-4 relative z-10 min-h-[300px]">
+                        {activeDemo === "confort" && (
+                          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-white mb-4">
+                            <p className="text-[10px] text-[#6B5D4E] text-center leading-relaxed">
+                              Nous sommes ravis de vous accueillir. Retrouvez ici toutes les informations utiles pour votre séjour.
+                            </p>
+                          </div>
+                        )}
 
-                        <div className="space-y-2">
+                        <div className={`space-y-2 ${activeDemo === "essentielle" ? "mt-8" : ""}`}>
                           {currentSections.map((s, idx) => (
                             <div
                               key={`${activeDemo}-${idx}`}

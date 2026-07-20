@@ -10,13 +10,13 @@ export default function Hero() {
       {/* Background image with overlay */}
       <div className="absolute inset-0">
         <img
-          src="/images/hero_images.png"
+          src="/images/hero-finale.png"
           alt=""
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover object-center"
         />
         {/* Multi-layer overlay for readability + warmth */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#2A2016]/80 via-[#2A2016]/50 to-[#2A2016]/10" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#2A2016]/60 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#2A2016]/95 via-[#2A2016]/70 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#2A2016]/80 via-[#2A2016]/30 to-transparent" />
       </div>
 
       {/* Floating organic shapes */}
@@ -39,7 +39,7 @@ export default function Hero() {
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-7">
               <Sparkles size={13} className="text-[#E8BE72]" />
               <span className="text-xs font-medium text-white/90 tracking-wide uppercase">
-                Support d&apos;accueil connecté · artisanat français
+                Guidz · Le guide d&apos;accueil en un scan
               </span>
             </div>
           </AnimateOnScroll>
@@ -47,7 +47,7 @@ export default function Hero() {
           {/* Headline */}
           <AnimateOnScroll delay={0.2}>
             <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl lg:text-7xl leading-[1.05] font-bold text-white mb-6">
-              Un support d&apos;accueil{" "}
+              Un Guidz dans votre{" "}
               <span
                 style={{
                   background: "linear-gradient(135deg, #E8BE72, #C4714A)",
@@ -56,7 +56,7 @@ export default function Hero() {
                   backgroundClip: "text",
                 }}
               >
-                élégant.
+                hébergement.
               </span>
               <br className="hidden lg:block" />
               <span className="text-4xl sm:text-5xl lg:text-6xl mt-2 block">Toutes les infos du séjour en un scan.</span>
@@ -65,7 +65,7 @@ export default function Hero() {
 
           <AnimateOnScroll delay={0.3}>
             <p className="text-lg sm:text-xl text-white/75 leading-relaxed mb-10 max-w-2xl">
-              Un support en bois gravé avec QR code, relié à un livret d&apos;accueil digital personnalisé pour votre hébergement. Wifi, consignes, arrivée, départ et bonnes adresses : tout est au même endroit.
+              Un support en bois gravée avec QR code, reliée à une page mobile personnalisée pour votre hébergement. Wi‑Fi, arrivée, départ, règles, contacts et recommandations : tout est accessible sans application.
             </p>
           </AnimateOnScroll>
 
@@ -76,7 +76,7 @@ export default function Hero() {
                 href="#offres"
                 className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#C4714A] text-white font-semibold text-base hover:bg-[#D4866A] transition-all btn-press shadow-lg hover:shadow-xl group"
               >
-                Découvrir les offres
+                Voir les formules
                 <ArrowRight
                   size={18}
                   className="group-hover:translate-x-1 transition-transform"
@@ -87,7 +87,7 @@ export default function Hero() {
                 className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-white/10 backdrop-blur-sm border border-white/25 text-white font-medium text-base hover:bg-white/20 transition-all btn-press"
               >
                 <Eye size={18} />
-                Voir un exemple
+                Voir une démo
               </a>
             </div>
           </AnimateOnScroll>
@@ -95,7 +95,7 @@ export default function Hero() {
           {/* Trust line */}
           <AnimateOnScroll delay={0.5}>
             <p className="text-sm text-white/60 mt-8 font-medium">
-              À partir de 59 € TTC · 6 mois de service inclus · paiement unique disponible
+              À partir de 49 € TTC · Installation simple · Sans application pour vos locataires
             </p>
           </AnimateOnScroll>
         </div>

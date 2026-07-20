@@ -6,30 +6,30 @@ import AnimateOnScroll from "./AnimateOnScroll";
 const problems = [
   {
     Icon: WifiX,
-    title: "Le code wifi toujours demandé",
+    title: "Wi‑Fi accessible dès l'arrivée",
     description:
-      "Vos voyageurs retrouvent le réseau et le mot de passe dès leur arrivée.",
+      "Le réseau et le mot de passe sont disponibles en un scan, sans message à envoyer.",
     accent: { bg: "bg-[#F7EBE4]", icon: "#C4714A", border: "border-[#C4714A]/15" },
   },
   {
     Icon: ChatTeardropDots,
-    title: "Les messages répétés",
+    title: "Consignes centralisées",
     description:
-      "Centralisez les consignes une bonne fois pour toutes, au lieu de les renvoyer à chaque séjour.",
+      "Arrivée, départ, règlement et équipements : toutes les informations importantes sont regroupées au même endroit.",
     accent: { bg: "bg-[#EBF0E6]", icon: "#5A7A4E", border: "border-[#5A7A4E]/15" },
   },
   {
     Icon: ArrowsClockwise,
-    title: "Des infos qui changent",
+    title: "Des informations faciles à mettre à jour",
     description:
-      "Codes, horaires, contacts, bonnes adresses : mettez à jour les informations sans refaire le support.",
+      "Codes, horaires, contacts ou bonnes adresses : votre page évolue sans refaire votre support.",
     accent: { bg: "bg-[#FDF3DC]", icon: "#D4A34A", border: "border-[#D4A34A]/15" },
   },
   {
     Icon: SealWarning,
-    title: "Un accueil peu soigné",
+    title: "Un accueil qui donne le ton",
     description:
-      "Remplacez les feuilles volantes et classeurs vieillissants par un support élégant et une page claire.",
+      "Dès leur arrivée, vos voyageurs découvrent un support clair, élégant et utile, pensé pour s'intégrer naturellement à votre logement.",
     accent: { bg: "bg-[#EBF0E6]", icon: "#5A7A4E", border: "border-[#5A7A4E]/15" },
   },
 ];
@@ -48,11 +48,11 @@ export default function ProblemSection() {
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="section-label mb-5 inline-flex">Le constat</span>
             <h2 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl lg:text-6xl font-bold text-[#2A2016] leading-tight mt-5">
-              Les mêmes questions{" "}
-              <em className="not-italic text-gradient-terra">reviennent à chaque séjour</em>
+              Toutes les réponses,{" "}
+              <em className="not-italic text-gradient-terra">dès l&apos;arrivée</em>
             </h2>
             <p className="mt-5 text-lg text-[#6B5D4E] leading-relaxed">
-              Wifi, horaires, consignes, bonnes adresses… vos voyageurs cherchent souvent les mêmes informations. Votre support d&apos;accueil connecté les regroupe en un seul scan.
+              Wi‑Fi, horaires, consignes, bonnes adresses… vos locataires trouvent les informations utiles dès leur arrivée.
             </p>
           </div>
         </AnimateOnScroll>
