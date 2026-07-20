@@ -101,6 +101,11 @@ export async function updateAdminAccommodation(id: string, data: Partial<Accommo
     });
     revalidatePath("/admin/hebergements");
     revalidatePath(`/admin/hebergements/${id}`);
+    if (data.slug) {
+      revalidatePath(`/h/${data.slug}`, 'page');
+    }
+    // Optionnel mais radical : invalider tout le routeur pour être sûr que tout se rafraîchisse
+    revalidatePath("/", "layout");
   } catch (error) {
     console.error("Error updating accommodation", error);
     throw new Error("Failed to update accommodation");
