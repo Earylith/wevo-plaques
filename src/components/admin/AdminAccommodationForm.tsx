@@ -5,7 +5,7 @@ import { Accommodation, OfferType, ContactInfo, Recommendation, PointOfInterest 
 import { slugify } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
 import { Plus, Trash, Image as ImageIcon } from "@phosphor-icons/react";
-import { uploadImage } from "@/lib/firebase/storage";
+import { uploadAdminImageAction } from "@/app/admin/actions";
 
 interface Props {
   initialData?: Accommodation;
@@ -308,7 +308,9 @@ export default function AdminAccommodationForm({ initialData, onSubmit, isLoadin
                   const file = e.target.files?.[0];
                   if (file) {
                     try {
-                      const url = await uploadImage(file, "accommodations/main");
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      const url = await uploadAdminImageAction(formData, "accommodations/main");
                       handleChange("property", "mainImageUrl", url);
                     } catch (err) {
                       console.error(err);
@@ -584,7 +586,9 @@ export default function AdminAccommodationForm({ initialData, onSubmit, isLoadin
                             const file = e.target.files?.[0];
                             if (file) {
                               try {
-                                const url = await uploadImage(file, "accommodations/recs");
+                                const formData = new FormData();
+                                formData.append("file", file);
+                                const url = await uploadAdminImageAction(formData, "accommodations/recs");
                                 handleComplexArrayChange("recommendations", index, "imageUrl", url);
                               } catch (err) {
                                 alert("Erreur upload");
@@ -662,7 +666,9 @@ export default function AdminAccommodationForm({ initialData, onSubmit, isLoadin
                     const file = e.target.files?.[0];
                     if (file) {
                       try {
-                        const url = await uploadImage(file, "accommodations/logos");
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        const url = await uploadAdminImageAction(formData, "accommodations/logos");
                         handleChange("property", "logoUrl", url);
                       } catch (err) {
                         alert("Erreur upload");

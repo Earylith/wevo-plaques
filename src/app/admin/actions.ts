@@ -124,3 +124,37 @@ export async function createAdminAccommodation(data: Omit<Accommodation, "id" | 
   }
 }
 
+export async function uploadAdminImageAction(formData: FormData, folder: string) {
+  await requireAdminAuth();
+  try {
+    const file = formData.get("file") as File;
+    if (!file) throw new Error("No file provided");
+    
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const fileExtension = file.name.split('.').pop();
+    const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+    const fileName = `${uniqueId}.${fileExtension}`;
+    const filePath = `${folder}/${fileName}`;
+
+    // On utilise uuid de Node pour le token (on installe uuid si nécessaire ou on fait un simple math random mais un uuid est mieux)
+    // Pour simplifier et éviter une dépendance, on génère un UUID simple
+    const token = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+    
+    const bucket = (await import("@/lib/firebase/admin")).adminStorage.bucket();
+    const fileRef = bucket.file(filePath);
+    
+    await fileRef.save(buffer, {
+      metadata: {
+        contentType: file.type,
+        metadata: {
+          firebaseStorageDownloadTokens: token
+        }
+      }
+    });
+    
+    return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filePath)}?alt=media&token=${token}`;
+  } catch (error) {
+    console.error("Error uploading image via admin", error);
+    throw new Error("Failed to upload image");
+  }
+}
