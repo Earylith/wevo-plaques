@@ -53,7 +53,7 @@ export default function Hero() {
 
           <AnimateOnScroll delay={0.3}>
             <p className="text-lg sm:text-xl text-white/75 leading-relaxed mb-6 lg:mb-10 max-w-2xl">
-              Remplacez votre livret papier par une élégante plaque en bois personnalisée. Vos voyageurs retrouvent le Wi-Fi, les consignes, les équipements et vos recommandations en quelques secondes, sans application.
+              Remplacez votre livret papier par une élégante plaque en bois personnalisée. Vos voyageurs retrouvent le Wi-Fi, les consignes, les équipements et vos recommandations en un scan.
             </p>
           </AnimateOnScroll>
         </div>
