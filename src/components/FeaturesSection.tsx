@@ -19,12 +19,11 @@ const features = [
   { Icon: Clock,          title: "Arrivée / départ",      desc: "Horaires, accès au logement et consignes de sortie.",      accent: { bg: "bg-[#FDF3DC]", color: "#D4A34A" }, span: "md:col-span-2 md:row-span-1" },
   { Icon: ClipboardText,  title: "Consignes du logement", desc: "Équipements, poubelles, chauffage, jacuzzi, parking…",     accent: { bg: "bg-[#F7EBE4]", color: "#C4714A" }, span: "md:col-span-1 md:row-span-1" },
   { Icon: BookOpen,       title: "Règles du logement",    desc: "Les règles importantes présentées clairement.",            accent: { bg: "bg-[#EBF0E6]", color: "#5A7A4E" }, span: "md:col-span-1 md:row-span-1" },
-  { Icon: Phone,          title: "Contacts utiles",       desc: "Propriétaire, conciergerie ou prestataires : les bons contacts à portée de main.", accent: { bg: "bg-[#F7EBE4]", color: "#C4714A" }, span: "md:col-span-2 md:row-span-1" },
-  { Icon: MapPin,         title: "Bonnes adresses",       desc: "Restaurants, activités, commerces",                        accent: { bg: "bg-[#EBF0E6]", color: "#5A7A4E" }, span: "md:col-span-1 md:row-span-2" },
-  { Icon: Warning,        title: "Urgences",              desc: "Numéro d'urgence européen et contact logement en cas de situation urgente.", accent: { bg: "bg-red-50",    color: "#EF4444" }, span: "md:col-span-1 md:row-span-1" },
+  { Icon: Phone,          title: "Contacts & Urgences",   desc: "Propriétaires, prestataires et numéros d'urgence en cas de problème.", accent: { bg: "bg-red-50", color: "#EF4444" }, span: "md:col-span-2 md:row-span-1" },
+  { Icon: MapPin,         title: "Bonnes adresses",       desc: "Restaurants, activités, commerces.",                       accent: { bg: "bg-[#EBF0E6]", color: "#5A7A4E" }, span: "md:col-span-1 md:row-span-1" },
   { Icon: Bus,            title: "Accès / Transports",    desc: "Parking, gare, accès, transports et itinéraires.",         accent: { bg: "bg-[#FDF3DC]", color: "#D4A34A" }, span: "md:col-span-1 md:row-span-1" },
-  { Icon: Question,       title: "FAQ",                   desc: "Réponses aux questions fréquentes",                        accent: { bg: "bg-[#E4EEF3]", color: "#2B5F75" }, span: "md:col-span-1 md:row-span-1" },
-  { Icon: ArrowSquareOut, title: "Liens utiles",          desc: "Maps, réservations, sites utiles et services locaux.",     accent: { bg: "bg-[#EBF0E6]", color: "#5A7A4E" }, span: "md:col-span-1 md:row-span-1" },
+  { Icon: Question,       title: "FAQ",                   desc: "Réponses aux questions fréquentes pour vos voyageurs.",    accent: { bg: "bg-[#E4EEF3]", color: "#2B5F75" }, span: "md:col-span-2 md:row-span-1" },
+  { Icon: ArrowSquareOut, title: "Liens utiles",          desc: "Maps, réservations, sites utiles et services locaux.",     accent: { bg: "bg-[#F7EBE4]", color: "#C4714A" }, span: "md:col-span-2 md:row-span-1" },
 ];
 
 export default function FeaturesSection() {
@@ -78,7 +77,7 @@ export default function FeaturesSection() {
                   className={`group rounded-[32px] p-8 border border-transparent w-full flex transition-all duration-500 bg-[#FBF5EC]/60 backdrop-blur-sm hover:bg-white hover:shadow-[0_20px_40px_rgba(0,0,0,0.05)] hover:border-[#EDD9A3]/80 ${
                     isLarge ? "flex-col justify-center items-center text-center p-12" : 
                     isWide ? "flex-col sm:flex-row items-start sm:items-center text-left gap-6" : 
-                    isTall ? "flex-col justify-between items-start text-left" : 
+                    isTall ? "flex-col items-start text-left" : 
                     "flex-col items-start text-left"
                   }`}
                 >

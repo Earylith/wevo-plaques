@@ -92,7 +92,7 @@ export default function DifferentiationSection() {
                   ))}
                 </ul>
                 <div className="rounded-3xl overflow-hidden shadow-inner bg-gray-100">
-                  <img src="/lifestyle.png" alt="Support Guidz" className="w-full h-auto object-cover" />
+                  <img src="/images/mockup/guidz_mockup.png" alt="Support Guidz" className="w-full h-auto object-cover" />
                 </div>
               </div>
             </AnimateOnScroll>
@@ -134,35 +134,18 @@ export default function DifferentiationSection() {
                   </ul>
 
                   {/* Phone Mockup */}
-                  <div className="flex justify-center">
+                  <div className="flex justify-center mt-6">
                     <div className="relative w-[240px]">
                       <div className="bg-[#111] rounded-[2.5rem] p-3 shadow-2xl border border-white/10 relative transition-transform duration-500 hover:-translate-y-2">
+                        {/* Notch */}
                         <div className="absolute top-3 left-1/2 -translate-x-1/2 w-20 h-4 bg-[#111] rounded-b-xl z-20" />
-                        <div className="bg-[#FBF5EC] rounded-[1.8rem] overflow-hidden h-[460px] flex flex-col">
-                          <div className="h-8 bg-gradient-to-b from-[#EDD9A3]/30 to-transparent shrink-0" />
-                          <div className="px-5 pb-5 flex-1">
-                            <div className="text-center mb-4">
-                              <p className="text-[9px] text-[#6B5D4E]/60 tracking-widest uppercase font-bold mb-0.5">Bienvenue à</p>
-                              <h3 className="font-[family-name:var(--font-display)] text-[15px] font-bold text-[#2A2016]">
-                                Le Mas des Oliviers
-                              </h3>
-                              <div className="w-6 h-0.5 bg-[#C4714A] mx-auto mt-1.5" />
-                            </div>
-                            <div className="space-y-2">
-                              {phoneSections.map((s) => (
-                                <div key={s.label} className="flex items-center gap-2.5 bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-50">
-                                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${s.color}`}>
-                                    <s.icon size={12} />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <p className="text-[9px] text-[#6B5D4E] uppercase tracking-wide font-semibold">{s.label}</p>
-                                    <p className="text-[10px] font-bold text-[#2A2016] truncate">{s.value}</p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-20 h-1 bg-[#2A2016]/20 rounded-full" />
+                        {/* Screen */}
+                        <div className="bg-[#FDFBF7] rounded-[1.8rem] overflow-hidden h-[460px] relative">
+                          <img 
+                            src="/images/mockup/mockup_confort.png" 
+                            alt="Guidz Digitale - Démo Confort" 
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                       </div>
                     </div>

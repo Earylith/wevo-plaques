@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ArrowRight, X, Zap, Sparkles, Plus } from "lucide-react";
+import { Check, ArrowRight, X, Zap, Sparkles, Plus, ShieldCheck, Lock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function PricingSection() {
@@ -28,6 +28,7 @@ export default function PricingSection() {
       ],
       after: "Paiement unique",
       cta: "Choisir l'Essentiel",
+      href: "https://buy.stripe.com/7sY4gyb8BfzU9s7brl7IY00",
     },
     {
       name: "Confort",
@@ -36,7 +37,7 @@ export default function PricingSection() {
       badge: "La plus populaire",
       desc: "Modifiez votre Guidz quand vous voulez depuis votre espace",
       features: [
-        "Toutes les fonctionnalité de l'Essentiel",
+        "Toutes les fonctionnalités de l'Essentiel",
         "1 Support Guidz personnalisé",
         "Couleurs personnalisées",
         "Nom du logement",
@@ -49,6 +50,7 @@ export default function PricingSection() {
       ],
       after: "Puis 1,99 €/mois ou 19 €/an",
       cta: "Choisir le Confort",
+      href: "https://buy.stripe.com/eVq6oG2C5afAgUz52X7IY01",
     },
   ];
 
@@ -179,7 +181,9 @@ export default function PricingSection() {
 
                 {/* CTA Button */}
                 <a
-                  href="#contact"
+                  href={plan.href || "#contact"}
+                  target={plan.href ? "_blank" : undefined}
+                  rel={plan.href ? "noopener noreferrer" : undefined}
                   className={`relative z-10 w-full py-3.5 rounded-2xl font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 group/btn ${
                     plan.popular
                       ? "bg-white text-[#C4714A] hover:bg-[#FBF5EC] shadow-[0_4px_20px_rgba(0,0,0,0.15)] hover:scale-[1.02]"
@@ -189,6 +193,20 @@ export default function PricingSection() {
                   {plan.cta}
                   <ArrowRight size={15} className="group-hover/btn:translate-x-1 transition-transform" />
                 </a>
+
+                {/* Réassurance Stripe */}
+                {(plan.name === "Essentiel" || plan.name === "Confort") && (
+                  <div className="mt-4 flex flex-col items-center gap-1.5 relative z-10">
+                    <div className="flex items-center gap-1.5 text-[#6B5D4E]/80 text-[11px] font-medium">
+                      <Lock size={12} />
+                      Paiement 100% sécurisé
+                    </div>
+                    <div className="flex items-center gap-1 text-[#6B5D4E]/60 text-[10px]">
+                      <ShieldCheck size={12} className="text-[#635BFF]" />
+                      Certifié par <span className="font-bold text-[#635BFF]">stripe</span>
+                    </div>
+                  </div>
+                )}
               </motion.div>
             ))}
           </div>

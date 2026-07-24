@@ -84,7 +84,7 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-1.5 text-[13px] text-white/30 font-light tracking-wide">
             <span>Créé par</span>
-            <span className="text-white/60 font-medium tracking-normal hover:text-white cursor-pointer transition-colors">Wevo & Créart</span>
+            <span className="text-white/60 font-medium tracking-normal hover:text-white cursor-pointer transition-colors">Wevo x Créart</span>
           </div>
         </div>
       </div>

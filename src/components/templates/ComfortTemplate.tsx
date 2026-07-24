@@ -83,7 +83,7 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
       <main className="relative pb-28 lg:pb-0">
         
         {/* Parallax Hero Section */}
-        <section className="relative h-[50vh] lg:h-[80vh] w-full overflow-hidden flex items-end pb-12 lg:pb-24 px-6 lg:px-12">
+        <section className="relative h-[50vh] lg:h-[80vh] w-full overflow-hidden flex items-center justify-center px-6 lg:px-12">
           <motion.div 
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 20, ease: "easeInOut", repeat: Infinity }}
@@ -94,11 +94,11 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
             ) : (
               <div className="w-full h-full" style={{ backgroundColor: primaryColor }} />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#1A1510]/90 via-[#1A1510]/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#1A1510]/90 via-[#1A1510]/40 to-[#1A1510]/20" />
           </motion.div>
 
-          <div className="relative z-10 w-full max-w-6xl mx-auto flex flex-col lg:flex-row justify-between items-end gap-6">
-            <motion.div initial="hidden" animate="visible" variants={fadeUp} className="text-white">
+          <div className="relative z-10 w-full max-w-6xl mx-auto flex flex-col items-center justify-center gap-6">
+            <motion.div initial="hidden" animate="visible" variants={fadeUp} className="text-white flex flex-col items-center text-center">
               {data.property.logoUrl && (
                 <div className="w-20 h-20 lg:w-32 lg:h-32 mb-6 bg-white/10 backdrop-blur-md p-4 rounded-3xl border border-white/20 shadow-2xl">
                   <img src={data.property.logoUrl} alt="Logo" className="w-full h-full object-contain" />

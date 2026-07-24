@@ -63,7 +63,7 @@ export default function FinalCTA() {
               </h2>
 
               <p className="text-xl text-[#6B5D4E] leading-relaxed max-w-2xl mx-auto mb-14">
-                Installez votre Guidz et vos locataires accèderont aux informations essentielles en un scan.
+                Installez votre Guidz et vos locataires accéderont aux informations essentielles en un scan.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
