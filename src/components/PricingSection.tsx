@@ -197,13 +197,13 @@ export default function PricingSection() {
                 {/* Réassurance Stripe */}
                 {(plan.name === "Essentiel" || plan.name === "Confort") && (
                   <div className="mt-4 flex flex-col items-center gap-1.5 relative z-10">
-                    <div className="flex items-center gap-1.5 text-[#6B5D4E]/80 text-[11px] font-medium">
+                    <div className={`flex items-center gap-1.5 text-[11px] font-medium ${plan.popular ? "text-white/90" : "text-[#6B5D4E]/80"}`}>
                       <Lock size={12} />
                       Paiement 100% sécurisé
                     </div>
-                    <div className="flex items-center gap-1 text-[#6B5D4E]/60 text-[10px]">
-                      <ShieldCheck size={12} className="text-[#635BFF]" />
-                      Certifié par <span className="font-bold text-[#635BFF]">stripe</span>
+                    <div className={`flex items-center gap-1 text-[10px] ${plan.popular ? "text-white/70" : "text-[#6B5D4E]/60"}`}>
+                      <ShieldCheck size={12} className={plan.popular ? "text-white/90" : "text-[#635BFF]"} />
+                      Certifié par <span className={`font-bold ${plan.popular ? "text-white" : "text-[#635BFF]"}`}>stripe</span>
                     </div>
                   </div>
                 )}

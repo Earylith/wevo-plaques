@@ -78,11 +78,21 @@ export default function Footer() {
         </div>
 
         {/* Bottom */}
-        <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-[13px] text-white/30 font-light tracking-wide">
+        <div className="pt-8 flex flex-col md:flex-row items-center justify-between gap-6 flex-wrap">
+          <p className="text-[13px] text-white/30 font-light tracking-wide shrink-0">
             © {new Date().getFullYear()} Guidz. Tous droits réservés.
           </p>
-          <div className="flex items-center gap-1.5 text-[13px] text-white/30 font-light tracking-wide">
+
+          {/* Logos de réassurance paiement */}
+          <div className="flex items-center justify-center gap-4">
+            <img src="/images/Réassurances/Stripe_Logo,_revised_2016.svg.webp" alt="Stripe" className="h-5 w-auto object-contain" />
+            <img src="/images/Réassurances/Visa_Inc._logo_(2021–present).svg.webp" alt="Visa" className="h-3 w-auto object-contain" />
+            <img src="/images/Réassurances/Mastercard-logo.svg.webp" alt="Mastercard" className="h-5 w-auto object-contain" />
+            <img src="/images/Réassurances/Apple_Pay_logo.svg.webp" alt="Apple Pay" className="h-5 w-auto object-contain" />
+            <img src="/images/Réassurances/Google_Pay_Logo.svg.webp" alt="Google Pay" className="h-5 w-auto object-contain" />
+          </div>
+
+          <div className="flex items-center gap-1.5 text-[13px] text-white/30 font-light tracking-wide shrink-0">
             <span>Créé par</span>
             <span className="text-white/60 font-medium tracking-normal hover:text-white cursor-pointer transition-colors">Wevo x Créart</span>
           </div>
