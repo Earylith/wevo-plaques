@@ -128,13 +128,15 @@ export default function AccommodationsList() {
                         >
                           <LinkIcon size={18} />
                         </button>
-                        <Link 
-                          href={`/admin/hebergements/${acc.id}`}
-                          className="p-2 text-[#6B5D4E] hover:text-[#2B5F75] hover:bg-[#E4EEF3] rounded-lg transition-colors"
-                          title="Modifier"
-                        >
-                          <PencilSimple size={18} />
-                        </Link>
+                        {acc.offerType === 'comfort' && (
+                          <Link 
+                            href={`/admin/hebergements/${acc.id}`}
+                            className="p-2 text-[#6B5D4E] hover:text-[#2B5F75] hover:bg-[#E4EEF3] rounded-lg transition-colors"
+                            title="Modifier"
+                          >
+                            <PencilSimple size={18} />
+                          </Link>
+                        )}
                         <button 
                           onClick={() => handleDelete(acc.id!)}
                           className="p-2 text-[#6B5D4E] hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"

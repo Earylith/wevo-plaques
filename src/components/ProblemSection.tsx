@@ -48,8 +48,7 @@ export default function ProblemSection() {
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="section-label mb-5 inline-flex">Le constat</span>
             <h2 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl lg:text-6xl font-bold text-[#2A2016] leading-tight mt-5">
-              Toutes les réponses,{" "}
-              <em className="not-italic text-gradient-terra">dès l&apos;arrivée</em>
+              Toutes les informations du séjour réunies en un <em className="not-italic text-gradient-terra">scan.</em>
             </h2>
             <p className="mt-5 text-lg text-[#6B5D4E] leading-relaxed">
               Wi‑Fi, horaires, consignes, bonnes adresses… vos locataires trouvent les informations utiles dès leur arrivée.

@@ -32,22 +32,12 @@ export default function Hero() {
         <path d="M180,10 C80,20 20,120 100,290 C120,230 200,150 180,10Z" />
       </svg>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-28 pb-20 lg:pt-36 lg:pb-28 w-full">
-        <div className="max-w-2xl">
-          {/* Pill badge */}
-          <AnimateOnScroll delay={0.1}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-7">
-              <Sparkles size={13} className="text-[#E8BE72]" />
-              <span className="text-xs font-medium text-white/90 tracking-wide uppercase">
-                Guidz · Le guide d&apos;accueil en un scan
-              </span>
-            </div>
-          </AnimateOnScroll>
-
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-28 pb-20 lg:pt-36 lg:pb-28 w-full flex flex-col">
+        <div className="max-w-2xl order-1">
           {/* Headline */}
           <AnimateOnScroll delay={0.2}>
-            <h1 className="font-[family-name:var(--font-display)] text-5xl sm:text-6xl lg:text-7xl leading-[1.05] font-bold text-white mb-6">
-              Un Guidz dans votre{" "}
+            <h1 className="font-[family-name:var(--font-display)] text-4xl sm:text-6xl lg:text-7xl leading-[1.05] font-bold text-white mb-6">
+              Guidz, le livret d'accueil&nbsp;
               <span
                 style={{
                   background: "linear-gradient(135deg, #E8BE72, #C4714A)",
@@ -56,21 +46,82 @@ export default function Hero() {
                   backgroundClip: "text",
                 }}
               >
-                hébergement.
+                réinventé.
               </span>
-              <br className="hidden lg:block" />
-              <span className="text-4xl sm:text-5xl lg:text-6xl mt-2 block">Toutes les infos du séjour en un scan.</span>
             </h1>
           </AnimateOnScroll>
 
           <AnimateOnScroll delay={0.3}>
-            <p className="text-lg sm:text-xl text-white/75 leading-relaxed mb-10 max-w-2xl">
-              Un support en bois gravé avec QR code, relié à une page mobile personnalisée pour votre hébergement. Wi‑Fi, arrivée, départ, règles, contacts et recommandations : tout est accessible sans application.
+            <p className="text-lg sm:text-xl text-white/75 leading-relaxed mb-6 lg:mb-10 max-w-2xl">
+              Remplacez votre livret papier par une élégante plaque en bois personnalisée. Vos voyageurs retrouvent le Wi-Fi, les consignes, les équipements et vos recommandations en quelques secondes, sans application.
             </p>
           </AnimateOnScroll>
+        </div>
 
-          {/* CTAs */}
+        {/* Mobile Product Showcase (Premium) */}
+        <div className="order-2 w-full lg:hidden block">
           <AnimateOnScroll delay={0.4}>
+            <div className="mb-10 w-full relative">
+              
+              {/* Glowing backdrop to make the wood pop */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#C4714A]/40 rounded-full blur-[80px] pointer-events-none" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/4 -translate-y-1/3 w-48 h-48 bg-[#E8BE72]/30 rounded-full blur-[60px] pointer-events-none" />
+
+              <style dangerouslySetInnerHTML={{__html: `
+                .hide-scrollbar::-webkit-scrollbar { display: none; }
+                .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+              `}} />
+              
+              <div className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-10 pt-4 px-6 hide-scrollbar relative z-10 items-center -mx-6">
+                
+                {/* Item 1: Mockup sur le mur */}
+                <div className="snap-center shrink-0 w-full relative flex justify-center">
+                  <motion.div
+                    animate={{ y: [0, -12, 0] }}
+                    transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+                    className="relative w-[85%] max-w-[320px]"
+                  >
+                    {/* Drop shadow underneath */}
+                    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[70%] h-4 bg-black/50 blur-[15px] rounded-[100%]" />
+                    <img
+                      src="/images/mockup/guidz_mockup.png"
+                      alt="Aperçu Guidz sur le mur"
+                      className="w-full h-auto object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)]"
+                    />
+                  </motion.div>
+                </div>
+
+                {/* Item 2: Chevalet */}
+                <div className="snap-center shrink-0 w-full relative flex justify-center">
+                  <motion.div
+                    animate={{ y: [0, -12, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+                    className="relative w-[85%] max-w-[320px]"
+                  >
+                    {/* Drop shadow underneath */}
+                    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[70%] h-4 bg-black/50 blur-[15px] rounded-[100%]" />
+                    <img
+                      src="/images/mockup/guidz_chevalet.png"
+                      alt="Guidz sur chevalet"
+                      className="w-full h-auto object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)]"
+                    />
+                  </motion.div>
+                </div>
+
+              </div>
+              
+              {/* Scroll Indicator */}
+              <div className="absolute bottom-0 left-0 right-0 flex justify-center items-center gap-2 text-white/40 text-[10px] uppercase tracking-[0.2em] font-bold z-20">
+                <span className="animate-pulse">Faire défiler</span>
+                <ArrowRight size={12} className="animate-pulse text-[#C4714A]" />
+              </div>
+            </div>
+          </AnimateOnScroll>
+        </div>
+
+        {/* CTAs */}
+        <div className="max-w-2xl order-3">
+          <AnimateOnScroll delay={0.5}>
             <div className="flex flex-col sm:flex-row gap-4">
               <a
                 href="#offres"
@@ -93,71 +144,12 @@ export default function Hero() {
           </AnimateOnScroll>
 
           {/* Trust line */}
-          <AnimateOnScroll delay={0.5}>
+          <AnimateOnScroll delay={0.6}>
             <p className="text-sm text-white/60 mt-8 font-medium">
               À partir de 49 € TTC · Installation simple · Sans application pour vos locataires
             </p>
           </AnimateOnScroll>
         </div>
-
-        {/* Mobile Product Showcase (Premium) */}
-        <AnimateOnScroll delay={0.6}>
-          <div className="mt-16 block lg:hidden w-full relative">
-            
-            {/* Glowing backdrop to make the wood pop */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#C4714A]/40 rounded-full blur-[80px] pointer-events-none" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/4 -translate-y-1/3 w-48 h-48 bg-[#E8BE72]/30 rounded-full blur-[60px] pointer-events-none" />
-
-            <style dangerouslySetInnerHTML={{__html: `
-              .hide-scrollbar::-webkit-scrollbar { display: none; }
-              .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-            `}} />
-            
-            <div className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-10 pt-4 px-6 hide-scrollbar relative z-10 items-center">
-              
-              {/* Item 1: Chevalet */}
-              <div className="snap-center shrink-0 w-full relative flex justify-center">
-                <motion.div
-                  animate={{ y: [0, -12, 0] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                  className="relative w-[85%] max-w-[320px]"
-                >
-                  {/* Drop shadow underneath */}
-                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[70%] h-4 bg-black/50 blur-[15px] rounded-[100%]" />
-                  <img
-                    src="/images/mockup/guidz_chevalet.png"
-                    alt="Guidz sur chevalet"
-                    className="w-full h-auto object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)]"
-                  />
-                </motion.div>
-              </div>
-
-              {/* Item 2: Mockup */}
-              <div className="snap-center shrink-0 w-full relative flex justify-center">
-                <motion.div
-                  animate={{ y: [0, -12, 0] }}
-                  transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                  className="relative w-[85%] max-w-[320px]"
-                >
-                  {/* Drop shadow underneath */}
-                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[70%] h-4 bg-black/50 blur-[15px] rounded-[100%]" />
-                  <img
-                    src="/images/mockup/guidz_mockup.png"
-                    alt="Aperçu Guidz"
-                    className="w-full h-auto object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)]"
-                  />
-                </motion.div>
-              </div>
-
-            </div>
-            
-            {/* Scroll Indicator */}
-            <div className="absolute bottom-0 left-0 right-0 flex justify-center items-center gap-2 text-white/40 text-[10px] uppercase tracking-[0.2em] font-bold z-20">
-              <span className="animate-pulse">Faire défiler</span>
-              <ArrowRight size={12} className="animate-pulse text-[#C4714A]" />
-            </div>
-          </div>
-        </AnimateOnScroll>
       </div>
 
       {/* Bottom organic wave */}

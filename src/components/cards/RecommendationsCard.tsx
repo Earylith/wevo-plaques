@@ -62,11 +62,13 @@ export default function RecommendationsCard({ recommendations, showImages = fals
               )}
               
               <div className="flex-1 min-w-0 py-1 lg:pr-2 w-full">
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <h4 className="font-bold text-[#2A2016] text-base truncate">{rec.title}</h4>
-                  <span className="text-[10px] uppercase tracking-widest text-[#C4714A] whitespace-nowrap font-bold bg-[#FBF5EC] px-2 py-1 rounded-md shrink-0">
-                    {rec.distance && `${rec.distance}`}
-                  </span>
+                <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1.5 mb-1">
+                  <h4 className="font-bold text-[#2A2016] text-base leading-tight flex-1 min-w-[100px]">{rec.title}</h4>
+                  {rec.distance && (
+                    <span className="text-[10px] uppercase tracking-widest text-[#C4714A] whitespace-nowrap font-bold bg-[#FBF5EC] px-2 py-1 rounded-md shrink-0">
+                      {rec.distance}
+                    </span>
+                  )}
                 </div>
                 <span className="text-[10px] uppercase tracking-wider text-[#6B5D4E]/80 font-bold block mb-1">
                   {rec.category}
