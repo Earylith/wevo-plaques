@@ -2,34 +2,57 @@
 
 import { Accommodation } from "@/lib/types/accommodation";
 import React, { useState, useEffect } from "react";
-import { List, X, WifiHigh, Info, BookOpen, ForkKnife, MapPin, Phone, Bus, WarningCircle, Siren, PoliceCar, FirstAid, House } from "@phosphor-icons/react";
+import { List, X, WifiHigh, Info, BookOpen, ForkKnife, MapPin, Phone, Bus, WarningCircle, Siren, PoliceCar, FirstAid, House, Camera, ShoppingBag } from "@phosphor-icons/react";
+import Link from "next/link";
 import WifiCard from "../cards/WifiCard";
 import PracticalInfoCard from "../cards/PracticalInfoCard";
 import RulesCard from "../cards/RulesCard";
 import ContactsCard from "../cards/ContactsCard";
 import RecommendationsCard from "../cards/RecommendationsCard";
+import UpsellCard from "../cards/UpsellCard";
 import { motion, AnimatePresence } from "framer-motion";
+import { translateAccommodation } from "@/lib/utils/translate";
 
 export default function ComfortTemplate({ data }: { data: Accommodation }) {
-  const [isMobile, setIsMobile] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  // Translation State
+  const [currentLang, setCurrentLang] = useState("fr");
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translatedData, setTranslatedData] = useState<Accommodation>(data);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener("scroll", handleScroll);
-    
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      window.removeEventListener("scroll", handleScroll);
+    if (currentLang === "fr") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setTranslatedData(data);
+      return;
+    }
+
+    let isMounted = true;
+    const translate = async () => {
+      setIsTranslating(true);
+      try {
+        const result = await translateAccommodation(data, currentLang);
+        if (isMounted) {
+          setTranslatedData(result);
+        }
+      } catch (err) {
+        console.error("Failed to translate:", err);
+      } finally {
+        if (isMounted) setIsTranslating(false);
+      }
     };
+
+    translate();
+    return () => { isMounted = false; };
+  }, [currentLang, data]);
+
+  const displayData = translatedData;
+
+  useEffect(() => {
+    // Keeping this empty in case we want to re-add later, or remove entirely.
   }, []);
 
-  const primaryColor = data.comfortOptions?.theme?.primaryColor || "#C4714A";
-  const fontFamilyType = data.comfortOptions?.theme?.fontFamily || "classic";
+  const primaryColor = displayData.comfortOptions?.theme?.primaryColor || "#C4714A";
+  const fontFamilyType = displayData.comfortOptions?.theme?.fontFamily || "classic";
 
   let fontClass = "font-[family-name:var(--font-sans)]";
   if (fontFamilyType === "classic") fontClass = "font-serif";
@@ -45,12 +68,16 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
     { label: "À découvrir", href: "#decouvrir", icon: <MapPin size={24} weight="duotone" /> },
   ];
 
+  if (displayData.comfortOptions?.upsells && displayData.comfortOptions.upsells.length > 0) {
+    navLinks.splice(3, 0, { label: "Services", href: "#boutique", icon: <ShoppingBag size={24} weight="duotone" /> });
+  }
+
   // Filtre Restaurants vs Découvrir
   const isRestaurantCategory = (cat: string) =>
     cat.toLowerCase().includes('resto') || cat.toLowerCase().includes('bist') || cat.toLowerCase().includes('caf') || cat.toLowerCase().includes('pizza') || cat.toLowerCase().includes('gastro') || cat.toLowerCase().includes('cuisine') || cat.toLowerCase().includes('table');
 
-  const restaurants = data.recommendations.filter(r => r.type === 'restaurant' || (!r.type && isRestaurantCategory(r.category)));
-  const decouvrir = data.recommendations.filter(r => r.type === 'decouvrir' || (!r.type && !isRestaurantCategory(r.category)));
+  const restaurants = displayData.recommendations.filter(r => r.type === 'restaurant' || (!r.type && isRestaurantCategory(r.category)));
+  const decouvrir = displayData.recommendations.filter(r => r.type === 'decouvrir' || (!r.type && !isRestaurantCategory(r.category)));
 
   // Animations
   const fadeUp = {
@@ -72,7 +99,7 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
             >
               <div style={{ color: primaryColor }}>
                 {/* Clone icon to adjust size for mobile */}
-                {React.cloneElement(link.icon as React.ReactElement<any>, { size: 24, weight: "duotone" })}
+                {React.cloneElement(link.icon as React.ReactElement<{ size: number; weight: string }>, { size: 24, weight: "duotone" })}
               </div>
             </a>
           ))}
@@ -82,6 +109,28 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
       {/* Main Content Area */}
       <main className="relative pb-28 lg:pb-0">
         
+        {/* Language Selector */}
+        <div className="absolute top-4 right-4 lg:top-8 lg:right-12 z-50 flex items-center gap-2">
+          {isTranslating && (
+            <div className="bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/30 text-white text-xs font-medium shadow-lg animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
+              Traduction...
+            </div>
+          )}
+          <select
+            value={currentLang}
+            onChange={(e) => setCurrentLang(e.target.value)}
+            className="bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white text-sm rounded-full px-4 py-2 appearance-none cursor-pointer outline-none focus:ring-2 focus:ring-white/50 shadow-lg transition-all text-center font-medium"
+            disabled={isTranslating}
+          >
+            <option value="fr" className="text-black">🇫🇷 Français</option>
+            <option value="en" className="text-black">🇬🇧 English</option>
+            <option value="es" className="text-black">🇪🇸 Español</option>
+            <option value="de" className="text-black">🇩🇪 Deutsch</option>
+            <option value="it" className="text-black">🇮🇹 Italiano</option>
+          </select>
+        </div>
+
         {/* Parallax Hero Section */}
         <section className="relative h-[50vh] lg:h-[80vh] w-full overflow-hidden flex items-center justify-center px-6 lg:px-12">
           <motion.div 
@@ -89,8 +138,8 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
             transition={{ duration: 20, ease: "easeInOut", repeat: Infinity }}
             className="absolute inset-0 z-0 origin-center"
           >
-            {data.property.mainImageUrl ? (
-              <img src={data.property.mainImageUrl} alt="Main" className="w-full h-full object-cover" />
+            {displayData.property.mainImageUrl ? (
+              <img src={displayData.property.mainImageUrl} alt="Main" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full" style={{ backgroundColor: primaryColor }} />
             )}
@@ -99,13 +148,13 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
 
           <div className="relative z-10 w-full max-w-6xl mx-auto flex flex-col items-center justify-center gap-6">
             <motion.div initial="hidden" animate="visible" variants={fadeUp} className="text-white flex flex-col items-center text-center">
-              {data.property.logoUrl && (
+              {displayData.property.logoUrl && (
                 <div className="w-20 h-20 lg:w-32 lg:h-32 mb-6 bg-white/10 backdrop-blur-md p-4 rounded-3xl border border-white/20 shadow-2xl">
-                  <img src={data.property.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                  <img src={displayData.property.logoUrl} alt="Logo" className="w-full h-full object-contain" />
                 </div>
               )}
               <h1 className={`text-4xl sm:text-5xl lg:text-7xl font-bold leading-tight mb-4 ${fontFamilyType === 'classic' ? 'font-serif' : ''}`}>
-                {data.property.name}
+                {displayData.property.name}
               </h1>
               <p className="text-lg lg:text-2xl font-light text-white/90 max-w-2xl tracking-wide">
                 Votre guide de séjour numérique
@@ -118,12 +167,24 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
         <div className="relative z-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-12 -mt-10 lg:-mt-16">
           <motion.div 
             initial="hidden" animate="visible" variants={fadeUp}
-            className="bg-white/80 backdrop-blur-3xl p-6 lg:p-10 rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.04)] border border-white/60"
+            className="bg-white/80 backdrop-blur-3xl p-6 lg:p-10 rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.04)] border border-white/60 flex flex-col sm:flex-row sm:items-center justify-between gap-6"
           >
-            <h2 className="text-xl lg:text-3xl font-bold mb-4" style={{ color: primaryColor }}>Bienvenue chez vous</h2>
-            <p className="text-[#4A3D30] text-sm lg:text-lg leading-relaxed font-medium">
-              {data.property.welcomeMessage}
-            </p>
+            <div>
+              <h2 className="text-xl lg:text-3xl font-bold mb-4" style={{ color: primaryColor }}>Bienvenue chez vous</h2>
+              <p className="text-[#4A3D30] text-sm lg:text-lg leading-relaxed font-medium max-w-2xl">
+                {displayData.property.welcomeMessage}
+              </p>
+            </div>
+            {displayData.features?.inventory !== false && (
+              <Link 
+                href={`/h/${displayData.slug}/etat-des-lieux`}
+                className="flex items-center justify-center gap-2 px-6 py-4 rounded-xl text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all shrink-0 w-full sm:w-auto"
+                style={{ backgroundColor: primaryColor }}
+              >
+                <Camera size={24} weight="fill" />
+                <span className="font-semibold">État des lieux</span>
+              </Link>
+            )}
           </motion.div>
         </div>
 
@@ -151,13 +212,13 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
             <div className="flex flex-col gap-8">
               <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} id="wifi" whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
                 <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-white/60 hover:shadow-[0_8px_40px_rgba(212,163,74,0.12)] hover:border-[#D4A34A]/30 transition-all duration-500 group">
-                  <WifiCard ssid={data.wifi.ssid} password={data.wifi.password} />
+                  <WifiCard ssid={displayData.wifi.ssid} password={displayData.wifi.password} />
                 </div>
               </motion.div>
 
               <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} id="contacts" whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
                 <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-white/60 hover:shadow-[0_8px_40px_rgba(212,163,74,0.12)] hover:border-[#D4A34A]/30 transition-all duration-500">
-                  <ContactsCard contacts={data.contacts} />
+                  <ContactsCard contacts={displayData.contacts} />
                 </div>
               </motion.div>
 
@@ -167,15 +228,15 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
                     <WarningCircle size={24} weight="fill" /> Urgences
                   </h3>
                   <div className="grid grid-cols-2 gap-3">
-                    <a href={`tel:${data.standardEmergencies?.samu || "15"}`} className="bg-white p-3 rounded-xl flex flex-col items-center shadow-sm border border-red-50 hover:scale-105 transition-transform">
+                    <a href={`tel:${displayData.standardEmergencies?.samu || "15"}`} className="bg-white p-3 rounded-xl flex flex-col items-center shadow-sm border border-red-50 hover:scale-105 transition-transform">
                       <Siren size={24} className="text-red-500 mb-1" weight="duotone" />
                       <span className="text-[10px] uppercase font-bold text-red-400">SAMU</span>
-                      <span className="text-sm font-bold text-red-700">{data.standardEmergencies?.samu || "15"}</span>
+                      <span className="text-sm font-bold text-red-700">{displayData.standardEmergencies?.samu || "15"}</span>
                     </a>
-                    <a href={`tel:${data.standardEmergencies?.pompiers || "18"}`} className="bg-white p-3 rounded-xl flex flex-col items-center shadow-sm border border-red-50 hover:scale-105 transition-transform">
+                    <a href={`tel:${displayData.standardEmergencies?.pompiers || "18"}`} className="bg-white p-3 rounded-xl flex flex-col items-center shadow-sm border border-red-50 hover:scale-105 transition-transform">
                       <FirstAid size={24} className="text-red-500 mb-1" weight="duotone" />
                       <span className="text-[10px] uppercase font-bold text-red-400">Pompiers</span>
-                      <span className="text-sm font-bold text-red-700">{data.standardEmergencies?.pompiers || "18"}</span>
+                      <span className="text-sm font-bold text-red-700">{displayData.standardEmergencies?.pompiers || "18"}</span>
                     </a>
                   </div>
                 </div>
@@ -187,20 +248,33 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
               <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} id="infos" whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
                 <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-white/60 hover:shadow-[0_8px_40px_rgba(212,163,74,0.12)] hover:border-[#D4A34A]/30 transition-all duration-500">
                   <PracticalInfoCard 
-                    checkin={data.practicalInfo.checkin} 
-                    checkout={data.practicalInfo.checkout} 
-                    parking={data.practicalInfo.parking} 
-                    breakfast={data.practicalInfo.breakfast}
-                    address={data.property.address}
+                    checkin={displayData.practicalInfo.checkin} 
+                    checkout={displayData.practicalInfo.checkout} 
+                    parking={displayData.practicalInfo.parking} 
+                    breakfast={displayData.practicalInfo.breakfast}
+                    address={displayData.property.address}
                   />
                 </div>
               </motion.div>
 
               <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} id="regles" whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
                 <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-white/60 hover:shadow-[0_8px_40px_rgba(212,163,74,0.12)] hover:border-[#D4A34A]/30 transition-all duration-500">
-                  <RulesCard rules={data.rules} />
+                  <RulesCard rules={displayData.rules} />
                 </div>
               </motion.div>
+
+              {displayData.comfortOptions?.upsells && displayData.comfortOptions.upsells.length > 0 && (
+                <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} id="boutique" whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
+                  <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-white/60 hover:shadow-[0_8px_40px_rgba(212,163,74,0.12)] hover:border-[#D4A34A]/30 transition-all duration-500">
+                    <UpsellCard 
+                      upsells={displayData.comfortOptions.upsells} 
+                      ownerPhone={displayData.owner.phone} 
+                      ownerEmail={displayData.owner.email}
+                      propertyName={displayData.property.name} 
+                    />
+                  </div>
+                </motion.div>
+              )}
             </div>
 
             {/* Colonne 3 : Recommandations (Restaurants & À découvrir) */}

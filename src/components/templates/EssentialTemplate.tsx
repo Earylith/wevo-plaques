@@ -1,8 +1,8 @@
 "use client";
 
 import { Accommodation } from "@/lib/types/accommodation";
-import { useState, useEffect } from "react";
-import { List, X, WifiHigh, Info, BookOpen, ForkKnife, MapPin, Phone, Bus, WarningCircle, Siren, FirstAid, PoliceCar, Warning, House } from "@phosphor-icons/react";
+import React, { useState, useEffect } from "react";
+import { List, X, WifiHigh, Info, BookOpen, MapPin, Phone, WarningCircle, House, ForkKnife, Camera, Bus } from "@phosphor-icons/react";
 import WifiCard from "../cards/WifiCard";
 import PracticalInfoCard from "../cards/PracticalInfoCard";
 import RulesCard from "../cards/RulesCard";
@@ -13,21 +13,12 @@ import MobileAccordion from "../ui/MobileAccordion";
 
 export default function EssentialTemplate({ data }: { data: Accommodation }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 1024);
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   const navLinks = [
     { label: "Bienvenue", href: "#accueil", icon: <Info size={18} /> },
-    { label: "Arrivée / départ", href: "#infos", icon: <Bus size={18} /> },
     { label: "Règles", href: "#regles", icon: <BookOpen size={18} /> },
     { label: "Contacts", href: "#contacts", icon: <Phone size={18} /> },
-    { label: "Urgences", href: "#urgences", icon: <Warning size={18} className="text-red-500" /> },
+    { label: "Urgences", href: "#urgences", icon: <WarningCircle size={18} className="text-red-500" /> },
     { label: "À découvrir", href: "#decouvrir", icon: <MapPin size={18} /> },
   ];
 

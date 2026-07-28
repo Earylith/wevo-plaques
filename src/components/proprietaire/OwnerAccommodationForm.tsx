@@ -26,7 +26,8 @@ export default function OwnerAccommodationForm({ initialData, onSubmit, isLoadin
       transports: "",
       faq: [],
       theme: { primaryColor: "#C4714A" }
-    }
+    },
+    features: initialData.features || { inventory: false }
   });
 
   const handleChange = (section: keyof Accommodation, field: string, value: any) => {
@@ -49,13 +50,23 @@ export default function OwnerAccommodationForm({ initialData, onSubmit, isLoadin
     }
   };
 
-  const handleNestedChange = (section: "comfortOptions", subSection: "theme", field: string, value: any) => {
+  const handleNestedChange = (section: "comfortOptions" | "features", subSection: "theme" | "inventory" | "cleaning", field: string, value: any) => {
+    if (section === "features") {
+      setFormData((prev) => ({
+        ...prev,
+        features: {
+          ...prev.features,
+          [subSection]: value
+        }
+      }));
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
       comfortOptions: {
         ...prev.comfortOptions,
         [subSection]: {
-          ...prev.comfortOptions?.[subSection],
+          ...prev.comfortOptions?.[subSection as "theme"],
           [field]: value
         }
       }
@@ -83,6 +94,15 @@ export default function OwnerAccommodationForm({ initialData, onSubmit, isLoadin
     }));
   };
 
+  const handleUpsellChange = (index: number, field: string, value: any) => {
+    const newUpsells = [...(formData.comfortOptions?.upsells || [])];
+    newUpsells[index] = { ...newUpsells[index], [field]: value };
+    setFormData((prev) => ({
+      ...prev,
+      comfortOptions: { ...prev.comfortOptions, upsells: newUpsells }
+    }));
+  };
+
   const addArrayItem = (section: string) => {
     if (section === "rules") {
       setFormData((prev) => ({ ...prev, rules: [...(prev.rules || []), ""] }));
@@ -95,6 +115,14 @@ export default function OwnerAccommodationForm({ initialData, onSubmit, isLoadin
         ...prev,
         comfortOptions: { ...prev.comfortOptions, faq: [...(prev.comfortOptions?.faq || []), { question: "", answer: "" }] }
       }));
+    } else if (section === "upsells") {
+      setFormData((prev) => ({
+        ...prev,
+        comfortOptions: { 
+          ...prev.comfortOptions, 
+          upsells: [...(prev.comfortOptions?.upsells || []), { id: Date.now().toString(), title: "", description: "", price: 0, priceUnit: "per_stay" }] 
+        }
+      }));
     }
   };
 
@@ -105,6 +133,15 @@ export default function OwnerAccommodationForm({ initialData, onSubmit, isLoadin
       setFormData((prev) => ({
         ...prev,
         comfortOptions: { ...prev.comfortOptions, faq: newFaq }
+      }));
+      return;
+    }
+    if (section === "upsells") {
+      const newUpsells = [...(formData.comfortOptions?.upsells || [])];
+      newUpsells.splice(index, 1);
+      setFormData((prev) => ({
+        ...prev,
+        comfortOptions: { ...prev.comfortOptions, upsells: newUpsells }
       }));
       return;
     }
@@ -238,6 +275,55 @@ export default function OwnerAccommodationForm({ initialData, onSubmit, isLoadin
         </div>
       </div>
 
+      {/* Fonctionnalités Logistique (Uniquement Confort) */}
+      {isComfort && (
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
+          <h2 className="text-xl font-bold text-[#2A2016] mb-4">Fonctionnalités Logistiques (Offre Confort)</h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-[#FBF5EC] rounded-xl border border-[#EDD9A3]/50">
+              <div>
+                <h3 className="font-semibold text-[#2A2016]">État des lieux en ligne</h3>
+                <p className="text-sm text-[#6B5D4E] mt-1">
+                  Permet aux voyageurs de vous transmettre un état des lieux horodaté (avec photos) à l&apos;arrivée comme au départ.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer ml-4">
+                <input
+                  type="checkbox"
+                  checked={formData.features?.inventory !== false}
+                  onChange={(e) => handleNestedChange("features", "inventory", "", e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#C4714A]"></div>
+                <span className="ml-2 text-xs font-bold text-[#2A2016]">
+                  {formData.features?.inventory !== false ? "Actif" : "Inactif"}
+                </span>
+              </label>
+            </div>
+            <div className="flex items-center justify-between p-4 bg-[#FBF5EC] rounded-xl border border-[#EDD9A3]/50">
+              <div>
+                <h3 className="font-semibold text-[#2A2016]">Suivi du ménage en ligne</h3>
+                <p className="text-sm text-[#6B5D4E] mt-1">
+                  Lien dédié permettant aux équipes de nettoyage d&apos;enregistrer leur heure d&apos;arrivée, de départ et de notifier la fin d&apos;intervention.
+                </p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer ml-4">
+                <input
+                  type="checkbox"
+                  checked={formData.features?.cleaning !== false}
+                  onChange={(e) => handleNestedChange("features", "cleaning", "", e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#C4714A]"></div>
+                <span className="ml-2 text-xs font-bold text-[#2A2016]">
+                  {formData.features?.cleaning !== false ? "Actif" : "Inactif"}
+                </span>
+              </label>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Wifi & Infos pratiques */}
       <div className="grid lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
@@ -368,7 +454,7 @@ export default function OwnerAccommodationForm({ initialData, onSubmit, isLoadin
 
       {/* Urgences */}
       <div className="bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/40">
-        <h2 className="text-xl font-bold text-[#2A2016] mb-4">Numéros d'urgence</h2>
+        <h2 className="text-xl font-bold text-[#2A2016] mb-4">Numéros d&apos;urgence</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
             <label className="block text-xs font-medium text-[#6B5D4E] mb-1">SAMU</label>
@@ -476,7 +562,7 @@ export default function OwnerAccommodationForm({ initialData, onSubmit, isLoadin
                     />
                     {isComfort && (
                       <div className="w-full sm:col-span-2">
-                        <label className="block text-xs font-medium text-[#6B5D4E] mb-1">Image d'illustration</label>
+                        <label className="block text-xs font-medium text-[#6B5D4E] mb-1">Image d&apos;illustration</label>
                         <div className="flex gap-2 items-center">
                           {rec.imageUrl && (
                             <img src={rec.imageUrl} alt="Rec" className="w-8 h-8 rounded object-cover shrink-0" />
@@ -490,7 +576,7 @@ export default function OwnerAccommodationForm({ initialData, onSubmit, isLoadin
                                 try {
                                   const url = await uploadImage(file, "accommodations/recs");
                                   handleComplexArrayChange("recommendations", index, "imageUrl", url);
-                                } catch (err) {
+                                } catch {
                                   alert("Erreur upload");
                                 }
                               }
@@ -538,7 +624,7 @@ export default function OwnerAccommodationForm({ initialData, onSubmit, isLoadin
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-1">Police d'écriture</label>
+                <label className="block text-sm font-medium text-white/70 mb-1">Police d&apos;écriture</label>
                 <select
                   value={formData.comfortOptions?.theme?.fontFamily || "classic"}
                   onChange={(e) => handleNestedChange("comfortOptions", "theme", "fontFamily", e.target.value)}
@@ -568,7 +654,7 @@ export default function OwnerAccommodationForm({ initialData, onSubmit, isLoadin
                       try {
                         const url = await uploadImage(file, "accommodations/logos");
                         handleChange("property", "logoUrl", url);
-                      } catch (err) {
+                      } catch {
                         alert("Erreur upload");
                       }
                     }
@@ -620,6 +706,59 @@ export default function OwnerAccommodationForm({ initialData, onSubmit, isLoadin
                 <Plus size={16} /> Ajouter une question
               </button>
             </div>
+
+            <div>
+              <h3 className="text-lg font-medium text-white mb-3">Boutique & Services Supplémentaires (Upsell)</h3>
+              <p className="text-sm text-white/70 mb-4">Proposez des services additionnels. Les voyageurs pourront vous faire la demande via WhatsApp.</p>
+              <div className="space-y-4 mb-4">
+                {formData.comfortOptions?.upsells?.map((item, index) => (
+                  <div key={item.id || index} className="bg-white/5 p-4 rounded-xl border border-white/10 flex gap-3">
+                    <div className="flex-1 space-y-3">
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        <input
+                          type="text"
+                          placeholder="Nom du service (ex: Départ tardif)"
+                          value={item.title}
+                          onChange={(e) => handleUpsellChange(index, "title", e.target.value)}
+                          className="w-full px-3 py-2 rounded-lg border border-white/20 bg-transparent text-sm"
+                        />
+                        <div className="flex gap-2">
+                          <input
+                            type="number"
+                            placeholder="Prix"
+                            value={item.price}
+                            onChange={(e) => handleUpsellChange(index, "price", parseFloat(e.target.value) || 0)}
+                            className="w-24 px-3 py-2 rounded-lg border border-white/20 bg-transparent text-sm"
+                          />
+                          <select
+                            value={item.priceUnit || "per_stay"}
+                            onChange={(e) => handleUpsellChange(index, "priceUnit", e.target.value)}
+                            className="flex-1 px-3 py-2 rounded-lg border border-white/20 bg-[#2A2016] text-white text-sm"
+                          >
+                            <option value="per_stay">Par séjour</option>
+                            <option value="per_person">Par personne</option>
+                            <option value="per_day">Par jour</option>
+                          </select>
+                        </div>
+                      </div>
+                      <textarea
+                        placeholder="Description"
+                        value={item.description}
+                        onChange={(e) => handleUpsellChange(index, "description", e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-white/20 bg-transparent text-sm"
+                        rows={2}
+                      />
+                    </div>
+                    <button type="button" onClick={() => removeArrayItem("upsells", index)} className="p-2 text-red-400 hover:bg-white/5 rounded-lg h-fit">
+                      <Trash size={18} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={() => addArrayItem("upsells")} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#2A2016] bg-[#E8BE72] rounded-lg hover:bg-[#D4A34A] transition-colors">
+                <Plus size={16} /> Ajouter un service
+              </button>
+            </div>
           </div>
         </div>
       ) : (
@@ -628,7 +767,7 @@ export default function OwnerAccommodationForm({ initialData, onSubmit, isLoadin
           <div>
             <p className="font-bold text-[#A07828] text-lg">Passez au pack Confort</p>
             <p className="text-sm text-[#B08A30] mt-1">
-              Débloquez l'ajout d'images dans vos recommandations, la FAQ, les informations de transports et la personnalisation avancée (couleurs) en contactant l'équipe WEVO.
+              Débloquez l&apos;ajout d&apos;images dans vos recommandations, la FAQ, les informations de transports, la personnalisation avancée (couleurs), la gestion du ménage et les états des lieux en contactant l&apos;équipe WEVO.
             </p>
           </div>
         </div>

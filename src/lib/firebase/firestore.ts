@@ -51,8 +51,43 @@ export const getAccommodationByOwnerEmail = async (email: string): Promise<Accom
   return null;
 };
 
+export const getAccommodationsByOwnerEmail = async (email: string): Promise<Accommodation[]> => {
+  const q = query(collection(db, COLLECTION_NAME), where("owner.email", "==", email));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as Accommodation));
+};
+
+export const getAccommodationsByOwnerSlug = async (slug: string): Promise<Accommodation[]> => {
+  const q = query(
+    collection(db, COLLECTION_NAME), 
+    where("owner.slug", "==", slug),
+    where("isActive", "==", true)
+  );
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  } as Accommodation));
+};
+
+const slugify = (text: string) => text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+
 export const createAccommodation = async (data: Omit<Accommodation, "id" | "createdAt" | "updatedAt">): Promise<string> => {
   const now = Date.now();
+  
+  // Génération ou récupération du slug propriétaire
+  if (!data.owner.slug) {
+    const existing = await getAccommodationsByOwnerEmail(data.owner.email);
+    if (existing.length > 0 && existing[0].owner.slug) {
+      data.owner.slug = existing[0].owner.slug;
+    } else {
+      data.owner.slug = slugify(data.owner.name || data.owner.email.split('@')[0]);
+    }
+  }
+
   const docRef = await addDoc(collection(db, COLLECTION_NAME), {
     ...data,
     createdAt: now,
@@ -72,4 +107,25 @@ export const updateAccommodation = async (id: string, data: Partial<Accommodatio
 export const deleteAccommodation = async (id: string): Promise<void> => {
   const docRef = doc(db, COLLECTION_NAME, id);
   await deleteDoc(docRef);
+};
+
+export const duplicateAccommodation = async (id: string): Promise<string> => {
+  const source = await getAccommodationById(id);
+  if (!source) throw new Error("Accommodation introuvable pour duplication");
+  
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
+  const { id: _id, createdAt, updatedAt, cleaningLogs, inventories, slug, property, ...rest } = source as any;
+  
+  const newSlug = `${slug}-copie-${Math.floor(Math.random() * 10000)}`;
+  
+  const newData = {
+    ...rest,
+    slug: newSlug,
+    property: {
+      ...property,
+      name: `${property.name} (Copie)`
+    }
+  };
+  
+  return createAccommodation(newData);
 };

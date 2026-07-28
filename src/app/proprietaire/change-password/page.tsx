@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { changePassword } from "@/lib/firebase/auth";
-import { getAccommodationByOwnerEmail } from "@/lib/firebase/firestore";
+import { getAccommodationsByOwnerEmail } from "@/lib/firebase/firestore";
 import { updateAccommodation } from "@/lib/firebase/firestore";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { KeyReturn, Eye, EyeSlash } from "@phosphor-icons/react";
@@ -47,11 +47,15 @@ export default function ChangePasswordPage() {
     setSubmitting(true);
     try {
       await changePassword(newPassword);
-      // Mettre à jour le flag mustChangePassword
-      const acc = await getAccommodationByOwnerEmail(user.email!);
-      if (acc?.id) {
-        await updateAccommodation(acc.id, { mustChangePassword: false });
-      }
+      // Mettre à jour le flag mustChangePassword sur tous les logements
+      const accommodations = await getAccommodationsByOwnerEmail(user.email!);
+      const updatePromises = accommodations.map(acc => {
+        if (acc.id) {
+          return updateAccommodation(acc.id, { mustChangePassword: false });
+        }
+        return Promise.resolve();
+      });
+      await Promise.all(updatePromises);
       router.push("/proprietaire/dashboard");
     } catch (err: unknown) {
       const firebaseError = err as { code?: string };

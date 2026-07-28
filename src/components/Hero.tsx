@@ -9,14 +9,17 @@ export default function Hero() {
     <section className="relative min-h-screen flex items-center overflow-hidden">
       {/* Background image with overlay */}
       <div className="absolute inset-0">
-        <img
-          src="/images/hero-finalec.png"
-          alt=""
-          className="w-full h-full object-cover object-center"
-        />
+        <picture>
+          <source media="(max-width: 768px)" srcSet="/images/mobile-hero-bg.png" />
+          <img
+            src="/images/hero-finalec.png"
+            alt=""
+            className="w-full h-full object-cover object-center"
+          />
+        </picture>
         {/* Multi-layer overlay for readability + warmth */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#2A2016]/95 via-[#2A2016]/70 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#2A2016]/80 via-[#2A2016]/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#2A2016]/90 via-[#2A2016]/40 to-transparent" />
       </div>
 
       {/* Floating organic shapes */}

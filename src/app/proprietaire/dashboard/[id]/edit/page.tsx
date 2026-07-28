@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { getAccommodationByOwnerEmail, updateAccommodation } from "@/lib/firebase/firestore";
+import { getAccommodationById, updateAccommodation } from "@/lib/firebase/firestore";
 import { Accommodation } from "@/lib/types/accommodation";
 import OwnerAccommodationForm from "@/components/proprietaire/OwnerAccommodationForm";
 import { ArrowLeft } from "@phosphor-icons/react";
 import Link from "next/link";
 
-export default function EditAccommodationPage() {
+export default function EditAccommodationPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const { user, loading } = useAuth();
   const router = useRouter();
   const [accommodation, setAccommodation] = useState<Accommodation | null>(null);
@@ -22,11 +23,17 @@ export default function EditAccommodationPage() {
       router.replace("/proprietaire/login");
     }
     if (user?.email) {
-      getAccommodationByOwnerEmail(user.email)
-        .then(setAccommodation)
+      getAccommodationById(id)
+        .then((acc) => {
+          if (!acc || acc.owner.email !== user.email) {
+            router.replace("/proprietaire/dashboard");
+            return;
+          }
+          setAccommodation(acc);
+        })
         .finally(() => setLoadingAcc(false));
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, id]);
 
   const handleSubmit = async (data: Partial<Accommodation>) => {
     if (!accommodation?.id) return;
@@ -59,7 +66,7 @@ export default function EditAccommodationPage() {
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <Link
-            href="/proprietaire/dashboard"
+            href={`/proprietaire/dashboard/${id}`}
             className="p-2 rounded-xl text-[#6B5D4E] hover:bg-[#EDD9A3]/30 hover:text-[#2A2016] transition-colors"
           >
             <ArrowLeft size={20} />

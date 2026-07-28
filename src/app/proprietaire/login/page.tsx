@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn, sendPasswordReset } from "@/lib/firebase/auth";
-import { getAccommodationByOwnerEmail } from "@/lib/firebase/firestore";
+import { getAccommodationsByOwnerEmail } from "@/lib/firebase/firestore";
 import { House } from "@phosphor-icons/react";
 
 type Mode = "login" | "forgot";
@@ -23,16 +23,17 @@ export default function ProprietaireLogin() {
     setLoading(true);
     try {
       const credential = await signIn(email, password);
-      // Vérifier que cet email correspond à un hébergement
-      const accommodation = await getAccommodationByOwnerEmail(credential.user.email!);
-      if (!accommodation) {
+      const accommodations = await getAccommodationsByOwnerEmail(credential.user.email!);
+      if (!accommodations || accommodations.length === 0) {
         setError("Aucun hébergement associé à cet email.");
         await import("@/lib/firebase/auth").then(m => m.signOut());
         setLoading(false);
         return;
       }
-      // Si première connexion → changer le mot de passe
-      if (accommodation.mustChangePassword) {
+      
+      // Si au moins un hébergement demande un changement de mot de passe (première connexion)
+      const mustChangePassword = accommodations.some(acc => acc.mustChangePassword);
+      if (mustChangePassword) {
         router.push("/proprietaire/change-password");
       } else {
         router.push("/proprietaire/dashboard");

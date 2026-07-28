@@ -29,6 +29,33 @@ export interface PointOfInterest {
   imageUrl?: string;
 }
 
+export interface CleaningLog {
+  id?: string;
+  date: number; // General timestamp / start date
+  startTime?: number; // Heure d'arrivée
+  endTime?: number;   // Heure de départ
+  durationMinutes?: number; // Durée calculée en minutes
+  status?: 'in_progress' | 'completed';
+  agentName?: string;
+}
+
+export interface InventoryReport {
+  id: string;
+  date: number;
+  type: 'arrival' | 'departure';
+  travelerName: string;
+  notes: string;
+  photos: string[];
+}
+
+export interface UpsellItem {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  priceUnit?: 'per_stay' | 'per_person' | 'per_day';
+}
+
 export interface Accommodation {
   id?: string;
   slug: string;
@@ -41,6 +68,7 @@ export interface Accommodation {
     name: string;
     email: string;
     phone: string;
+    slug?: string;
   };
   
   property: {
@@ -72,6 +100,14 @@ export interface Accommodation {
   recommendations: Recommendation[];
   pointsOfInterest: PointOfInterest[];
   
+  features?: {
+    inventory?: boolean;
+    cleaning?: boolean;
+  };
+  
+  cleaningLogs?: CleaningLog[];
+  inventories?: InventoryReport[];
+  
   standardEmergencies?: {
     samu?: string;
     pompiers?: string;
@@ -84,6 +120,7 @@ export interface Accommodation {
     emergencyNumbers?: ContactInfo[];
     faq?: { question: string; answer: string }[];
     customSections?: { title: string; content: string }[];
+    upsells?: UpsellItem[];
     theme?: {
       primaryColor?: string;
       backgroundColor?: string;
