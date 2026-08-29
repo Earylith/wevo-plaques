@@ -222,7 +222,7 @@ export default function EssentialTemplate({ data }: { data: Accommodation }) {
 
       <footer className="bg-[#2A2016] text-white py-10 text-center">
         <p className="text-sm font-medium opacity-80 mb-2">Bon séjour à {data.property.name} !</p>
-        <a href="https://wevo-creart.fr" className="text-xs text-[#E8BE72] hover:underline opacity-60">Livret d&apos;accueil digital par WEVO × CRÉART</a>
+
       </footer>
     </div>
   );

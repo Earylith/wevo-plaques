@@ -2,38 +2,59 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import AdminAccommodationForm from "@/components/admin/AdminAccommodationForm";
-import { createAdminAccommodation } from "../../actions";
+import AdminModernTileEditor from "@/components/admin/AdminModernTileEditor";
+import { createAdminAccommodation, updateAdminAccommodation } from "../../actions";
 import { Accommodation } from "@/lib/types/accommodation";
+import { createEmptyAccommodation } from "@/lib/livret";
 
 export default function NewAccommodationPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /** Identifiant du document créé au premier enregistrement. */
+  const [createdId, setCreatedId] = useState<string | null>(null);
 
-  const handleSubmit = async (data: Omit<Accommodation, "id" | "createdAt" | "updatedAt">) => {
+  // Le slug est tiré une seule fois : le recalculer à chaque rendu changerait
+  // l'URL publique du livret entre deux frappes.
+  const [initialNewData] = useState<Accommodation>(() =>
+    createEmptyAccommodation(`livret-${Date.now().toString(36)}`)
+  );
+
+  /**
+   * Premier enregistrement : création. Les suivants : mise à jour du même
+   * document — sans cela, chaque clic sur « Enregistrer » créerait un doublon.
+   * L'identifiant réel est renvoyé à l'éditeur pour que « Publier » vise le
+   * bon document.
+   */
+  const handleSubmit = async (data: Accommodation): Promise<string> => {
     setIsSubmitting(true);
     try {
-      await createAdminAccommodation(data);
-      router.push("/admin/hebergements");
+      const payload: Partial<Accommodation> = { ...data };
+      delete payload.id;
+
+      if (createdId) {
+        await updateAdminAccommodation(createdId, payload);
+        return createdId;
+      }
+
+      const newId = await createAdminAccommodation(
+        payload as Omit<Accommodation, "id" | "createdAt" | "updatedAt">
+      );
+      setCreatedId(newId);
+      // On reflète l'identifiant dans l'URL sans remonter l'éditeur : un
+      // router.push() détruirait l'état en cours d'édition.
+      window.history.replaceState(null, "", `/admin/hebergements/${newId}`);
       router.refresh();
-    } catch (error) {
-      console.error("Erreur lors de la création :", error);
-      alert("Une erreur est survenue lors de la création.");
+      return newId;
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-[#2A2016]">
-          Nouveau logement
-        </h1>
-        <p className="text-sm text-[#6B5D4E] mt-1">Créez un nouveau livret d&apos;accueil</p>
-      </div>
-
-      <AdminAccommodationForm onSubmit={handleSubmit} isLoading={isSubmitting} />
-    </div>
+    <AdminModernTileEditor
+      initialData={initialNewData}
+      onSubmit={handleSubmit}
+      isLoading={isSubmitting}
+    />
   );
 }

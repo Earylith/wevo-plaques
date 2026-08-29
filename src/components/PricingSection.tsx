@@ -118,9 +118,9 @@ export default function PricingSection() {
                 )}
 
                 {/* Header */}
-                <div className="flex justify-between items-start mb-5 relative z-10 min-h-[60px]">
-                  <div>
-                    <div className="flex items-center gap-3 mb-1.5">
+                <div className="flex justify-between items-start gap-3 sm:gap-4 mb-5 relative z-10 min-h-[60px]">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
                       <h3 className={`text-2xl font-bold font-[family-name:var(--font-display)] ${plan.popular ? "text-white" : "text-[#2A2016]"}`}>{plan.name}</h3>
                       {plan.badge && (
                         <span className={`${plan.popular ? "bg-white/20 text-white border-white/20" : "bg-[#2A2016]/10 text-[#2A2016] border-[#2A2016]/10"} backdrop-blur-md text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border`}>
@@ -128,13 +128,15 @@ export default function PricingSection() {
                         </span>
                       )}
                     </div>
-                    <p className={`text-[11px] leading-snug max-w-[180px] ${plan.popular ? "text-white/80" : "text-[#6B5D4E]/80"}`}>{plan.desc}</p>
+                    <p className={`text-[11px] leading-snug ${plan.popular ? "text-white/80" : "text-[#6B5D4E]/80"}`}>{plan.desc}</p>
                   </div>
                   <div className="text-right shrink-0">
-                    <div className={`text-4xl font-bold tracking-tighter mb-0.5 ${plan.popular ? "text-white" : "text-[#2A2016]"}`}>
-                      {plan.price}<span className={`text-2xl ${plan.popular ? "text-white/70" : "text-[#2A2016]/50"}`}>€</span>
+                    <div className={`text-4xl lg:text-5xl font-bold tracking-tighter mb-0.5 ${plan.popular ? "text-white" : "text-[#2A2016]"}`}>
+                      {plan.price}<span className={`text-2xl lg:text-3xl ${plan.popular ? "text-white/70" : "text-[#2A2016]/50"}`}>€</span>
                     </div>
-                    <div className={`text-[9px] uppercase tracking-widest font-semibold ${plan.popular ? "text-white/60" : "text-[#6B5D4E]/60"}`}>{plan.after}</div>
+                    <div className={`text-[9px] uppercase tracking-widest font-semibold max-w-[110px] leading-tight ml-auto ${plan.popular ? "text-white/60" : "text-[#6B5D4E]/60"}`}>
+                      {plan.after}
+                    </div>
                   </div>
                 </div>
 

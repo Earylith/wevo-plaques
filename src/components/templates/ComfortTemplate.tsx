@@ -21,7 +21,6 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
 
   useEffect(() => {
     if (currentLang === "fr") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTranslatedData(data);
       return;
     }
@@ -46,10 +45,6 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
   }, [currentLang, data]);
 
   const displayData = translatedData;
-
-  useEffect(() => {
-    // Keeping this empty in case we want to re-add later, or remove entirely.
-  }, []);
 
   const primaryColor = displayData.comfortOptions?.theme?.primaryColor || "#C4714A";
   const fontFamilyType = displayData.comfortOptions?.theme?.fontFamily || "classic";
@@ -98,7 +93,6 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
               className="flex flex-col items-center gap-1 text-[#6B5D4E] hover:text-[#C4714A] transition-colors active:scale-95"
             >
               <div style={{ color: primaryColor }}>
-                {/* Clone icon to adjust size for mobile */}
                 {React.cloneElement(link.icon as React.ReactElement<{ size: number; weight: string }>, { size: 24, weight: "duotone" })}
               </div>
             </a>
@@ -316,9 +310,7 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
           </div>
           <h2 className={`text-2xl font-bold mb-2 ${fontFamilyType === 'classic' ? 'font-serif' : ''}`}>{data.property.name}</h2>
           <p className="text-white/60 text-sm mb-8">Nous vous souhaitons un excellent séjour.</p>
-          <a href="https://wevo-creart.fr" className="text-xs text-white/40 hover:text-white transition-colors tracking-widest uppercase">
-            Propulsé par WEVO × CRÉART
-          </a>
+
         </footer>
 
       </main>

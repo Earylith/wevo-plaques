@@ -12,8 +12,6 @@ export const metadata: Metadata = {
     "airbnb accueil",
     "plaque bois connectée",
     "conciergerie",
-    "WEVO",
-    "CRÉART",
     "Guidz",
     "GuidzMe",
   ],

@@ -32,8 +32,8 @@ export default function Footer() {
             <p className="text-sm md:text-base text-white/40 max-w-sm leading-relaxed font-light mb-10">
               L'expérience premium de vos locataires commence ici. Un support physique élégant, couplé à une interface digitale sur-mesure.
             </p>
-            <a href="mailto:contact@guidz.fr" className="inline-flex items-center gap-2 text-[#E8BE72] hover:text-white transition-colors text-sm tracking-wide font-medium group">
-              contact@guidz.fr
+            <a href="mailto:contact@guidzme.fr" className="inline-flex items-center gap-2 text-[#E8BE72] hover:text-white transition-colors text-sm tracking-wide font-medium group">
+              contact@guidzme.fr
               <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform opacity-70 group-hover:opacity-100" />
             </a>
           </div>
@@ -85,17 +85,14 @@ export default function Footer() {
 
           {/* Logos de réassurance paiement */}
           <div className="flex items-center justify-center gap-4">
-            <img src="/images/Réassurances/Stripe_Logo,_revised_2016.svg.webp" alt="Stripe" className="h-5 w-auto object-contain" />
-            <img src="/images/Réassurances/Visa_Inc._logo_(2021–present).svg.webp" alt="Visa" className="h-3 w-auto object-contain" />
-            <img src="/images/Réassurances/Mastercard-logo.svg.webp" alt="Mastercard" className="h-5 w-auto object-contain" />
-            <img src="/images/Réassurances/Apple_Pay_logo.svg.webp" alt="Apple Pay" className="h-5 w-auto object-contain" />
-            <img src="/images/Réassurances/Google_Pay_Logo.svg.webp" alt="Google Pay" className="h-5 w-auto object-contain" />
+            <img src="/images/R%C3%A9assurances/Stripe_Logo,_revised_2016.svg.webp" alt="Stripe" className="h-5 w-auto object-contain" />
+            <img src="/images/R%C3%A9assurances/Visa_Inc._logo_(2021%E2%80%93present).svg.webp" alt="Visa" className="h-3 w-auto object-contain" />
+            <img src="/images/R%C3%A9assurances/Mastercard-logo.svg.webp" alt="Mastercard" className="h-5 w-auto object-contain" />
+            <img src="/images/R%C3%A9assurances/Apple_Pay_logo.svg.webp" alt="Apple Pay" className="h-5 w-auto object-contain" />
+            <img src="/images/R%C3%A9assurances/Google_Pay_Logo.svg.webp" alt="Google Pay" className="h-5 w-auto object-contain" />
           </div>
 
-          <div className="flex items-center gap-1.5 text-[13px] text-white/30 font-light tracking-wide shrink-0">
-            <span>Créé par</span>
-            <span className="text-white/60 font-medium tracking-normal hover:text-white cursor-pointer transition-colors">Wevo x Créart</span>
-          </div>
+          {/* Signature Removed */}
         </div>
       </div>
     </footer>

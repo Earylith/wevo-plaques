@@ -83,12 +83,20 @@ export default function DemoPreviewSection() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a 
+                    href="/demo-confort2" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="inline-flex justify-center items-center gap-2 px-6 py-3 bg-[#0E7C86] text-white rounded-xl font-bold hover:bg-[#0b636b] transition-colors shadow-sm"
+                  >
+                    Démo Marseille (Cléo) <ExternalLink size={18} />
+                  </a>
+                  <a 
                     href="/h/demo-confort" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="inline-flex justify-center items-center gap-2 px-6 py-3 bg-[#C4714A] text-white rounded-xl font-bold hover:bg-[#a65d3a] transition-colors shadow-sm"
                   >
-                    Voir la démo Confort <ExternalLink size={18} />
+                    Démo Confort <ExternalLink size={18} />
                   </a>
                   <a 
                     href="/h/demo-essentielle" 
@@ -96,7 +104,7 @@ export default function DemoPreviewSection() {
                     rel="noopener noreferrer"
                     className="inline-flex justify-center items-center gap-2 px-6 py-3 bg-white border-2 border-[#5A7A4E] text-[#5A7A4E] rounded-xl font-bold hover:bg-[#EBF0E6] transition-colors shadow-sm"
                   >
-                    Voir la démo Essentiel <ExternalLink size={18} />
+                    Démo Essentiel <ExternalLink size={18} />
                   </a>
                 </div>
               </div>

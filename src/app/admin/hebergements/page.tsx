@@ -1,27 +1,52 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getAdminAccommodations, toggleAccommodationStatus, deleteAdminAccommodation } from "../actions";
+import { useCallback, useEffect, useState } from "react";
+import { getAdminAccommodations, toggleAccommodationStatus, deleteAdminAccommodation, duplicateAdminAccommodation } from "../actions";
 import { Accommodation } from "@/lib/types/accommodation";
 import Link from "next/link";
-import { Plus, PencilSimple, Trash, Link as LinkIcon, QrCode } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Trash, Link as LinkIcon, Copy, Warning } from "@phosphor-icons/react";
 
 export default function AccommodationsList() {
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchAccommodations();
-  }, []);
-
-  const fetchAccommodations = async () => {
+  const fetchAccommodations = useCallback(async () => {
+    // Aucun setState synchrone avant le premier await : appelée depuis un
+    // effet, elle déclencherait sinon un rendu en cascade.
     try {
       const data = await getAdminAccommodations();
       setAccommodations(data);
-    } catch (error) {
-      console.error("Error fetching accommodations:", error);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching accommodations:", err);
+      // Sans cet affichage, une panne Firestore laissait une liste vide,
+      // impossible à distinguer d'un compte sans aucun hébergement.
+      setError(err instanceof Error ? err.message : "Chargement impossible.");
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Chargement initial des données : le seul setState de cet effet vient
+    // d'une réponse réseau asynchrone, pas d'un calcul dérivable du rendu.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchAccommodations();
+  }, [fetchAccommodations]);
+
+  const handleDuplicate = async (id: string) => {
+    setBusyId(id);
+    setError(null);
+    try {
+      await duplicateAdminAccommodation(id);
+      await fetchAccommodations();
+    } catch (err) {
+      console.error("Error duplicating accommodation:", err);
+      setError(err instanceof Error ? err.message : "La duplication a échoué.");
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -72,6 +97,21 @@ export default function AccommodationsList() {
           Nouveau logement
         </Link>
       </div>
+
+      {error && (
+        <div className="mb-6 flex items-start justify-between gap-4 px-5 py-4 rounded-2xl bg-red-50 border border-red-200">
+          <p className="text-sm text-red-700 flex items-start gap-2">
+            <Warning size={16} weight="fill" className="shrink-0 mt-0.5" />
+            {error}
+          </p>
+          <button
+            onClick={fetchAccommodations}
+            className="shrink-0 px-4 py-1.5 rounded-lg bg-white border border-red-200 text-red-700 text-xs font-semibold hover:bg-red-100 transition-colors"
+          >
+            Réessayer
+          </button>
+        </div>
+      )}
 
       <div className="bg-white rounded-3xl shadow-sm border border-[#EDD9A3]/40 overflow-hidden">
         <div className="overflow-x-auto">
@@ -128,15 +168,21 @@ export default function AccommodationsList() {
                         >
                           <LinkIcon size={18} />
                         </button>
-                        {acc.offerType === 'comfort' && (
-                          <Link 
-                            href={`/admin/hebergements/${acc.id}`}
-                            className="p-2 text-[#6B5D4E] hover:text-[#2B5F75] hover:bg-[#E4EEF3] rounded-lg transition-colors"
-                            title="Modifier"
-                          >
-                            <PencilSimple size={18} />
-                          </Link>
-                        )}
+                        <Link 
+                          href={`/admin/hebergements/${acc.id || acc.slug}`}
+                          className="p-2 text-[#6B5D4E] hover:text-[#2B5F75] hover:bg-[#E4EEF3] rounded-lg transition-colors"
+                          title="Modifier"
+                        >
+                          <PencilSimple size={18} />
+                        </Link>
+                        <button
+                          onClick={() => handleDuplicate(acc.id!)}
+                          disabled={busyId === acc.id}
+                          className="p-2 text-[#6B5D4E] hover:text-[#C4714A] hover:bg-[#FBF5EC] rounded-lg transition-colors disabled:opacity-40"
+                          title="Dupliquer pour un autre logement"
+                        >
+                          <Copy size={18} />
+                        </button>
                         <button 
                           onClick={() => handleDelete(acc.id!)}
                           className="p-2 text-[#6B5D4E] hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"

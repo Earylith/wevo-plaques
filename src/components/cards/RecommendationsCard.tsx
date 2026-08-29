@@ -31,12 +31,21 @@ export default function RecommendationsCard({ recommendations, showImages = fals
     };
   }, [selectedItem]);
 
+  const [activeCategory, setActiveCategory] = useState<string>("Tout");
+
   if (!recommendations || recommendations.length === 0) return null;
+
+  // Extract unique categories
+  const categories = ["Tout", ...Array.from(new Set(recommendations.map(r => r.category).filter(Boolean)))];
+
+  const filteredRecs = activeCategory === "Tout" 
+    ? recommendations 
+    : recommendations.filter(r => r.category === activeCategory);
 
   return (
     <>
       <div className="bg-transparent border-none p-0">
-        <div className="flex items-center gap-4 mb-5">
+        <div className="flex items-center gap-4 mb-4">
           <div className="w-12 h-12 rounded-2xl bg-[#EBF0E6] flex items-center justify-center shrink-0">
             <MapPin size={24} weight="duotone" color="#5A7A4E" />
           </div>
@@ -46,8 +55,27 @@ export default function RecommendationsCard({ recommendations, showImages = fals
           </div>
         </div>
 
+        {/* Category Filter Pills */}
+        {categories.length > 2 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-3 hide-scrollbar">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+                  activeCategory === cat
+                    ? "bg-[#2A2016] text-white shadow-sm"
+                    : "bg-white text-[#6B5D4E] border border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="flex overflow-x-auto lg:flex-col lg:overflow-visible snap-x snap-mandatory lg:snap-none space-x-4 lg:space-x-0 lg:space-y-4 pb-6 lg:pb-0 -mx-6 px-6 lg:mx-0 lg:px-0 hide-scrollbar">
-          {recommendations.map((rec, index) => (
+          {filteredRecs.map((rec, index) => (
             <motion.div 
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -56,8 +84,13 @@ export default function RecommendationsCard({ recommendations, showImages = fals
               className="shrink-0 w-[85%] sm:w-[60%] lg:w-full snap-center group cursor-pointer bg-white rounded-2xl p-3 flex flex-col lg:flex-row items-start gap-4 shadow-sm border border-[#EDD9A3]/30 hover:shadow-lg hover:border-[#D4A34A]/50 transition-all duration-300"
             >
               {showImages && rec.imageUrl && (
-                <div className="w-full h-40 lg:w-24 lg:h-24 shrink-0 rounded-[1rem] overflow-hidden bg-gray-100">
+                <div className="w-full h-40 lg:w-24 lg:h-24 shrink-0 rounded-[1rem] overflow-hidden bg-gray-100 relative">
                   <img src={rec.imageUrl} alt={rec.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
+                  {rec.rating && (
+                    <div className="absolute bottom-1.5 left-1.5 bg-black/70 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                      <span className="text-yellow-400">★</span> {rec.rating}
+                    </div>
+                  )}
                 </div>
               )}
               
@@ -70,10 +103,22 @@ export default function RecommendationsCard({ recommendations, showImages = fals
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] uppercase tracking-wider text-[#6B5D4E]/80 font-bold block mb-1">
-                  {rec.category}
-                </span>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] uppercase tracking-wider text-[#6B5D4E]/80 font-bold">
+                    {rec.category}
+                  </span>
+                  {rec.rating && (
+                    <span className="text-[11px] font-semibold text-amber-600 flex items-center gap-0.5">
+                      ★ {rec.rating} {rec.reviews ? <span className="text-[#6B5D4E]/60 text-[10px]">({rec.reviews.toLocaleString('fr-FR')} avis)</span> : null}
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-[#6B5D4E] leading-relaxed line-clamp-2">{rec.description}</p>
+                {rec.comment && (
+                  <p className="text-[11px] italic text-[#C4714A] mt-1 font-medium line-clamp-1">
+                    « {rec.comment} »
+                  </p>
+                )}
               </div>
             </motion.div>
           ))}

@@ -50,9 +50,7 @@ export default function ProblemSection() {
             <h2 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl lg:text-6xl font-bold text-[#2A2016] leading-tight mt-5">
               Toutes les informations du séjour réunies en un <em className="not-italic text-gradient-terra">scan.</em>
             </h2>
-            <p className="mt-5 text-lg text-[#6B5D4E] leading-relaxed">
-              Wi‑Fi, horaires, consignes, bonnes adresses… vos locataires trouvent les informations utiles dès leur arrivée.
-            </p>
+
           </div>
         </AnimateOnScroll>
 

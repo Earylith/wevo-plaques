@@ -45,6 +45,7 @@
   --color-white-warm: #FFFDF8;
 
   /* Fonts */
+  --font-sans: 'Inter', system-ui, sans-serif;
   --font-display: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
   --font-serif: 'Playfair Display', Georgia, serif;
   --font-body: 'Inter', system-ui, sans-serif;
@@ -165,4 +166,96 @@ body {
   background: var(--color-ocean-pale);
   border-color: color-mix(in srgb, var(--color-ocean) 25%, transparent);
   color: var(--color-ocean-dark);
+}
+
+/* ── Animations utilitaires (éditeur & livret) ─────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn { animation: fadeIn 0.22s cubic-bezier(0.23, 1, 0.32, 1) both; }
+
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; }
+  to   { opacity: 1; max-height: 2000px; }
+}
+.animate-slideDown { animation: slideDown 0.3s ease-out both; }
+
+@keyframes pulseRing {
+  0%   { box-shadow: 0 0 0 0 rgba(255, 56, 92, 0.45); }
+  70%  { box-shadow: 0 0 0 10px rgba(255, 56, 92, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 56, 92, 0); }
+}
+.animate-pulseRing { animation: pulseRing 1.6s ease-out 2; }
+
+/* Élément de l'aperçu survolé/sélectionné depuis l'éditeur */
+.editable-hot {
+  position: relative;
+  cursor: pointer;
+  transition: outline-color 0.18s ease, transform 0.18s ease;
+  outline: 2px dashed transparent;
+  outline-offset: 2px;
+}
+.editable-hot:hover {
+  outline-color: rgba(255, 56, 92, 0.55);
+}
+.editable-hot.is-selected {
+  outline: 2px solid #FF385C;
+  outline-offset: 2px;
+}
+
+/* Ligne de scroll fine pour les panneaux de l'éditeur */
+.thin-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.thin-scroll::-webkit-scrollbar-track { background: transparent; }
+.thin-scroll::-webkit-scrollbar-thumb { background: #D7D3CC; border-radius: 999px; }
+.thin-scroll::-webkit-scrollbar-thumb:hover { background: #B9B3AA; }
+
+/* ── Décor du ciel (carte « Heure sur place ») ──────────────── */
+@keyframes skyTwinkle {
+  0%, 100% { opacity: 0.25; }
+  50%      { opacity: 0.95; }
+}
+
+@keyframes skyPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+
+/* Les nuages traversent puis reviennent : translation pure, pas de saut. */
+@keyframes skyDrift {
+  from { transform: translateX(-30px); }
+  to   { transform: translateX(130px); }
+}
+@keyframes skyDriftSlow {
+  from { transform: translateX(-40px); }
+  to   { transform: translateX(140px); }
+}
+
+@keyframes skyRain {
+  0%   { transform: translate(0, -14px); opacity: 0; }
+  12%  { opacity: 0.6; }
+  88%  { opacity: 0.6; }
+  100% { transform: translate(-6px, 30px); opacity: 0; }
+}
+
+@keyframes skySnow {
+  0%   { transform: translate(0, -16px); opacity: 0; }
+  15%  { opacity: 0.8; }
+  85%  { opacity: 0.8; }
+  100% { transform: translate(4px, 32px); opacity: 0; }
+}
+
+/* Orage : deux éclairs rapprochés, puis un long silence. */
+@keyframes skyFlash {
+  0%, 92%, 100% { opacity: 0; }
+  93%           { opacity: 0.55; }
+  94%           { opacity: 0; }
+  95%           { opacity: 0.35; }
+  96%           { opacity: 0; }
+}
+.animate-skyFlash { animation: skyFlash 9s ease-out infinite; }
+
+/* Respect de la préférence système : on fige tout le décor. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-skyFlash { animation: none; }
 }
