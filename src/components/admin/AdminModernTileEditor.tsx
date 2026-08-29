@@ -6,13 +6,22 @@ import { QRCodeSVG } from "qrcode.react";
 import {
   Accommodation, AccessCodeItem, ContactInfo, Recommendation, TransportLine,
   EquipmentItem, UpsellItem, DepartureInstruction, ModuleId, ModuleConfig,
-  MODULE_GROUP_LABELS, ModuleGroup, resolveModules, getModuleDefinition,
+  ModuleGroup, resolveModules, getModuleDefinition,
 } from "@/lib/types/accommodation";
-import { getEssentials, getModuleStatus, resolveGallery, EssentialItem, EditorTab } from "@/lib/livret";
+import {
+  getEssentials, getModuleStatus, resolveGallery, getSectionProgress,
+  ADMIN_SECTIONS, getSectionDefinition, EssentialItem, EditorSection,
+} from "@/lib/livret";
 import CleoTemplate, { PreviewTarget } from "@/components/templates/CleoTemplate";
 import PhotoManager from "@/components/admin/editor/PhotoManager";
 import PlaceSearch from "@/components/admin/editor/PlaceSearch";
 import TranslationsTab from "@/components/admin/editor/TranslationsTab";
+import PlaqueTab, { essenceCommandable, TAGLINE_PAR_DEFAUT } from "@/components/admin/editor/PlaqueTab";
+import PlaqueScenes from "@/components/admin/editor/PlaqueScenes";
+import StatsPanel from "@/components/admin/editor/StatsPanel";
+import LibraryPicker, { PickedEntry } from "@/components/admin/editor/LibraryPicker";
+import { createPlaqueOrder, getOrdersForAccommodation } from "@/app/admin/orders";
+import { PlaqueConfig, PlaqueOrder } from "@/lib/types/accommodation";
 import { TranslatableLang, TranslationLayer, Translations } from "@/lib/i18n";
 import { PlaceResult, LatLon, describeDistance, mapsUrlFor } from "@/lib/geo";
 import {
@@ -21,7 +30,7 @@ import {
 } from "@/components/admin/editor/Primitives";
 import { publishAdminAccommodation, unpublishAdminAccommodation } from "@/app/admin/actions";
 import {
-  Key, Eye, GridFour, QrCode, ArrowLeft, Desktop, DeviceMobile, CaretUp, CaretDown, Translate,
+  Key, ArrowLeft, Desktop, DeviceMobile, CaretUp, CaretDown,
   ArrowRight, Check, PencilSimple, Plus, Copy, ArrowSquareOut, Warning, CheckCircle,
   MapPin, DownloadSimple, Star, Trash, WifiHigh, Phone, DoorOpen, HandWaving,
   ArrowCounterClockwise, ArrowClockwise, CloudCheck, CloudSlash, EyeSlash,
@@ -46,6 +55,23 @@ interface Props {
    * enregistrement — et le propriétaire ne pourrait plus se connecter.
    */
   externalPatchRef?: React.MutableRefObject<((patch: Partial<Accommodation>) => void) | null>;
+  /**
+   * Qui édite.
+   *
+   * `proprietaire` retire ce qui relève de Guidz et non de l'hôte : la
+   * commande de plaque, le suivi des commandes, les statistiques et la mise
+   * en ligne. Ces actions passent par des actions serveur réservées à
+   * l'administration ; les laisser visibles côté hôte afficherait des erreurs
+   * d'autorisation au lieu d'un écran cohérent.
+   */
+  role?: "admin" | "proprietaire";
+  /**
+   * Vitrine publique (page d'accueil) : l'éditeur reste pleinement
+   * manipulable mais n'écrit rien. On coupe l'enregistrement automatique,
+   * la mise en ligne et l'alerte de sortie, et on l'annonce dans la barre :
+   * un visiteur qui croirait avoir enregistré serait trompé.
+   */
+  demo?: boolean;
 }
 
 const MODULE_ICONS: Record<ModuleId, React.ComponentType<{ size?: number; weight?: "regular" | "bold" | "fill" | "duotone"; className?: string }>> = {
@@ -59,7 +85,7 @@ const MODULE_TINTS: Record<ModuleId, { bg: string; fg: string }> = {
   contacts: { bg: "#EAF6EF", fg: "#1F8A54" }, depart: { bg: "#F1F0FB", fg: "#5B54C4" },
   bienvenue: { bg: "#FFF6E9", fg: "#C98A17" }, reglement: { bg: "#FFF1E8", fg: "#C4714A" },
   equipements: { bg: "#FFF2E8", fg: "#D98324" }, adresses: { bg: "#FFEFF3", fg: "#D9455F" },
-  transports: { bg: "#E9F3FF", fg: "#1D64B4" },
+  transports: { bg: "#E9F3FF", fg: "#2B5F75" },
   faq: { bg: "#EFF2FF", fg: "#4356C0" }, livredor: { bg: "#F5EFFF", fg: "#7048B6" },
 };
 
@@ -69,7 +95,7 @@ const ESSENTIAL_MODULES: ModuleId[] = ["arrivee", "wifi", "contacts", "depart"];
 /** Ordre d'apparition des sections dans le livret du voyageur. */
 const GROUP_ORDER: ModuleGroup[] = ["tuiles", "sejour", "surplace", "alentours"];
 
-const COLOR_PRESETS = ["#FF385C", "#1D64B4", "#C4714A", "#0E7C86", "#5A7A4E", "#D4A34A", "#1A1510"];
+const COLOR_PRESETS = ["#C4714A", "#2B5F75", "#C4714A", "#0E7C86", "#5A7A4E", "#D4A34A", "#1A1510"];
 const CHECKIN_HOURS = ["10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"];
 const CHECKOUT_HOURS = ["06", "07", "08", "09", "10", "11", "12", "13", "14"];
 const ADDRESS_CATEGORIES = ["Restaurant", "Bar", "Plage", "Activité", "Commerce", "Culture", "Nature"];
@@ -103,9 +129,15 @@ export default function AdminModernTileEditor({
   isLoading = false,
   ownerPanel,
   externalPatchRef,
+  role = "admin",
+  demo = false,
 }: Props) {
+  const estAdmin = role === "admin";
   const [data, setData] = useState<Accommodation>(initialData);
-  const [editorTab, setEditorTab] = useState<EditorTab>("general");
+  // On ouvre sur la PREMIÈRE rubrique de la barre : sans ça, le bouton
+  // « Suivant » sauterait la rubrique d'ouverture, qu'on n'atteindrait qu'en
+  // revenant en arrière.
+  const [editorSection, setEditorSection] = useState<EditorSection>(ADMIN_SECTIONS[0].id);
   const [viewDevice, setViewDevice] = useState<"mobile" | "desktop">("mobile");
   /*
    * « Vue voyageur » : l'aperçu se comporte exactement comme le livret publié
@@ -116,15 +148,6 @@ export default function AdminModernTileEditor({
   const [previewAsGuest, setPreviewAsGuest] = useState(false);
   const [openModule, setOpenModule] = useState<ModuleId | null>(null);
   const [selected, setSelected] = useState<PreviewTarget | null>(null);
-  // La check-list est dépliée dans « Général » (c'est le cœur de l'onglet) et
-  // repliée dans « Apparence », où elle n'est qu'un rappel de progression.
-  const [checklistOpen, setChecklistOpen] = useState<Record<EditorTab, boolean>>({
-    general: true,
-    apparence: false,
-    modules: false,
-    langues: false,
-    partager: false,
-  });
   const [highlight, setHighlight] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -134,8 +157,11 @@ export default function AdminModernTileEditor({
   const [newAddress, setNewAddress] = useState("");
   /** Langue actuellement traduite dans l'onglet « Langues ». */
   const [editingLang, setEditingLang] = useState<TranslatableLang>("en");
+  const [orders, setOrders] = useState<PlaqueOrder[]>([]);
+  const [ordering, setOrdering] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
-  const [autosave, setAutosave] = useState(true);
+  const [autosave, setAutosave] = useState(!demo);
   /** Pile d'annulation : instantanés successifs de `data`. */
   const [history, setHistory] = useState<{ past: Accommodation[]; future: Accommodation[] }>({
     past: [],
@@ -144,6 +170,7 @@ export default function AdminModernTileEditor({
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const qrRef = useRef<SVGSVGElement>(null);
+  const chipsRef = useRef<HTMLDivElement>(null);
   // Sur un livret neuf, l'identifiant n'existe qu'après le premier
   // enregistrement : il est remonté par onSubmit.
   const [docId, setDocId] = useState<string>(initialData.id || initialData.slug);
@@ -233,6 +260,110 @@ export default function AdminModernTileEditor({
       ...d,
       comfortOptions: { ...d.comfortOptions, theme: { ...d.comfortOptions?.theme, ...fields } },
     }));
+
+  const setPlaque = (fields: Partial<PlaqueConfig>) =>
+    mutate((d) => ({ ...d, plaque: { wood: "noyer", ...d.plaque, ...fields } }));
+
+  /**
+   * Enregistre la commande de plaque.
+   *
+   * On rafraîchit ensuite le livret : la commande vient de lui attribuer son
+   * identifiant permanent et de verrouiller son adresse publique.
+   */
+  const handleOrderPlaque = async () => {
+    setOrdering(true);
+    setOrderError(null);
+    try {
+      // L'essence est normalisée : ce qui part en gravure doit être ce que
+      // l'hôte a vu à l'écran, pas une teinte retirée du catalogue.
+      const configuration: PlaqueConfig = {
+        ...data.plaque,
+        wood: essenceCommandable(data.plaque?.wood),
+      };
+      const order = await createPlaqueOrder(docId, configuration, window.location.origin);
+      setOrders((current) => [order, ...current]);
+      setData((current) => ({ ...current, slugLocked: true }));
+      setMessage(`Commande ${order.reference} enregistrée. L'adresse publique est désormais verrouillée.`);
+      setSaveState("saved");
+    } catch (err) {
+      console.error(err);
+      setOrderError(err instanceof Error ? err.message : "La commande a échoué.");
+    } finally {
+      setOrdering(false);
+    }
+  };
+
+  /**
+   * Ajoute des entrées de la bibliothèque, en posant du même coup leurs
+   * traductions.
+   *
+   * C'est tout l'intérêt de la bibliothèque : les calques EN/ES/IT sont
+   * indexés comme la liste française, donc écrire à l'index de la nouvelle
+   * entrée suffit à rendre le livret quadrilingue sans intervention.
+   */
+  const addFromLibrary = (kind: "equipments" | "rules" | "departure", picked: PickedEntry[]) => {
+    mutate((current) => {
+      const layers = ((current.translations as Translations | undefined) || {}) as Translations;
+      const next: Accommodation = { ...current };
+      const updatedLayers: Translations = { ...layers };
+
+      /** Écrit une traduction à l'index voulu, pour les trois langues. */
+      const writeTranslations = (
+        startIndex: number,
+        entries: PickedEntry[],
+        apply: (layer: TranslationLayer, index: number, entry: PickedEntry, lang: TranslatableLang) => TranslationLayer
+      ) => {
+        for (const lang of ["en", "es", "it"] as TranslatableLang[]) {
+          let layer: TranslationLayer = { ...(updatedLayers[lang] || {}) };
+          entries.forEach((entry, offset) => {
+            layer = apply(layer, startIndex + offset, entry, lang);
+          });
+          updatedLayers[lang] = layer;
+        }
+      };
+
+      if (kind === "equipments") {
+        const list = [...(current.equipments || [])];
+        const start = list.length;
+        picked.forEach((entry) => {
+          list.push({ title: entry.title.fr, desc: entry.desc?.fr || "", icon: entry.icon || "✨" });
+        });
+        next.equipments = list;
+        writeTranslations(start, picked, (layer, index, entry, lang) => {
+          const items = [...(layer.equipments || [])];
+          items[index] = { title: entry.title[lang], desc: entry.desc?.[lang] || "" };
+          return { ...layer, equipments: items };
+        });
+      }
+
+      if (kind === "rules") {
+        const list = [...(current.rules || [])];
+        const start = list.length;
+        picked.forEach((entry) => list.push(entry.title.fr));
+        next.rules = list;
+        writeTranslations(start, picked, (layer, index, entry, lang) => {
+          const items = [...(layer.rules || [])];
+          items[index] = entry.title[lang];
+          return { ...layer, rules: items };
+        });
+      }
+
+      if (kind === "departure") {
+        const list = [...(current.practicalInfo?.departureInstructions || [])];
+        const start = list.length;
+        picked.forEach((entry) => list.push({ text: entry.title.fr, required: entry.required || false }));
+        next.practicalInfo = { ...current.practicalInfo, departureInstructions: list };
+        writeTranslations(start, picked, (layer, index, entry, lang) => {
+          const items = [...(layer.departureInstructions || [])];
+          items[index] = entry.title[lang];
+          return { ...layer, departureInstructions: items };
+        });
+      }
+
+      next.translations = updatedLayers;
+      return next;
+    });
+  };
 
   const setDisplay = (fields: Partial<NonNullable<Accommodation["display"]>>) =>
     mutate((d) => ({ ...d, display: { ...d.display, ...fields } }));
@@ -388,12 +519,12 @@ export default function AdminModernTileEditor({
      NAVIGATION ÉDITEUR ⇄ APERÇU
      ══════════════════════════════════════════════════════════════════ */
   const jumpTo = (item: EssentialItem) => {
-    setEditorTab(item.tab);
+    setEditorSection(item.tab);
     if (item.module) {
       setOpenModule(item.module);
       setSelected(item.module);
-    } else if (item.tab !== "modules") {
-      // On quitte l'onglet Modules : refermer la modale restée ouverte dans l'aperçu.
+    } else {
+      // On quitte une rubrique : refermer la fiche restée ouverte dans l'aperçu.
       setOpenModule(null);
       setSelected(null);
     }
@@ -403,21 +534,37 @@ export default function AdminModernTileEditor({
   /** Un élément de l'aperçu a été cliqué : on ouvre son éditeur à gauche. */
   const handlePreviewSelect = (target: PreviewTarget) => {
     if (target === "cover") {
-      setEditorTab("apparence");
+      setEditorSection("apparence");
       setSelected("cover");
       setHighlight("property.gallery");
       return;
     }
     if (target === "identity") {
-      setEditorTab("general");
+      setEditorSection("logement");
       setSelected("identity");
       setHighlight("property.name");
       return;
     }
-    setEditorTab("modules");
+    // On ouvre la section qui contient cette rubrique.
+    const host = ADMIN_SECTIONS.find((section) => section.modules.includes(target));
+    if (host) {
+      setEditorSection(host.id);
+    }
     setOpenModule(target);
     setSelected(target);
     setHighlight(`module.${target}`);
+  };
+
+  /**
+   * Change de rubrique. Referme la fiche ouverte dans l'aperçu et remonte le
+   * formulaire en haut : on arrive au début de la nouvelle rubrique, pas au
+   * milieu de son contenu.
+   */
+  const goToSection = (section: EditorSection) => {
+    setEditorSection(section);
+    setOpenModule(null);
+    setSelected(null);
+    bodyRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   /** Ouvre / referme un module depuis le panneau de gauche. */
@@ -436,7 +583,10 @@ export default function AdminModernTileEditor({
   const handlePreviewModuleChange = (module: ModuleId | null) => {
     setOpenModule(module);
     if (module) {
-      setEditorTab("modules");
+      const host = ADMIN_SECTIONS.find((section) => section.modules.includes(module));
+      if (host) {
+        setEditorSection(host.id);
+        }
       setSelected(module);
     } else {
       setSelected((current) => (current === "cover" || current === "identity" ? current : null));
@@ -455,7 +605,7 @@ export default function AdminModernTileEditor({
       cancelAnimationFrame(raf);
       clearTimeout(timer);
     };
-  }, [highlight, editorTab, openModule]);
+  }, [highlight, editorSection, openModule]);
 
   /*
    * Expose l'application d'un correctif externe. On passe par setData et NON
@@ -479,16 +629,39 @@ export default function AdminModernTileEditor({
     };
   }, [externalPatchRef]);
 
+  /*
+   * Ramène la rubrique active dans la barre : un clic depuis l'aperçu peut
+   * l'activer alors qu'elle est hors champ, à droite du défilement.
+   */
+  useEffect(() => {
+    const chip = chipsRef.current?.querySelector(`[data-section="${editorSection}"]`);
+    chip?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [editorSection]);
+
+  /* Commandes déjà passées pour ce logement. */
+  useEffect(() => {
+    if (!estAdmin) return;
+    let cancelled = false;
+    getOrdersForAccommodation(docId)
+      .then((list) => {
+        if (!cancelled) setOrders(list);
+      })
+      .catch((err) => console.error("Chargement des commandes", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [docId, estAdmin]);
+
   // Prévient la perte de modifications non enregistrées.
   useEffect(() => {
-    if (!dirty) return;
+    if (!dirty || demo) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = "";
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [dirty]);
+  }, [dirty, demo]);
 
   /* ══════════════════════════════════════════════════════════════════
      ENREGISTREMENT / PUBLICATION
@@ -501,6 +674,11 @@ export default function AdminModernTileEditor({
    * et laissent un livret en double dans la base.
    */
   const handleSave = async (): Promise<string | null> => {
+    if (demo) {
+      setMessage("Démo libre — rien n’est enregistré. Tout repart à zéro au rechargement.");
+      setSaveState("idle");
+      return null;
+    }
     if (inFlightSaveRef.current) return inFlightSaveRef.current;
 
     const run = performSave();
@@ -554,8 +732,7 @@ export default function AdminModernTileEditor({
           "Les rubriques vides seront masquées à vos voyageurs. Publier quand même ?"
       );
       if (!proceed) {
-        setEditorTab("general");
-        setChecklistOpen((prev) => ({ ...prev, general: true }));
+        setEditorSection(missing[0].tab);
         return;
       }
     }
@@ -632,9 +809,21 @@ export default function AdminModernTileEditor({
      ══════════════════════════════════════════════════════════════════ */
   const essentials = getEssentials(data);
   const filledCount = essentials.filter((e) => e.filled).length;
-  const publicUrl = typeof window !== "undefined"
-    ? `${window.location.origin}/h/${savedSlug}`
-    : `/h/${savedSlug}`;
+
+  const sectionIndex = ADMIN_SECTIONS.findIndex((s) => s.id === editorSection);
+  const previousSection = sectionIndex > 0 ? ADMIN_SECTIONS[sectionIndex - 1] : null;
+  const nextSection =
+    sectionIndex >= 0 && sectionIndex < ADMIN_SECTIONS.length - 1
+      ? ADMIN_SECTIONS[sectionIndex + 1]
+      : null;
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const publicUrl = `${origin}/h/${savedSlug}`;
+  /*
+   * Adresse gravée : permanente, donc distincte du lien de partage. Tant que
+   * l'identifiant n'est pas attribué, on montre la forme sans prétendre
+   * qu'elle est définitive.
+   */
+  const engravedUrl = data.permanentId ? `${origin}/g/${data.permanentId}` : `${origin}/g/…`;
   const slugPending = data.slug !== savedSlug;
   const emergencyIdx = (data.contacts || [])
     .map((c, i) => ({ c, i }))
@@ -701,62 +890,156 @@ export default function AdminModernTileEditor({
   };
 
   /* ══════════════════════════════════════════════════════════════════
-     CHECK-LIST « LES ESSENTIELS »
+     RENDU DES SECTIONS
      ══════════════════════════════════════════════════════════════════ */
-  const renderChecklist = (tab: EditorTab) => {
-    const open = checklistOpen[tab];
+
+  /** Bandeau de tête d'une section : ce qu'on y fait, et où on en est. */
+  const renderSectionIntro = (section: EditorSection) => {
+    const def = getSectionDefinition(section);
+    const sectionMissing = essentials.filter((item) => item.tab === section && !item.filled);
     return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-      <button
-        type="button"
-        onClick={() => setChecklistOpen((prev) => ({ ...prev, [tab]: !prev[tab] }))}
-        className="w-full flex items-center justify-between gap-2"
-      >
-        <span className="flex items-center gap-2 text-sm font-bold text-[#2A2016]">
-          Les essentiels
-          <span className="text-[#FF385C] font-extrabold">{filledCount}/{essentials.length}</span>
-        </span>
-        {open ? <CaretUp size={15} weight="bold" /> : <CaretDown size={15} weight="bold" />}
-      </button>
-
-      <div className="mt-3 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-        <div
-          className="h-full rounded-full bg-[#FF385C] transition-[width] duration-500"
-          style={{ width: `${(filledCount / essentials.length) * 100}%` }}
-        />
-      </div>
-
-      {open ? (
-        <div className="mt-3 space-y-0.5 border-t border-gray-100 pt-2">
-          {essentials.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              onClick={() => jumpTo(item)}
-              className="w-full flex items-center justify-between gap-2 py-1.5 px-1 rounded-lg hover:bg-gray-50 transition-colors text-left group"
-            >
-              <span className="flex items-center gap-2.5 min-w-0">
-                <span
-                  className={`w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0 ${
-                    item.filled ? "bg-emerald-500 text-white" : "border border-gray-300 text-transparent"
-                  }`}
+      <header className="pb-1">
+        <h2 className="font-[family-name:var(--font-display)] text-[22px] font-bold text-[#2A2016] flex items-center gap-2.5">
+          <span className="text-lg">{def.emoji}</span>
+          {def.label}
+        </h2>
+        <p className="text-xs text-[#6B5D4E] mt-1 leading-relaxed">{def.hint}</p>
+        {sectionMissing.length > 0 && (
+          <div className="mt-3 rounded-xl bg-[#FDF3DC] border border-[#EDD9A3] p-2.5">
+            <p className="text-[11px] font-bold text-[#A35A38] mb-1.5">
+              {sectionMissing.length} point{sectionMissing.length > 1 ? "s" : ""} essentiel{sectionMissing.length > 1 ? "s" : ""} à compléter ici
+            </p>
+            <div className="space-y-0.5">
+              {sectionMissing.map((item) => (
+                <button
+                  key={item.key}
+                  type="button"
+                  onClick={() => jumpTo(item)}
+                  className="w-full flex items-center justify-between gap-2 py-1 px-1.5 rounded-lg hover:bg-white/70 transition-colors text-left group"
                 >
-                  <Check size={10} weight="bold" />
-                </span>
-                <span className={`text-xs truncate ${item.filled ? "text-[#B0A79E] line-through" : "text-[#2A2016]"}`}>
-                  {item.label}
-                </span>
-              </span>
-              <ArrowRight size={13} weight="bold" className="text-gray-300 group-hover:text-[#FF385C] shrink-0" />
-            </button>
-          ))}
-        </div>
-      ) : (
-        <p className="text-[11px] text-[#8A8078] mt-2.5">
-          Complétez-les pour un livret vraiment utile à vos voyageurs.
-        </p>
-      )}
-    </div>
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="w-[15px] h-[15px] rounded-full border border-[#C4714A]/40 shrink-0" />
+                    <span className="text-[11px] text-[#5C3D2E] truncate">{item.label}</span>
+                  </span>
+                  <ArrowRight size={12} weight="bold" className="text-[#C4714A]/40 group-hover:text-[#C4714A] shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </header>
+    );
+  };
+
+  /**
+   * Cartes des rubriques rattachées à une section.
+   *
+   * Chaque carte porte son interrupteur de visibilité et ses flèches d'ordre
+   * juste à côté de son contenu — au lieu d'un onglet « Modules » séparé où il
+   * fallait deviner à quoi correspondait quoi.
+   */
+  const renderSectionModules = (section: EditorSection) => {
+    const def = getSectionDefinition(section);
+    const ids = modules
+      .filter((m) => def.modules.includes(m.id))
+      .map((m) => m.id);
+    if (ids.length === 0) return null;
+
+    return (
+      <div className="space-y-3">
+        {ids.map((id) => {
+          const moduleConfig = modules.find((m) => m.id === id);
+          if (!moduleConfig) return null;
+          const definition = getModuleDefinition(id);
+          const Icon = MODULE_ICONS[id];
+          const tint = MODULE_TINTS[id];
+          const status = getModuleStatus(data, id);
+          const isOpen = openModule === id;
+          const showTodo = ESSENTIAL_MODULES.includes(id) && !status.complete;
+
+          return (
+            <div
+              key={id}
+              data-field={`module.${id}`}
+              className={`rounded-2xl border overflow-hidden transition-all ${
+                isOpen
+                  ? "border-[#C4714A] shadow-[0_0_0_3px_rgba(196,113,74,0.08)]"
+                  : "border-[#EDD9A3]/60 hover:border-[#EDD9A3]"
+              } ${moduleConfig.visible ? "bg-white" : "bg-[#FBF5EC]"}`}
+            >
+              <div className="p-3.5 flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <span
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: tint.bg, color: tint.fg, opacity: moduleConfig.visible ? 1 : 0.5 }}
+                  >
+                    <Icon size={19} weight="duotone" />
+                  </span>
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-sm text-[#2A2016] flex items-center gap-2 flex-wrap">
+                      {definition?.label}
+                      {showTodo && (
+                        <span className="text-[10px] font-bold text-[#A35A38] bg-[#FDF3DC] border border-[#EDD9A3] px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#C4714A]" /> À compléter
+                        </span>
+                      )}
+                    </h4>
+                    <p className="text-[11px] text-[#6B5D4E] truncate">{status.summary}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-center gap-1 shrink-0">
+                  <Toggle
+                    checked={moduleConfig.visible}
+                    onChange={() => toggleModuleVisible(id)}
+                    label={`Afficher ${definition?.label}`}
+                  />
+                  <span className={`text-[9px] font-extrabold uppercase tracking-wider ${moduleConfig.visible ? "text-[#C4714A]" : "text-[#A8998A]"}`}>
+                    {moduleConfig.visible ? "Visible" : "Masqué"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="px-3.5 pb-3.5 flex items-center gap-2">
+                <div className="flex gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => moveModule(id, -1)}
+                    disabled={neighbourInGroup(id, -1) < 0}
+                    title="Monter"
+                    className="w-8 h-8 rounded-lg border border-[#EDD9A3]/60 flex items-center justify-center text-[#6B5D4E] hover:border-[#EDD9A3] disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <CaretUp size={13} weight="bold" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveModule(id, 1)}
+                    disabled={neighbourInGroup(id, 1) < 0}
+                    title="Descendre"
+                    className="w-8 h-8 rounded-lg border border-[#EDD9A3]/60 flex items-center justify-center text-[#6B5D4E] hover:border-[#EDD9A3] disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <CaretDown size={13} weight="bold" />
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleModuleOpen(id)}
+                  className="flex-1 h-8 rounded-lg border border-[#EDD9A3]/60 hover:border-[#C4714A] text-xs font-bold text-[#2A2016] flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  {isOpen ? <CaretUp size={13} weight="bold" /> : <PencilSimple size={13} weight="bold" />}
+                  {isOpen ? "Fermer" : "Modifier"}
+                </button>
+              </div>
+
+              {isOpen && (
+                <div className="p-3.5 bg-[#FDF9F2] border-t border-[#EDD9A3]/60 animate-fadeIn">
+                  {renderModuleEditor(id)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     );
   };
 
@@ -792,12 +1075,14 @@ export default function AdminModernTileEditor({
                 Adresse exacte
               </Label>
               <PlaceSearch
+                disabled={demo}
+                disabledHint="Recherche d’adresse indisponible dans la démo."
                 placeholder="Commencez à taper votre adresse…"
                 onSelect={applyPropertyAddress}
                 clearOnSelect={false}
               />
               {data.property?.address && (
-                <p className="mt-2 text-[11px] text-[#4A3D30] bg-[#FBF9F5] border border-[#EFE9DF] rounded-lg px-2.5 py-2">
+                <p className="mt-2 text-[11px] text-[#4A3D30] bg-[#FDF9F2] border border-[#EDD9A3] rounded-lg px-2.5 py-2">
                   {data.property.address}
                 </p>
               )}
@@ -840,14 +1125,14 @@ export default function AdminModernTileEditor({
                     value={code.label}
                     onChange={(e) => codes.update(idx, { label: e.target.value })}
                     placeholder="Code portail"
-                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#FF385C]"
+                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#C4714A]"
                   />
                   <input
                     type="text"
                     value={code.value}
                     onChange={(e) => codes.update(idx, { value: e.target.value })}
                     placeholder="1234#"
-                    className="w-24 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-mono font-bold outline-none focus:border-[#FF385C]"
+                    className="w-24 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-mono font-bold outline-none focus:border-[#C4714A]"
                   />
                   <ItemToolbar index={idx} total={(data.codes || []).length} onMove={codes.move} onDelete={() => codes.remove(idx)} />
                 </div>
@@ -883,7 +1168,7 @@ export default function AdminModernTileEditor({
             <div className="pt-2 border-t border-gray-100 space-y-2.5">
               <SectionTitle>Autres contacts utiles</SectionTitle>
               {regularIdx.length === 0 && (
-                <p className="text-[11px] text-[#8A8078]">Aucun contact supplémentaire.</p>
+                <p className="text-[11px] text-[#6B5D4E]">Aucun contact supplémentaire.</p>
               )}
               {regularIdx.map(({ c, i }, pos) => (
                 <div key={i} className="p-3 bg-white rounded-xl border border-gray-200 space-y-2">
@@ -893,7 +1178,7 @@ export default function AdminModernTileEditor({
                       value={c.label}
                       onChange={(e) => contacts.update(i, { label: e.target.value })}
                       placeholder="Conciergerie"
-                      className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#FF385C]"
+                      className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#C4714A]"
                     />
                     <ItemToolbar
                       index={pos}
@@ -916,14 +1201,14 @@ export default function AdminModernTileEditor({
                       value={c.name}
                       onChange={(e) => contacts.update(i, { name: e.target.value })}
                       placeholder="Rôle / précision"
-                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                     />
                     <input
                       type="text"
                       value={c.phone}
                       onChange={(e) => contacts.update(i, { phone: e.target.value })}
                       placeholder="04 91 00 00 00"
-                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-mono outline-none focus:border-[#FF385C]"
+                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-mono outline-none focus:border-[#C4714A]"
                     />
                   </div>
                 </div>
@@ -945,7 +1230,7 @@ export default function AdminModernTileEditor({
                     key={preset.phone}
                     type="button"
                     onClick={() => contacts.add({ ...preset, type: "emergency" })}
-                    className="px-2.5 py-1.5 rounded-lg border border-dashed border-gray-300 hover:border-[#FF385C] text-[11px] font-bold text-[#2A2016] flex items-center gap-1"
+                    className="px-2.5 py-1.5 rounded-lg border border-dashed border-gray-300 hover:border-[#C4714A] text-[11px] font-bold text-[#2A2016] flex items-center gap-1"
                   >
                     <Plus size={11} weight="bold" /> {preset.label} · {preset.phone}
                   </button>
@@ -953,7 +1238,7 @@ export default function AdminModernTileEditor({
               </div>
 
               {emergencyIdx.length === 0 && (
-                <p className="text-[11px] text-[#8A8078]">
+                <p className="text-[11px] text-[#6B5D4E]">
                   Aucun numéro d&apos;urgence. Ajoutez-en depuis les raccourcis ci-dessus.
                 </p>
               )}
@@ -965,13 +1250,13 @@ export default function AdminModernTileEditor({
                     value={c.label}
                     onChange={(e) => contacts.update(i, { label: e.target.value })}
                     placeholder="SAMU"
-                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#FF385C]"
+                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#C4714A]"
                   />
                   <input
                     type="text"
                     value={c.phone}
                     onChange={(e) => contacts.update(i, { phone: e.target.value })}
-                    className="w-20 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-mono font-bold outline-none focus:border-[#FF385C]"
+                    className="w-20 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-mono font-bold outline-none focus:border-[#C4714A]"
                   />
                   <button
                     type="button"
@@ -1013,7 +1298,7 @@ export default function AdminModernTileEditor({
                     value={step.text}
                     onChange={(e) => departures.update(idx, { text: e.target.value })}
                     placeholder="Ex : Déposer les clés dans la boîte à clés"
-                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                   />
                   <button
                     type="button"
@@ -1021,7 +1306,7 @@ export default function AdminModernTileEditor({
                     title={step.required ? "Obligatoire" : "Facultative"}
                     className={`px-2 h-7 rounded-lg border text-[10px] font-extrabold uppercase shrink-0 transition-colors ${
                       step.required
-                        ? "border-[#FF385C] text-[#FF385C] bg-[#FF385C]/5"
+                        ? "border-[#C4714A] text-[#C4714A] bg-[#C4714A]/5"
                         : "border-gray-200 text-gray-400"
                     }`}
                   >
@@ -1035,8 +1320,13 @@ export default function AdminModernTileEditor({
                   />
                 </div>
               ))}
+              <LibraryPicker
+                kind="departure"
+                existing={(data.practicalInfo?.departureInstructions || []).map((i) => i.text)}
+                onAdd={(picked) => addFromLibrary("departure", picked)}
+              />
               <AddButton onClick={() => departures.add({ text: "", required: false })}>
-                Ajouter une consigne de départ
+                Ajouter une consigne sur mesure
               </AddButton>
             </div>
 
@@ -1076,12 +1366,17 @@ export default function AdminModernTileEditor({
                   value={rule}
                   onChange={(e) => rules.replace(idx, e.target.value)}
                   placeholder="Ex : Logement non-fumeur"
-                  className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                  className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                 />
                 <ItemToolbar index={idx} total={(data.rules || []).length} onMove={rules.move} onDelete={() => rules.remove(idx)} />
               </div>
             ))}
-            <AddButton onClick={() => rules.add("")}>Ajouter une règle</AddButton>
+            <LibraryPicker
+              kind="rules"
+              existing={data.rules || []}
+              onAdd={(picked) => addFromLibrary("rules", picked)}
+            />
+            <AddButton onClick={() => rules.add("")}>Ajouter une règle sur mesure</AddButton>
           </div>
         );
 
@@ -1098,14 +1393,14 @@ export default function AdminModernTileEditor({
                       type="text"
                       value={eq.icon || ""}
                       onChange={(e) => equipments.update(idx, { icon: e.target.value })}
-                      className="w-10 text-center py-1.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#FF385C]"
+                      className="w-10 text-center py-1.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#C4714A]"
                     />
                     <input
                       type="text"
                       value={eq.title}
                       onChange={(e) => equipments.update(idx, { title: e.target.value })}
                       placeholder="Lave-vaisselle"
-                      className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#FF385C]"
+                      className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#C4714A]"
                     />
                     <ItemToolbar index={idx} total={(data.equipments || []).length} onMove={equipments.move} onDelete={() => equipments.remove(idx)} />
                   </div>
@@ -1114,7 +1409,7 @@ export default function AdminModernTileEditor({
                     value={eq.desc}
                     onChange={(e) => equipments.update(idx, { desc: e.target.value })}
                     placeholder="Mode d'emploi, où trouver les consommables…"
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C] resize-y"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A] resize-y"
                   />
                   <div className="flex flex-wrap gap-1">
                     {EMOJI_PALETTE.map((emoji) => (
@@ -1130,8 +1425,13 @@ export default function AdminModernTileEditor({
                   </div>
                 </div>
               ))}
+              <LibraryPicker
+                kind="equipments"
+                existing={(data.equipments || []).map((e) => e.title)}
+                onAdd={(picked) => addFromLibrary("equipments", picked)}
+              />
               <AddButton onClick={() => equipments.add({ title: "", desc: "", icon: "✨" })}>
-                Ajouter un équipement
+                Ajouter un équipement sur mesure
               </AddButton>
             </div>
 
@@ -1150,7 +1450,7 @@ export default function AdminModernTileEditor({
                       value={item.title}
                       onChange={(e) => upsells.update(idx, { title: e.target.value })}
                       placeholder="Petit-déjeuner livré"
-                      className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#FF385C]"
+                      className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#C4714A]"
                     />
                     <ItemToolbar
                       index={idx}
@@ -1164,7 +1464,7 @@ export default function AdminModernTileEditor({
                     value={item.description}
                     onChange={(e) => upsells.update(idx, { description: e.target.value })}
                     placeholder="Ce que comprend le service…"
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C] resize-y"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A] resize-y"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <input
@@ -1173,12 +1473,12 @@ export default function AdminModernTileEditor({
                       value={item.price ?? 0}
                       onChange={(e) => upsells.update(idx, { price: Number(e.target.value) || 0 })}
                       placeholder="15"
-                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                     />
                     <select
                       value={item.priceUnit || "per_stay"}
                       onChange={(e) => upsells.update(idx, { priceUnit: e.target.value as UpsellItem["priceUnit"] })}
-                      className="px-2 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                      className="px-2 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                     >
                       <option value="per_stay">par séjour</option>
                       <option value="per_person">par personne</option>
@@ -1190,7 +1490,7 @@ export default function AdminModernTileEditor({
                     value={item.priceLabel || ""}
                     onChange={(e) => upsells.update(idx, { priceLabel: e.target.value })}
                     placeholder="Étiquette libre (« sur devis », « offert ») — remplace le prix"
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                   />
                 </div>
               ))}
@@ -1212,6 +1512,8 @@ export default function AdminModernTileEditor({
                 Chercher un lieu
               </Label>
               <PlaceSearch
+                disabled={demo}
+                disabledHint="Recherche d’adresse indisponible dans la démo."
                 placeholder="Ex : Pizzeria Chez Étienne, Parc Borély…"
                 near={propertyPoint}
                 onSelect={applyRecommendation}
@@ -1219,7 +1521,7 @@ export default function AdminModernTileEditor({
               />
               <div className="flex items-center gap-2 pt-0.5">
                 <span className="h-px flex-1 bg-gray-100" />
-                <span className="text-[10px] uppercase tracking-wider text-[#B0A79E] font-bold">ou</span>
+                <span className="text-[10px] uppercase tracking-wider text-[#A8998A] font-bold">ou</span>
                 <span className="h-px flex-1 bg-gray-100" />
               </div>
               <div className="flex gap-2">
@@ -1235,7 +1537,7 @@ export default function AdminModernTileEditor({
                     }
                   }}
                   placeholder="Saisir un nom à la main"
-                  className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                  className="flex-1 min-w-0 px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                 />
                 <button
                   type="button"
@@ -1244,7 +1546,7 @@ export default function AdminModernTileEditor({
                     recos.add({ title: newAddress.trim(), category: "Restaurant", description: "" });
                     setNewAddress("");
                   }}
-                  className="px-3.5 py-2 rounded-xl border border-gray-200 text-[#2A2016] text-xs font-bold disabled:opacity-40 flex items-center gap-1.5 hover:border-[#FF385C]"
+                  className="px-3.5 py-2 rounded-xl border border-gray-200 text-[#2A2016] text-xs font-bold disabled:opacity-40 flex items-center gap-1.5 hover:border-[#C4714A]"
                 >
                   <Plus size={14} weight="bold" /> Ajouter
                 </button>
@@ -1258,7 +1560,7 @@ export default function AdminModernTileEditor({
                       type="text"
                       value={rec.title}
                       onChange={(e) => recos.update(idx, { title: e.target.value })}
-                      className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#FF385C]"
+                      className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#C4714A]"
                     />
                     <ItemToolbar index={idx} total={(data.recommendations || []).length} onMove={recos.move} onDelete={() => recos.remove(idx)} />
                   </div>
@@ -1267,7 +1569,7 @@ export default function AdminModernTileEditor({
                     <select
                       value={rec.category}
                       onChange={(e) => recos.update(idx, { category: e.target.value })}
-                      className="px-2 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                      className="px-2 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                     >
                       {[...new Set([...ADDRESS_CATEGORIES, rec.category].filter(Boolean))].map((c) => (
                         <option key={c} value={c}>{c}</option>
@@ -1278,7 +1580,7 @@ export default function AdminModernTileEditor({
                       value={rec.distance || ""}
                       onChange={(e) => recos.update(idx, { distance: e.target.value })}
                       placeholder="5 min à pied"
-                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                     />
                   </div>
 
@@ -1287,7 +1589,7 @@ export default function AdminModernTileEditor({
                     value={rec.description}
                     onChange={(e) => recos.update(idx, { description: e.target.value })}
                     placeholder="En une phrase, pourquoi y aller ?"
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C] resize-y"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A] resize-y"
                   />
 
                   <input
@@ -1295,7 +1597,7 @@ export default function AdminModernTileEditor({
                     value={rec.comment || ""}
                     onChange={(e) => recos.update(idx, { comment: e.target.value })}
                     placeholder="Votre mot perso (affiché en italique)"
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                   />
 
                   <div className="grid grid-cols-2 gap-2">
@@ -1318,7 +1620,7 @@ export default function AdminModernTileEditor({
                       value={rec.reviews ?? ""}
                       onChange={(e) => recos.update(idx, { reviews: e.target.value === "" ? undefined : Number(e.target.value) })}
                       placeholder="Nb d'avis"
-                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                     />
                   </div>
 
@@ -1327,14 +1629,14 @@ export default function AdminModernTileEditor({
                     value={rec.imageUrl || ""}
                     onChange={(e) => recos.update(idx, { imageUrl: e.target.value })}
                     placeholder="Lien de la photo (https://…)"
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[11px] font-mono outline-none focus:border-[#FF385C]"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[11px] font-mono outline-none focus:border-[#C4714A]"
                   />
                   <input
                     type="text"
                     value={rec.mapsUrl || ""}
                     onChange={(e) => recos.update(idx, { mapsUrl: e.target.value })}
                     placeholder="Lien Google Maps"
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[11px] font-mono outline-none focus:border-[#FF385C]"
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-[11px] font-mono outline-none focus:border-[#C4714A]"
                   />
                 </div>
               ))}
@@ -1357,7 +1659,7 @@ export default function AdminModernTileEditor({
                     <select
                       value={line.type}
                       onChange={(e) => transports.update(idx, { type: e.target.value })}
-                      className="px-2 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#FF385C]"
+                      className="px-2 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#C4714A]"
                     >
                       {[...new Set([...TRANSPORT_TYPES, line.type].filter(Boolean))].map((t) => (
                         <option key={t} value={t}>{t}</option>
@@ -1377,7 +1679,7 @@ export default function AdminModernTileEditor({
                         })
                       }
                       placeholder="M2, 19, 83"
-                      className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                      className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                     />
                     <ItemToolbar index={idx} total={(data.transportLines || []).length} onMove={transports.move} onDelete={() => transports.remove(idx)} />
                   </div>
@@ -1387,14 +1689,14 @@ export default function AdminModernTileEditor({
                       value={line.station}
                       onChange={(e) => transports.update(idx, { station: e.target.value })}
                       placeholder="Arrêt / station"
-                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                     />
                     <input
                       type="text"
                       value={line.distance || ""}
                       onChange={(e) => transports.update(idx, { distance: e.target.value })}
                       placeholder="~500 m"
-                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                     />
                   </div>
                 </div>
@@ -1433,7 +1735,7 @@ export default function AdminModernTileEditor({
                     value={item.question}
                     onChange={(e) => faq.update(idx, { question: e.target.value })}
                     placeholder="La question du voyageur"
-                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#FF385C]"
+                    className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#C4714A]"
                   />
                   <ItemToolbar
                     index={idx}
@@ -1447,7 +1749,7 @@ export default function AdminModernTileEditor({
                   value={item.answer}
                   onChange={(e) => faq.update(idx, { answer: e.target.value })}
                   placeholder="Votre réponse"
-                  className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#FF385C] resize-y"
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A] resize-y"
                 />
               </div>
             ))}
@@ -1492,8 +1794,9 @@ export default function AdminModernTileEditor({
     ? new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(lastSavedAt)
     : null;
 
-  const statusText =
-    saveState === "saving" || isLoading ? "Enregistrement…"
+  const statusText = demo
+    ? "Démo — rien n’est enregistré"
+    : saveState === "saving" || isLoading ? "Enregistrement…"
       : saveState === "error" ? "Échec de l’enregistrement"
         : dirty ? "Modifications non enregistrées"
           : savedClock ? `Enregistré à ${savedClock}`
@@ -1527,10 +1830,11 @@ export default function AdminModernTileEditor({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#F5F3EF] text-[#2A2016] font-sans">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#FBF5EC] text-[#2A2016] font-sans">
       {/* ────────── BARRE SUPÉRIEURE ────────── */}
       <header className="h-16 bg-white border-b border-gray-200 px-4 sm:px-6 flex items-center justify-between gap-3 shrink-0 z-30">
         <div className="flex items-center gap-3 min-w-0">
+          {demo ? null : (
           <Link
             href="/admin/hebergements"
             onClick={(e) => {
@@ -1543,15 +1847,16 @@ export default function AdminModernTileEditor({
           >
             <ArrowLeft size={20} weight="bold" />
           </Link>
+          )}
           <div className="min-w-0">
-            <h1 className="font-bold text-[15px] truncate">{data.property?.name || "Livret sans titre"}</h1>
+            <h1 className="font-[family-name:var(--font-display)] font-bold text-[19px] truncate text-[#2A2016]">{data.property?.name || "Livret sans titre"}</h1>
             {data.isActive ? (
               <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
                 <CheckCircle size={12} weight="fill" /> En ligne
               </span>
             ) : (
               <span className="text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Brouillon · 29 € pour publier
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Brouillon · pas encore en ligne
               </span>
             )}
           </div>
@@ -1609,7 +1914,7 @@ export default function AdminModernTileEditor({
                 ? "text-red-600 bg-red-50"
                 : dirty
                   ? "text-amber-700 bg-amber-50"
-                  : "text-[#8A8078] hover:bg-gray-50"
+                  : "text-[#6B5D4E] hover:bg-gray-50"
             }`}
           >
             {autosave ? <CloudCheck size={14} weight="fill" /> : <CloudSlash size={14} weight="fill" />}
@@ -1624,7 +1929,7 @@ export default function AdminModernTileEditor({
             type="button"
             onClick={() => void handleSave()}
             disabled={saveState === "saving" || isLoading}
-            className={`px-4 sm:px-5 py-2.5 rounded-full border text-xs font-bold transition-all disabled:opacity-60 ${
+            className={`px-5 sm:px-6 py-2.5 rounded-full border text-xs font-bold transition-all disabled:opacity-60 ${
               saveState === "saved"
                 ? "border-emerald-300 text-emerald-700 bg-emerald-50"
                 : "border-gray-300 text-[#2A2016] hover:bg-gray-50"
@@ -1633,25 +1938,25 @@ export default function AdminModernTileEditor({
             {saveLabel}
           </button>
 
-          {data.isActive ? (
+          {demo ? null : data.isActive ? (
             <a
               href={`/h/${data.slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-4 sm:px-6 py-2.5 rounded-full bg-[#FF385C] hover:bg-[#E03150] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#FF385C]/20 transition-all"
+              className="px-4 sm:px-6 py-2.5 rounded-full bg-[#C4714A] hover:bg-[#A35A38] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#C4714A]/20 transition-all"
             >
               Voir le livret <ArrowSquareOut size={13} weight="bold" />
             </a>
-          ) : (
+          ) : estAdmin ? (
             <button
               type="button"
               onClick={() => void handlePublish()}
               disabled={publishing}
-              className="px-4 sm:px-6 py-2.5 rounded-full bg-[#FF385C] hover:bg-[#E03150] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#FF385C]/20 transition-all disabled:opacity-60"
+              className="px-4 sm:px-6 py-2.5 rounded-full bg-[#C4714A] hover:bg-[#A35A38] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#C4714A]/20 transition-all disabled:opacity-60"
             >
-              {publishing ? "Publication…" : "→ Publier · 29 €"}
+              {publishing ? "Publication…" : "Mettre en ligne"}
             </button>
-          )}
+          ) : null}
         </div>
       </header>
 
@@ -1672,41 +1977,57 @@ export default function AdminModernTileEditor({
       <div className="flex-1 flex overflow-hidden">
         {/* ── PANNEAU DE GAUCHE ── */}
         <aside className="w-full lg:w-[440px] bg-white border-r border-gray-200 flex flex-col shrink-0 overflow-hidden">
-          <div className="grid grid-cols-5 border-b border-gray-200 bg-gray-50 text-[10px] font-bold text-[#6B5D4E] shrink-0">
-            {([
-              { id: "general", label: "Général", icon: Key },
-              { id: "apparence", label: "Apparence", icon: Eye },
-              { id: "modules", label: "Modules", icon: GridFour },
-              { id: "langues", label: "Langues", icon: Translate },
-              { id: "partager", label: "Partager", icon: QrCode },
-            ] as const).map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => {
-                  setEditorTab(t.id);
-                  if (t.id !== "modules") {
-                    setOpenModule(null);
-                    setSelected(null);
-                  }
-                }}
-                className={`py-3.5 flex flex-col items-center gap-1 transition-colors border-b-2 ${
-                  editorTab === t.id
-                    ? "border-[#FF385C] text-[#FF385C] bg-white"
-                    : "border-transparent hover:text-[#2A2016]"
-                }`}
-              >
-                <t.icon size={19} weight={editorTab === t.id ? "fill" : "regular"} />
-                {t.label}
-              </button>
-            ))}
+          {/*
+            Barre de rubriques, rangée par moment du séjour. On n'en affiche
+            qu'une à la fois dans le formulaire : la liste verticale occupait
+            la moitié du panneau pour une information consultée une fois.
+          */}
+          <div
+            ref={chipsRef}
+            className="flex gap-1.5 px-3 py-2.5 border-b border-[#EDD9A3]/60 bg-[#FBF5EC] shrink-0 overflow-x-auto hide-scrollbar"
+          >
+            {ADMIN_SECTIONS.map((section) => {
+              const progress = getSectionProgress(data, section.id);
+              const isCurrent = editorSection === section.id;
+              const complete = progress.total > 0 && progress.done === progress.total;
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  data-section={section.id}
+                  onClick={() => goToSection(section.id)}
+                  title={section.hint}
+                  className={`shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full border text-[11px] font-bold transition-colors ${
+                    isCurrent
+                      ? "bg-[#C4714A] border-[#C4714A] text-white shadow-sm"
+                      : "bg-white border-[#EDD9A3]/60 text-[#5C3D2E] hover:border-[#C4714A]/50"
+                  }`}
+                >
+                  <span className="text-xs leading-none">{section.emoji}</span>
+                  {section.short}
+                  {progress.total > 0 && (
+                    <span
+                      className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ${
+                        isCurrent
+                          ? "bg-white/25 text-white"
+                          : complete
+                            ? "bg-[#EBF0E6] text-[#3F5836]"
+                            : "bg-[#FDF3DC] text-[#A35A38]"
+                      }`}
+                    >
+                      {complete ? "✓" : `${progress.done}/${progress.total}`}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <div ref={bodyRef} className="flex-1 overflow-y-auto thin-scroll p-5 space-y-5">
             {/* ─────── GÉNÉRAL ─────── */}
-            {editorTab === "general" && (
+            {editorSection === "logement" && (
               <>
-                {renderChecklist("general")}
+                {renderSectionIntro("logement")}
 
                 <div className="space-y-4">
                   <SectionTitle>Identification</SectionTitle>
@@ -1732,17 +2053,19 @@ export default function AdminModernTileEditor({
                       Adresse du logement
                     </Label>
                     <PlaceSearch
+                      disabled={demo}
+                      disabledHint="Recherche d’adresse indisponible dans la démo."
                       placeholder="Commencez à taper votre adresse…"
                       onSelect={applyPropertyAddress}
                       clearOnSelect={false}
                     />
                     {data.property?.address && (
-                      <p className="mt-2 text-[11px] flex items-start gap-1.5 text-[#4A3D30] bg-[#FBF9F5] border border-[#EFE9DF] rounded-lg px-2.5 py-2">
-                        <MapPin size={13} weight="fill" className="shrink-0 mt-0.5 text-[#FF385C]" />
+                      <p className="mt-2 text-[11px] flex items-start gap-1.5 text-[#4A3D30] bg-[#FDF9F2] border border-[#EDD9A3] rounded-lg px-2.5 py-2">
+                        <MapPin size={13} weight="fill" className="shrink-0 mt-0.5 text-[#C4714A]" />
                         <span className="min-w-0">
                           {data.property.address}
                           {propertyPoint ? (
-                            <span className="block text-[10px] text-[#8A8078] mt-0.5">
+                            <span className="block text-[10px] text-[#6B5D4E] mt-0.5">
                               Position enregistrée — distances et météo automatiques.
                             </span>
                           ) : (
@@ -1766,34 +2089,9 @@ export default function AdminModernTileEditor({
                     onChange={(v) => setProperty({ timezone: v })}
                     options={TIMEZONES.map((t) => ({ value: t.value, label: t.label }))}
                   />
-                  <TextAreaField
-                    label="Message d'accueil"
-                    rows={3}
-                    value={data.property?.welcomeMessage || ""}
-                    onChange={(v) => setProperty({ welcomeMessage: v })}
-                    field="property.welcomeMessage"
-                    highlighted={highlight === "property.welcomeMessage"}
-                  />
                 </div>
 
-                <div className="space-y-4 pt-4 border-t border-gray-100">
-                  <SectionTitle>Réseau Wi-Fi</SectionTitle>
-                  <TextField
-                    label="Nom du réseau (SSID)"
-                    value={data.wifi?.ssid || ""}
-                    onChange={(v) => setWifi({ ssid: v })}
-                    field="wifi.ssid"
-                    highlighted={highlight === "wifi.ssid"}
-                  />
-                  <TextField
-                    label="Mot de passe"
-                    mono
-                    value={data.wifi?.password || ""}
-                    onChange={(v) => setWifi({ password: v })}
-                  />
-                </div>
-
-                <div className="space-y-4 pt-4 border-t border-gray-100">
+                <div className="space-y-4 pt-4 border-t border-[#EDD9A3]/60">
                   <SectionTitle>Contact hôte</SectionTitle>
                   <TextField
                     label="Nom de l'hôte"
@@ -1826,64 +2124,48 @@ export default function AdminModernTileEditor({
                   />
                 </div>
 
-                <div className="space-y-4 pt-4 border-t border-gray-100">
-                  <SectionTitle>Arrivée et départ</SectionTitle>
-                  <div className="grid grid-cols-2 gap-3">
-                    <TimeField
-                      label="Arrivée à partir de"
-                      value={data.practicalInfo?.checkin || "14h00"}
-                      onChange={(v) => setPractical({ checkin: v })}
-                      hours={CHECKIN_HOURS}
-                      field="practicalInfo.checkin"
-                      highlighted={highlight === "practicalInfo.checkin"}
-                    />
-                    <TimeField
-                      label="Départ avant"
-                      value={data.practicalInfo?.checkout || "10h00"}
-                      onChange={(v) => setPractical({ checkout: v })}
-                      hours={CHECKOUT_HOURS}
-                      field="practicalInfo.checkout"
-                      highlighted={highlight === "practicalInfo.checkout"}
-                    />
-                  </div>
-                  <TextAreaField
-                    label="Consignes d'arrivée"
-                    rows={3}
-                    value={data.practicalInfo?.arrivalNotes || ""}
-                    onChange={(v) => setPractical({ arrivalNotes: v })}
-                    placeholder="Ex : Entrez par le portail bleu, la boîte à clés est à gauche…"
-                    field="practicalInfo.arrivalNotes"
-                    highlighted={highlight === "practicalInfo.arrivalNotes"}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditorTab("modules");
-                      setOpenModule("depart");
-                      setSelected("depart");
-                      setHighlight("module.depart");
-                    }}
-                    className="w-full py-2.5 rounded-xl border border-gray-200 hover:border-[#FF385C] text-xs font-bold text-[#2A2016] flex items-center justify-center gap-1.5 transition-colors"
-                  >
-                    Gérer les consignes de départ <ArrowRight size={13} weight="bold" />
-                  </button>
-                </div>
+                {renderSectionModules("logement")}
+              </>
+            )}
+
+            {/* ─────── AVANT L'ARRIVÉE ─────── */}
+            {editorSection === "arrivee" && (
+              <>
+                {renderSectionIntro("arrivee")}
+                {renderSectionModules("arrivee")}
+              </>
+            )}
+
+            {/* ─────── PENDANT LE SÉJOUR ─────── */}
+            {editorSection === "sejour" && (
+              <>
+                {renderSectionIntro("sejour")}
+                {renderSectionModules("sejour")}
+              </>
+            )}
+
+            {/* ─────── LE DÉPART ─────── */}
+            {editorSection === "depart" && (
+              <>
+                {renderSectionIntro("depart")}
+                {renderSectionModules("depart")}
               </>
             )}
 
             {/* ─────── APPARENCE ─────── */}
-            {editorTab === "apparence" && (
+            {editorSection === "apparence" && (
               <>
-                {renderChecklist("apparence")}
+                {renderSectionIntro("apparence")}
 
                 <div className="space-y-3" data-field="property.gallery">
                   <SectionTitle>Photos</SectionTitle>
-                  <p className="text-[11px] text-[#8A8078] leading-relaxed">
+                  <p className="text-[11px] text-[#6B5D4E] leading-relaxed">
                     3 à 5 belles photos suffisent — la 1re sert aussi d&apos;image de partage (WhatsApp, QR…).
                   </p>
                   <Label>Photos de couverture (diaporama)</Label>
                   <div className={highlight === "property.gallery" ? "rounded-2xl animate-pulseRing" : undefined}>
                     <PhotoManager
+                      allowUpload={!demo}
                       photos={resolveGallery(data.property)}
                       onChange={setPhotos}
                       city={data.property?.city}
@@ -1895,7 +2177,7 @@ export default function AdminModernTileEditor({
                   <SectionTitle>Couleur d&apos;accent</SectionTitle>
                   <div className="flex items-center gap-2.5 flex-wrap">
                     {COLOR_PRESETS.map((color) => {
-                      const active = (data.comfortOptions?.theme?.primaryColor || "#1D64B4") === color;
+                      const active = (data.comfortOptions?.theme?.primaryColor || "#2B5F75") === color;
                       return (
                         <button
                           key={color}
@@ -1910,11 +2192,11 @@ export default function AdminModernTileEditor({
                         </button>
                       );
                     })}
-                    <label className="w-9 h-9 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-[#FF385C]">
-                      <Plus size={14} weight="bold" className="text-[#8A8078]" />
+                    <label className="w-9 h-9 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-[#C4714A]">
+                      <Plus size={14} weight="bold" className="text-[#6B5D4E]" />
                       <input
                         type="color"
-                        value={data.comfortOptions?.theme?.primaryColor || "#1D64B4"}
+                        value={data.comfortOptions?.theme?.primaryColor || "#2B5F75"}
                         onChange={(e) => setTheme({ primaryColor: e.target.value })}
                         className="sr-only"
                       />
@@ -1950,7 +2232,7 @@ export default function AdminModernTileEditor({
                     >
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-[#2A2016]">{block.title}</p>
-                        <p className="text-[11px] text-[#8A8078] mt-0.5 leading-snug">{block.hint}</p>
+                        <p className="text-[11px] text-[#6B5D4E] mt-0.5 leading-snug">{block.hint}</p>
                       </div>
                       <Toggle
                         checked={data.display?.[block.key] !== false && !block.disabled}
@@ -1963,7 +2245,7 @@ export default function AdminModernTileEditor({
 
                 <div className="pt-4 border-t border-gray-100 space-y-3">
                   <SectionTitle>Disposition sur ordinateur</SectionTitle>
-                  <p className="text-[11px] text-[#8A8078] leading-relaxed">
+                  <p className="text-[11px] text-[#6B5D4E] leading-relaxed">
                     Sur téléphone, le livret reste toujours en liste. Vos voyageurs
                     pourront basculer eux-mêmes depuis le livret.
                   </p>
@@ -1979,13 +2261,13 @@ export default function AdminModernTileEditor({
                           type="button"
                           onClick={() => setDisplay({ desktopLayout: mode.value })}
                           className={`p-3 rounded-xl border text-left transition-colors ${
-                            active ? "border-[#FF385C] bg-[#FF385C]/5" : "border-gray-200 hover:border-gray-300"
+                            active ? "border-[#C4714A] bg-[#C4714A]/5" : "border-gray-200 hover:border-gray-300"
                           }`}
                         >
-                          <span className={`block text-xs font-bold ${active ? "text-[#FF385C]" : "text-[#2A2016]"}`}>
+                          <span className={`block text-xs font-bold ${active ? "text-[#C4714A]" : "text-[#2A2016]"}`}>
                             {mode.label}
                           </span>
-                          <span className="block text-[10px] text-[#8A8078] mt-0.5 leading-snug">{mode.hint}</span>
+                          <span className="block text-[10px] text-[#6B5D4E] mt-0.5 leading-snug">{mode.hint}</span>
                         </button>
                       );
                     })}
@@ -2003,13 +2285,13 @@ export default function AdminModernTileEditor({
                           type="button"
                           onClick={() => setTheme({ fontFamily: font })}
                           className={`p-3 rounded-xl border text-left transition-colors ${
-                            active ? "border-[#FF385C] bg-[#FF385C]/5" : "border-gray-200 hover:border-gray-300"
+                            active ? "border-[#C4714A] bg-[#C4714A]/5" : "border-gray-200 hover:border-gray-300"
                           }`}
                         >
                           <span
                             className={`block text-base font-bold ${
                               font === "classic" ? "font-[family-name:var(--font-serif)]" : "font-sans"
-                            } ${active ? "text-[#FF385C]" : "text-[#2A2016]"}`}
+                            } ${active ? "text-[#C4714A]" : "text-[#2A2016]"}`}
                           >
                             Aa
                           </span>
@@ -2024,112 +2306,27 @@ export default function AdminModernTileEditor({
               </>
             )}
 
-            {/* ─────── MODULES ─────── */}
-            {editorTab === "modules" && (
-              <div className="space-y-3">
-                <Hint>
-                  Activez, réorganisez et remplissez les rubriques de votre livret. Cliquez aussi
-                  directement sur un élément de l&apos;aperçu pour l&apos;ouvrir ici.
-                </Hint>
-
-                {modules.map((mod) => {
-                  const def = getModuleDefinition(mod.id);
-                  const Icon = MODULE_ICONS[mod.id];
-                  const tint = MODULE_TINTS[mod.id];
-                  const status = getModuleStatus(data, mod.id);
-                  const isOpen = openModule === mod.id;
-                  const showTodo = ESSENTIAL_MODULES.includes(mod.id) && !status.complete;
-
-                  return (
-                    <div
-                      key={mod.id}
-                      data-field={`module.${mod.id}`}
-                      className={`rounded-2xl border overflow-hidden transition-all ${
-                        isOpen
-                          ? "border-[#FF385C] shadow-[0_0_0_3px_rgba(255,56,92,0.08)]"
-                          : "border-gray-200 hover:border-gray-300"
-                      } ${mod.visible ? "bg-white" : "bg-gray-50"}`}
-                    >
-                      <div className="p-3.5 flex items-start justify-between gap-3">
-                        <div className="flex items-start gap-3 min-w-0">
-                          <span
-                            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                            style={{ backgroundColor: tint.bg, color: tint.fg, opacity: mod.visible ? 1 : 0.5 }}
-                          >
-                            <Icon size={19} weight="duotone" />
-                          </span>
-                          <div className="min-w-0">
-                            <h4 className="font-bold text-sm text-[#2A2016] flex items-center gap-2 flex-wrap">
-                              {def?.label}
-                              {showTodo && (
-                                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> À compléter
-                                </span>
-                              )}
-                            </h4>
-                            <p className="text-[11px] text-[#8A8078] truncate">{status.summary}</p>
-                            <p className="text-[10px] text-[#B0A79E] mt-0.5">
-                              {MODULE_GROUP_LABELS[def?.group ?? "surplace"]}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col items-center gap-1 shrink-0">
-                          <Toggle
-                            checked={mod.visible}
-                            onChange={() => toggleModuleVisible(mod.id)}
-                            label={`Afficher ${def?.label}`}
-                          />
-                          <span className={`text-[9px] font-extrabold uppercase tracking-wider ${mod.visible ? "text-[#FF385C]" : "text-gray-400"}`}>
-                            {mod.visible ? "Visible" : "Masqué"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="px-3.5 pb-3.5 flex items-center gap-2">
-                        <div className="flex gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => moveModule(mod.id, -1)}
-                            disabled={neighbourInGroup(mod.id, -1) < 0}
-                            title="Monter"
-                            className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-[#6B5D4E] hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            <CaretUp size={13} weight="bold" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => moveModule(mod.id, 1)}
-                            disabled={neighbourInGroup(mod.id, 1) < 0}
-                            title="Descendre"
-                            className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-[#6B5D4E] hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            <CaretDown size={13} weight="bold" />
-                          </button>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => toggleModuleOpen(mod.id)}
-                          className="flex-1 h-8 rounded-lg border border-gray-200 hover:border-[#FF385C] text-xs font-bold text-[#2A2016] flex items-center justify-center gap-1.5 transition-colors"
-                        >
-                          {isOpen ? <CaretUp size={13} weight="bold" /> : <PencilSimple size={13} weight="bold" />}
-                          {isOpen ? "Fermer" : "Modifier"}
-                        </button>
-                      </div>
-
-                      {isOpen && (
-                        <div className="p-3.5 bg-[#FBF9F5] border-t border-gray-100 animate-fadeIn">
-                          {renderModuleEditor(mod.id)}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+            {/* ─────── PLAQUE ─────── */}
+            {editorSection === "plaque" && (
+              <>
+                {renderSectionIntro("plaque")}
+                <PlaqueTab
+                  data={data}
+                  onChange={setPlaque}
+                  orders={orders}
+                  onOrder={handleOrderPlaque}
+                  ordering={ordering}
+                  dirty={dirty}
+                  error={orderError}
+                  commandable={estAdmin}
+                />
+              </>
             )}
 
-            {/* ─────── LANGUES ─────── */}
-            {editorTab === "langues" && (
+            {/* ─────── DIFFUSION ─────── */}
+            {editorSection === "diffusion" && renderSectionIntro("diffusion")}
+
+            {editorSection === "diffusion" && (
               <TranslationsTab
                 data={data}
                 lang={editingLang}
@@ -2146,8 +2343,7 @@ export default function AdminModernTileEditor({
               />
             )}
 
-            {/* ─────── PARTAGER ─────── */}
-            {editorTab === "partager" && (
+            {editorSection === "diffusion" && (
               <div className="space-y-5">
                 <div className="text-center space-y-3">
                   <div className="w-52 h-52 mx-auto bg-white p-4 rounded-3xl shadow-sm border border-gray-200 flex items-center justify-center">
@@ -2162,7 +2358,7 @@ export default function AdminModernTileEditor({
                       bgColor="#FFFFFF"
                     />
                   </div>
-                  <p className="text-[11px] text-[#8A8078]">
+                  <p className="text-[11px] text-[#6B5D4E]">
                     Ce QR code mène directement à votre livret.
                   </p>
                 </div>
@@ -2178,7 +2374,7 @@ export default function AdminModernTileEditor({
                     <button
                       type="button"
                       onClick={copyLink}
-                      className="px-3.5 py-2.5 rounded-xl border border-gray-200 hover:border-[#FF385C] text-xs font-bold flex items-center gap-1.5"
+                      className="px-3.5 py-2.5 rounded-xl border border-gray-200 hover:border-[#C4714A] text-xs font-bold flex items-center gap-1.5"
                     >
                       {copied ? <Check size={14} weight="bold" className="text-emerald-600" /> : <Copy size={14} />}
                       {copied ? "Copié" : "Copier"}
@@ -2193,20 +2389,25 @@ export default function AdminModernTileEditor({
                     Personnaliser l’adresse
                   </Label>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-mono text-[#B0A79E] shrink-0">/h/</span>
+                    <span className="text-[11px] font-mono text-[#A8998A] shrink-0">/h/</span>
                     <input
                       type="text"
                       value={data.slug}
-                      onChange={(e) => mutate((d) => ({ ...d, slug: e.target.value }))}
+                      readOnly={data.slugLocked}
+                      title={data.slugLocked ? "Adresse verrouillée : elle est gravée sur une plaque commandée." : undefined}
+                      onChange={(e) => {
+                        if (data.slugLocked) return;
+                        mutate((d) => ({ ...d, slug: e.target.value }));
+                      }}
                       onBlur={(e) => {
                         const clean = slugify(e.target.value);
                         if (clean && clean !== data.slug) mutate((d) => ({ ...d, slug: clean }));
                       }}
-                      className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-gray-200 text-[11px] font-mono outline-none focus:border-[#FF385C]"
+                      className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-gray-200 text-[11px] font-mono outline-none focus:border-[#C4714A]"
                     />
                   </div>
                   {slugPending && (
-                    <p className="text-[11px] text-[#8A8078] bg-[#FBF9F5] border border-[#EFE9DF] rounded-lg px-2.5 py-2">
+                    <p className="text-[11px] text-[#6B5D4E] bg-[#FDF9F2] border border-[#EDD9A3] rounded-lg px-2.5 py-2">
                       Le QR code et le lien ci-dessus pointent encore vers
                       <strong> /h/{savedSlug}</strong>. Enregistrez pour appliquer la nouvelle adresse.
                     </p>
@@ -2224,14 +2425,14 @@ export default function AdminModernTileEditor({
                   <button
                     type="button"
                     onClick={downloadQrPng}
-                    className="py-2.5 rounded-xl border border-gray-200 hover:border-[#FF385C] text-xs font-bold flex items-center justify-center gap-1.5"
+                    className="py-2.5 rounded-xl border border-gray-200 hover:border-[#C4714A] text-xs font-bold flex items-center justify-center gap-1.5"
                   >
                     <DownloadSimple size={14} weight="bold" /> PNG
                   </button>
                   <button
                     type="button"
                     onClick={downloadQrSvg}
-                    className="py-2.5 rounded-xl border border-gray-200 hover:border-[#FF385C] text-xs font-bold flex items-center justify-center gap-1.5"
+                    className="py-2.5 rounded-xl border border-gray-200 hover:border-[#C4714A] text-xs font-bold flex items-center justify-center gap-1.5"
                   >
                     <DownloadSimple size={14} weight="bold" /> SVG
                   </button>
@@ -2239,7 +2440,7 @@ export default function AdminModernTileEditor({
                     href={`/h/${data.slug}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="py-2.5 rounded-xl border border-gray-200 hover:border-[#FF385C] text-xs font-bold flex items-center justify-center gap-1.5"
+                    className="py-2.5 rounded-xl border border-gray-200 hover:border-[#C4714A] text-xs font-bold flex items-center justify-center gap-1.5"
                   >
                     <ArrowSquareOut size={14} weight="bold" /> Ouvrir
                   </a>
@@ -2258,6 +2459,7 @@ export default function AdminModernTileEditor({
                         <CheckCircle size={14} weight="fill" /> Livret en ligne
                       </strong>
                       Vos voyageurs peuvent y accéder dès maintenant.
+                      {estAdmin && (
                       <button
                         type="button"
                         onClick={() => void handleUnpublish()}
@@ -2267,21 +2469,72 @@ export default function AdminModernTileEditor({
                         <EyeSlash size={14} weight="bold" />
                         {publishing ? "Traitement…" : "Repasser en brouillon"}
                       </button>
+                      )}
                     </>
                   ) : (
                     <>
                       <strong className="block mb-1">Livret en brouillon</strong>
-                      Il n&apos;est pas encore visible publiquement. Publiez-le depuis le bouton en haut à droite.
+                      {estAdmin
+                        ? "Il n’est pas encore visible publiquement. Publiez-le depuis le bouton en haut à droite."
+                        : "Il n’est pas encore visible publiquement. Sa mise en ligne se fait à la validation de votre commande."}
                     </>
                   )}
                 </div>
+
+                {/* Ce que le livret publié produit réellement. */}
+                {docId && estAdmin && <StatsPanel accommodationId={docId} />}
 
                 {ownerPanel && <div className="pt-4 border-t border-gray-100">{ownerPanel}</div>}
               </div>
             )}
           </div>
 
-          <div className="p-3 border-t border-gray-200 text-center shrink-0">
+          {/* Progression d'ensemble + passage à la rubrique suivante */}
+          <div className="border-t border-[#EDD9A3]/60 bg-[#FBF5EC] shrink-0">
+            <div className="px-4 pt-3 flex items-center gap-2.5">
+              <span className="flex-1 h-1.5 rounded-full bg-[#EDD9A3]/50 overflow-hidden">
+                <span
+                  className="block h-full rounded-full bg-[#C4714A] transition-[width] duration-500"
+                  style={{ width: `${(filledCount / essentials.length) * 100}%` }}
+                />
+              </span>
+              <span className="text-[10px] font-extrabold text-[#A35A38] shrink-0">
+                {filledCount}/{essentials.length} essentiels
+              </span>
+            </div>
+
+            <div className="p-3 flex items-center gap-2">
+              {previousSection ? (
+                <button
+                  type="button"
+                  onClick={() => goToSection(previousSection.id)}
+                  className="shrink-0 px-3 py-2.5 rounded-full border border-[#EDD9A3] bg-white text-[11px] font-bold text-[#5C3D2E] hover:border-[#C4714A] transition-colors flex items-center gap-1"
+                >
+                  <ArrowLeft size={12} weight="bold" />
+                  {previousSection.short}
+                </button>
+              ) : (
+                <span className="shrink-0" />
+              )}
+
+              {nextSection ? (
+                <button
+                  type="button"
+                  onClick={() => goToSection(nextSection.id)}
+                  className="flex-1 px-4 py-2.5 rounded-full bg-[#C4714A] hover:bg-[#A35A38] text-white text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
+                >
+                  Suivant : {nextSection.short}
+                  <ArrowRight size={13} weight="bold" />
+                </button>
+              ) : (
+                <span className="flex-1 text-center text-[11px] text-[#6B5D4E]">
+                  Dernière rubrique — votre livret est complet.
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="p-2.5 border-t border-[#EDD9A3]/60 text-center shrink-0">
             <Link
               href="/admin/hebergements"
               onClick={(e) => {
@@ -2303,6 +2556,19 @@ export default function AdminModernTileEditor({
           contenu centré déborde alors vers le HAUT, hors de portée du scroll.
         */}
         <main className="hidden lg:flex flex-1 flex-col items-center justify-start p-6 overflow-y-auto min-h-0 relative">
+          {/*
+            Sur la rubrique Plaque, l'aperçu montre l'OBJET, pas le livret :
+            un téléphone n'apprendrait rien à qui choisit une gravure. Les
+            autres rubriques retrouvent le mockup habituel.
+          */}
+          {editorSection === "plaque" ? (
+            <PlaqueScenes
+              wood={essenceCommandable(data.plaque?.wood)}
+              tagline={data.plaque?.engravedTagline ?? TAGLINE_PAR_DEFAUT}
+              qrValue={engravedUrl}
+            />
+          ) : (
+          <>
           {/* Bascule aperçu d'édition ⇄ rendu réel côté voyageur */}
           <div className="mb-4 flex bg-white p-1 rounded-full border border-gray-200 shadow-sm shrink-0">
             {([
@@ -2326,7 +2592,7 @@ export default function AdminModernTileEditor({
           </div>
 
           {previewAsGuest && (
-            <p className="mb-3 text-[11px] text-[#8A8078] shrink-0">
+            <p className="mb-3 text-[11px] text-[#6B5D4E] shrink-0">
               Les rubriques encore vides sont masquées, comme pour vos voyageurs.
             </p>
           )}
@@ -2341,7 +2607,7 @@ export default function AdminModernTileEditor({
                 est scrollé. On ancre donc sur ce parent de taille fixe, et le
                 scroller interne reste en position statique.
               */}
-              <div className="w-full h-full bg-[#F5F3EF] rounded-[2.2rem] relative overflow-hidden grid">
+              <div className="w-full h-full bg-[#FBF5EC] rounded-[2.2rem] relative overflow-hidden grid">
                 <div className="overflow-y-auto min-h-0 hide-scrollbar overscroll-contain">
                   <CleoTemplate
                     data={data}
@@ -2367,7 +2633,7 @@ export default function AdminModernTileEditor({
                   {publicUrl}
                 </div>
               </div>
-              <div className="flex-1 min-h-0 bg-[#F5F3EF] relative overflow-hidden grid">
+              <div className="flex-1 min-h-0 bg-[#FBF5EC] relative overflow-hidden grid">
                 <div className="overflow-y-auto min-h-0 overscroll-contain">
                   <CleoTemplate
                     data={data}
@@ -2381,6 +2647,8 @@ export default function AdminModernTileEditor({
                 </div>
               </div>
             </div>
+          )}
+          </>
           )}
         </main>
       </div>

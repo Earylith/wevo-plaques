@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { House, List, Plus, SignOut } from "@phosphor-icons/react";
+import { List, Plus, SignOut, Package } from "@phosphor-icons/react";
 import Link from "next/link";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -49,6 +49,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             <Plus size={20} />
             <span className="font-medium text-sm">Nouveau</span>
+          </Link>
+          <Link
+            href="/admin/commandes"
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+              pathname === "/admin/commandes" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <Package size={20} />
+            <span className="font-medium text-sm">Commandes</span>
           </Link>
         </nav>
         

@@ -378,10 +378,10 @@ export default function TranslationsTab({
     <div className="space-y-5">
       {/* Langues proposées au voyageur */}
       <div className="space-y-2.5">
-        <h3 className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#9A9086]">
+        <h3 className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#7A5544]">
           Langues proposées
         </h3>
-        <p className="text-[11px] text-[#8A8078] leading-relaxed">
+        <p className="text-[11px] text-[#6B5D4E] leading-relaxed">
           Le français est toujours proposé. Une langue n’apparaît dans le livret
           que si elle contient au moins une traduction.
         </p>
@@ -398,7 +398,7 @@ export default function TranslationsTab({
                   )
                 }
                 className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                  on ? "border-[#FF385C] bg-[#FF385C]/5 text-[#FF385C]" : "border-gray-200 text-[#6B5D4E] hover:border-gray-300"
+                  on ? "border-[#C4714A] bg-[#C4714A]/5 text-[#C4714A]" : "border-gray-200 text-[#6B5D4E] hover:border-gray-300"
                 }`}
               >
                 <span>{l.flag}</span>
@@ -419,7 +419,7 @@ export default function TranslationsTab({
               type="button"
               onClick={() => onLangChange(l.code as TranslatableLang)}
               className={`py-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-colors ${
-                lang === l.code ? "border-[#FF385C] bg-[#FF385C]/5 text-[#FF385C]" : "border-gray-200 text-[#2A2016] hover:border-gray-300"
+                lang === l.code ? "border-[#C4714A] bg-[#C4714A]/5 text-[#C4714A]" : "border-gray-200 text-[#2A2016] hover:border-gray-300"
               }`}
             >
               <span>{l.flag}</span>
@@ -432,10 +432,10 @@ export default function TranslationsTab({
         <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm space-y-3">
           <div>
             <h4 className="text-sm font-bold text-[#2A2016] flex items-center gap-2">
-              <Sparkle size={15} weight="fill" className="text-[#FF385C]" />
+              <Sparkle size={15} weight="fill" className="text-[#C4714A]" />
               Traduire automatiquement
             </h4>
-            <p className="text-[11px] text-[#8A8078] mt-1 leading-relaxed">
+            <p className="text-[11px] text-[#6B5D4E] mt-1 leading-relaxed">
               Remplit les champs d’un coup. La qualité est correcte sans être
               éditoriale : relisez avant de publier. Service gratuit, limité à
               quelques milliers de caractères par jour.
@@ -447,7 +447,7 @@ export default function TranslationsTab({
               type="checkbox"
               checked={overwrite}
               onChange={(e) => setOverwrite(e.target.checked)}
-              className="w-3.5 h-3.5 accent-[#FF385C]"
+              className="w-3.5 h-3.5 accent-[#C4714A]"
             />
             Réécrire aussi les champs déjà traduits
           </label>
@@ -456,7 +456,7 @@ export default function TranslationsTab({
             type="button"
             onClick={() => void runAutoTranslate()}
             disabled={autoState === "running" || pending.length === 0}
-            className="w-full py-2.5 rounded-xl bg-[#FF385C] hover:bg-[#E03150] text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+            className="w-full py-2.5 rounded-xl bg-[#C4714A] hover:bg-[#A35A38] text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
           >
             {autoState === "running" ? (
               <>
@@ -492,21 +492,21 @@ export default function TranslationsTab({
         <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
           <div className="flex items-center justify-between text-sm font-bold text-[#2A2016]">
             <span className="flex items-center gap-2">
-              <Translate size={16} weight="bold" className="text-[#FF385C]" />
+              <Translate size={16} weight="bold" className="text-[#C4714A]" />
               Progression
             </span>
-            <span className="text-[#FF385C] font-extrabold">
+            <span className="text-[#C4714A] font-extrabold">
               {done}/{total}
             </span>
           </div>
           <div className="mt-3 h-1.5 rounded-full bg-gray-100 overflow-hidden">
             <div
-              className="h-full rounded-full bg-[#FF385C] transition-[width] duration-500"
+              className="h-full rounded-full bg-[#C4714A] transition-[width] duration-500"
               style={{ width: total ? `${(done / total) * 100}%` : "0%" }}
             />
           </div>
           {done < total && (
-            <p className="text-[11px] text-[#8A8078] mt-2.5">
+            <p className="text-[11px] text-[#6B5D4E] mt-2.5">
               Les champs non traduits s’afficheront en français — le livret reste lisible.
             </p>
           )}
@@ -538,7 +538,7 @@ export default function TranslationsTab({
                   className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
                     groupDone === group.fields.length
                       ? "bg-emerald-50 text-emerald-700"
-                      : "bg-gray-100 text-[#8A8078]"
+                      : "bg-gray-100 text-[#6B5D4E]"
                   }`}
                 >
                   {groupDone}/{group.fields.length}
@@ -553,7 +553,7 @@ export default function TranslationsTab({
                   <div key={i}>
                     <label className="block text-[11px] font-bold text-[#2A2016] mb-1">{field.label}</label>
                     {/* Source française : visible en permanence, jamais modifiable ici. */}
-                    <p className="text-[11px] text-[#8A8078] bg-[#FBF9F5] border border-[#EFE9DF] rounded-lg px-2.5 py-2 mb-1.5 whitespace-pre-line">
+                    <p className="text-[11px] text-[#6B5D4E] bg-[#FDF9F2] border border-[#EDD9A3] rounded-lg px-2.5 py-2 mb-1.5 whitespace-pre-line">
                       {field.source}
                     </p>
                     {field.multiline ? (
@@ -562,7 +562,7 @@ export default function TranslationsTab({
                         value={field.value}
                         onChange={(e) => field.onChange(e.target.value)}
                         placeholder="Traduction…"
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none focus:border-[#FF385C] resize-y"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none focus:border-[#C4714A] resize-y"
                       />
                     ) : (
                       <input
@@ -570,7 +570,7 @@ export default function TranslationsTab({
                         value={field.value}
                         onChange={(e) => field.onChange(e.target.value)}
                         placeholder="Traduction…"
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
                       />
                     )}
                   </div>
@@ -582,7 +582,7 @@ export default function TranslationsTab({
       })}
 
       {groups.length === 0 && (
-        <p className="text-xs text-[#8A8078] text-center py-8">
+        <p className="text-xs text-[#6B5D4E] text-center py-8">
           Remplissez d’abord votre livret en français : les champs à traduire
           apparaîtront ici automatiquement.
         </p>

@@ -95,7 +95,9 @@ export default function EditAccommodationPage({ params }: Props) {
     setIsSubmitting(true);
     try {
       const payload: Partial<Accommodation> = { ...updatedData };
-      for (const key of ["ownerUid", "mustChangePassword", "cleaningLogs", "inventories", "features", "publishedAt", "createdAt"] as const) {
+      // Champs pilotés hors éditeur : compte propriétaire, historiques, et
+      // l'identité gravée (identifiant permanent, verrou de slug).
+      for (const key of ["ownerUid", "mustChangePassword", "cleaningLogs", "inventories", "features", "publishedAt", "createdAt", "permanentId", "slugLocked"] as const) {
         delete payload[key];
       }
       await updateAdminAccommodation(id, payload);

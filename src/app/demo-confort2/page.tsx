@@ -17,5 +17,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function MarseillePenthouseDemoPage() {
   const data = (await resolveAccommodation("demo-confort2")) || demoConfortMarseille;
-  return <CleoTemplate data={data} />;
+  return <CleoTemplate data={data} trackingId={data.id} />;
 }

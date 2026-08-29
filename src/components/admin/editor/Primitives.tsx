@@ -11,13 +11,13 @@ import { CaretDown, CaretUp, Plus, Trash, ArrowUp, ArrowDown } from "@phosphor-i
  */
 
 const INPUT_BASE =
-  "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-[#2A2016] outline-none transition-colors placeholder:text-[#B0A79E] focus:border-[#FF385C] focus:ring-2 focus:ring-[#FF385C]/15";
+  "w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm text-[#2A2016] outline-none transition-colors placeholder:text-[#A8998A] focus:border-[#C4714A] focus:ring-2 focus:ring-[#C4714A]/15";
 
 export function Label({ children, hint }: { children: React.ReactNode; hint?: string }) {
   return (
     <span className="block mb-1.5">
       <span className="block text-xs font-bold text-[#2A2016]">{children}</span>
-      {hint && <span className="block text-[11px] text-[#8A8078] mt-0.5 leading-snug">{hint}</span>}
+      {hint && <span className="block text-[11px] text-[#6B5D4E] mt-0.5 leading-snug">{hint}</span>}
     </span>
   );
 }
@@ -25,7 +25,7 @@ export function Label({ children, hint }: { children: React.ReactNode; hint?: st
 export function SectionTitle({ children, action }: { children: React.ReactNode; action?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <h3 className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#9A9086]">{children}</h3>
+      <h3 className="font-[family-name:var(--font-display)] text-[15px] font-bold text-[#5C3D2E]">{children}</h3>
       {action}
     </div>
   );
@@ -138,15 +138,15 @@ export function TimeField({
         <select
           value={h}
           onChange={(e) => onChange(`${e.target.value}h${m}`)}
-          className="flex-1 px-2.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-bold outline-none focus:border-[#FF385C]"
+          className="flex-1 px-2.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-bold outline-none focus:border-[#C4714A]"
         >
           {hours.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
         </select>
-        <span className="text-sm font-bold text-[#8A8078]">h</span>
+        <span className="text-sm font-bold text-[#6B5D4E]">h</span>
         <select
           value={m}
           onChange={(e) => onChange(`${h}h${e.target.value}`)}
-          className="flex-1 px-2.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-bold outline-none focus:border-[#FF385C]"
+          className="flex-1 px-2.5 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-bold outline-none focus:border-[#C4714A]"
         >
           {["00", "15", "30", "45"].map((opt) => <option key={opt} value={opt}>{opt}</option>)}
         </select>
@@ -179,7 +179,7 @@ export function Toggle({
         onChange(!checked);
       }}
       className={`relative w-[46px] h-[26px] rounded-full transition-colors shrink-0 ${
-        checked ? "bg-[#FF385C]" : "bg-gray-200"
+        checked ? "bg-[#C4714A]" : "bg-gray-200"
       }`}
     >
       <span
@@ -205,8 +205,8 @@ export function AddButton({
       onClick={onClick}
       className={
         variant === "dashed"
-          ? "w-full py-2.5 rounded-xl border border-dashed border-gray-300 hover:border-[#FF385C] hover:text-[#FF385C] bg-white text-xs font-bold text-[#2A2016] flex items-center justify-center gap-2 transition-colors"
-          : "w-full py-2.5 rounded-xl bg-white border border-gray-200 hover:border-[#FF385C] text-xs font-bold text-[#FF385C] flex items-center justify-center gap-1.5 transition-colors shadow-sm"
+          ? "w-full py-2.5 rounded-xl border border-dashed border-gray-300 hover:border-[#C4714A] hover:text-[#C4714A] bg-white text-xs font-bold text-[#2A2016] flex items-center justify-center gap-2 transition-colors"
+          : "w-full py-2.5 rounded-xl bg-white border border-gray-200 hover:border-[#C4714A] text-xs font-bold text-[#C4714A] flex items-center justify-center gap-1.5 transition-colors shadow-sm"
       }
     >
       <Plus size={15} weight="bold" /> {children}
@@ -283,7 +283,7 @@ export function Collapsible({
 /** Petit encart d'aide contextuelle. */
 export function Hint({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[11px] text-[#8A8078] leading-relaxed bg-[#FBF9F5] border border-[#EFE9DF] rounded-xl px-3 py-2.5">
+    <p className="text-[11px] text-[#6B5D4E] leading-relaxed bg-[#FDF9F2] border border-[#EDD9A3] rounded-xl px-3 py-2.5">
       {children}
     </p>
   );

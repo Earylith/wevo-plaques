@@ -34,9 +34,16 @@ interface PhotoManagerProps {
   onChange: (photos: string[]) => void;
   /** Sert à pré-remplir la recherche de photos. */
   city?: string;
+  /**
+   * L'envoi de fichiers passe par une action serveur réservée à
+   * l'administration. Sur la démo publique, on retire la zone de dépôt : la
+   * banque d'images et l'ajout par lien suffisent à montrer le principe, et
+   * personne ne se heurte à un « accès non autorisé ».
+   */
+  allowUpload?: boolean;
 }
 
-export default function PhotoManager({ photos, onChange, city }: PhotoManagerProps) {
+export default function PhotoManager({ photos, onChange, city, allowUpload = true }: PhotoManagerProps) {
   const [urlInput, setUrlInput] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(0);
@@ -131,8 +138,9 @@ export default function PhotoManager({ photos, onChange, city }: PhotoManagerPro
     : PHOTO_BANK;
 
   return (
-    <div className="space-y-3" onPaste={handlePaste}>
+    <div className="space-y-3" onPaste={allowUpload ? handlePaste : undefined}>
       {/* Zone de dépôt */}
+      {allowUpload && (
       <div
         onClick={() => fileInput.current?.click()}
         onDragOver={(e) => {
@@ -146,19 +154,19 @@ export default function PhotoManager({ photos, onChange, city }: PhotoManagerPro
           void uploadFiles(Array.from(e.dataTransfer.files || []));
         }}
         className={`relative w-full rounded-2xl border-2 border-dashed transition-colors cursor-pointer flex flex-col items-center justify-center gap-2 py-10 px-6 text-center ${
-          dragOver ? "border-[#FF385C] bg-[#FF385C]/5" : "border-gray-300 bg-[#FBF9F5] hover:border-gray-400"
+          dragOver ? "border-[#C4714A] bg-[#C4714A]/5" : "border-gray-300 bg-[#FDF9F2] hover:border-gray-400"
         }`}
       >
         {uploading > 0 ? (
           <>
-            <Spinner size={26} className="text-[#FF385C] animate-spin" />
+            <Spinner size={26} className="text-[#C4714A] animate-spin" />
             <span className="text-xs font-bold text-[#2A2016]">
               Envoi de {uploading} photo{uploading > 1 ? "s" : ""}…
             </span>
           </>
         ) : (
           <>
-            <Eye size={26} className="text-[#8A8078]" />
+            <Eye size={26} className="text-[#6B5D4E]" />
             <span className="text-xs text-[#6B5D4E]">
               Cliquez, déposez ou collez — plusieurs photos d&apos;un coup
             </span>
@@ -176,6 +184,7 @@ export default function PhotoManager({ photos, onChange, city }: PhotoManagerPro
           }}
         />
       </div>
+      )}
 
       {error && (
         <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2.5 flex items-start gap-2">
@@ -190,7 +199,7 @@ export default function PhotoManager({ photos, onChange, city }: PhotoManagerPro
           setSearchOpen((o) => !o);
           if (!query && city) setQuery("");
         }}
-        className="w-full py-2.5 rounded-xl border border-gray-200 bg-white hover:border-[#FF385C] text-xs font-bold text-[#2A2016] flex items-center justify-center gap-2 transition-colors"
+        className="w-full py-2.5 rounded-xl border border-gray-200 bg-white hover:border-[#C4714A] text-xs font-bold text-[#2A2016] flex items-center justify-center gap-2 transition-colors"
       >
         {searchOpen ? <X size={14} weight="bold" /> : <MagnifyingGlass size={14} weight="bold" />}
         {searchOpen ? "Fermer la recherche" : "Rechercher une photo"}
@@ -203,10 +212,10 @@ export default function PhotoManager({ photos, onChange, city }: PhotoManagerPro
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={`Ex : plage, montagne, salon${city ? `, ${city}` : ""}…`}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
           />
           {suggestions.length === 0 ? (
-            <p className="text-[11px] text-[#8A8078] text-center py-4">
+            <p className="text-[11px] text-[#6B5D4E] text-center py-4">
               Aucune photo pour « {query} ». Essayez « mer », « ville », « chambre »…
             </p>
           ) : (
@@ -219,14 +228,14 @@ export default function PhotoManager({ photos, onChange, city }: PhotoManagerPro
                     type="button"
                     onClick={() => (picked ? onChange(photos.filter((u) => u !== p.url)) : add([p.url]))}
                     className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
-                      picked ? "border-[#FF385C]" : "border-transparent hover:border-gray-300"
+                      picked ? "border-[#C4714A]" : "border-transparent hover:border-gray-300"
                     }`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={p.url} alt="" className="w-full h-full object-cover" loading="lazy" />
                     {picked && (
-                      <span className="absolute inset-0 bg-[#FF385C]/30 flex items-center justify-center">
-                        <span className="w-6 h-6 rounded-full bg-[#FF385C] text-white flex items-center justify-center">
+                      <span className="absolute inset-0 bg-[#C4714A]/30 flex items-center justify-center">
+                        <span className="w-6 h-6 rounded-full bg-[#C4714A] text-white flex items-center justify-center">
                           <Check size={13} weight="bold" />
                         </span>
                       </span>
@@ -253,7 +262,7 @@ export default function PhotoManager({ photos, onChange, city }: PhotoManagerPro
             }
           }}
           placeholder="Ou collez un lien d'image (https://...)"
-          className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs outline-none focus:border-[#FF385C]"
+          className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
         />
         <button
           type="button"
@@ -262,7 +271,7 @@ export default function PhotoManager({ photos, onChange, city }: PhotoManagerPro
             setUrlInput("");
           }}
           disabled={!urlInput.trim()}
-          className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-[#FF385C] text-xs font-bold text-[#2A2016] flex items-center gap-1.5 disabled:opacity-40 transition-colors"
+          className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:border-[#C4714A] text-xs font-bold text-[#2A2016] flex items-center gap-1.5 disabled:opacity-40 transition-colors"
         >
           <Check size={14} weight="bold" /> Ajouter
         </button>
@@ -279,13 +288,13 @@ export default function PhotoManager({ photos, onChange, city }: PhotoManagerPro
               </span>
               <span className="min-w-0 flex-1">
                 {idx === 0 ? (
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#FF385C] bg-[#FF385C]/10 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#C4714A] bg-[#C4714A]/10 px-2 py-0.5 rounded-full">
                     Couverture
                   </span>
                 ) : (
-                  <span className="text-[10px] font-semibold text-[#9A9086]">Photo {idx + 1}</span>
+                  <span className="text-[10px] font-semibold text-[#7A5544]">Photo {idx + 1}</span>
                 )}
-                <span className="block text-[10px] text-[#B0A79E] truncate mt-0.5">{url}</span>
+                <span className="block text-[10px] text-[#A8998A] truncate mt-0.5">{url}</span>
               </span>
               <span className="flex items-center gap-1 shrink-0">
                 <button
@@ -320,7 +329,7 @@ export default function PhotoManager({ photos, onChange, city }: PhotoManagerPro
         </div>
       )}
 
-      <p className="text-[11px] text-[#8A8078] leading-relaxed">
+      <p className="text-[11px] text-[#6B5D4E] leading-relaxed">
         Sélectionnez ou déposez <strong>plusieurs photos d&apos;un coup</strong> : elles défileront en{" "}
         <strong>fondu</strong> derrière le titre. La 1re sert d&apos;aperçu (QR &amp; partage).
       </p>

@@ -191,6 +191,10 @@ export async function duplicateAdminAccommodation(id: string) {
     for (const key of [
       "id", "ownerUid", "mustChangePassword", "publishedAt",
       "cleaningLogs", "inventories", "createdAt", "updatedAt",
+      // L'identité gravée n'est jamais recopiée : deux livrets partageant un
+      // identifiant permanent feraient pointer deux plaques au même endroit,
+      // et le verrou de slug bloquerait la copie dès sa création.
+      "permanentId", "slugLocked", "plaque",
     ] as const) {
       delete copy[key];
     }
@@ -323,6 +327,22 @@ async function assertSlugAvailable(slug: string | undefined, selfId?: string) {
   const clean = slug.trim();
   if (!clean) {
     throw new Error("L’adresse publique ne peut pas être vide.");
+  }
+
+  // Une plaque commandée porte cette adresse gravée dans le bois : elle ne
+  // peut plus bouger, sinon le QR livré au client ne mène nulle part.
+  if (selfId) {
+    const self = await withTimeout(
+      adminDb.collection(COLLECTION_NAME).doc(selfId).get(),
+      `livret ${selfId}`
+    );
+    const current = self.data() as Accommodation | undefined;
+    if (current?.slugLocked && current.slug !== clean) {
+      throw new Error(
+        "L’adresse publique est verrouillée : une plaque a été commandée avec cette adresse gravée. " +
+        "La modifier rendrait le QR code inutilisable."
+      );
+    }
   }
 
   const snapshot = await withTimeout(

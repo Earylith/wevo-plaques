@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { getAccommodationById, updateAccommodation } from "@/lib/firebase/firestore";
 import { Accommodation } from "@/lib/types/accommodation";
 import OwnerAccommodationForm from "@/components/proprietaire/OwnerAccommodationForm";
+import AdminModernTileEditor from "@/components/admin/AdminModernTileEditor";
 import { ArrowLeft } from "@phosphor-icons/react";
 import Link from "next/link";
 
@@ -59,6 +60,29 @@ export default function EditAccommodationPage({ params }: { params: Promise<{ id
   }
 
   if (!accommodation) return null;
+
+  /*
+   * Les livrets Confort passent par l'éditeur en direct — le même que celui de
+   * l'administration, en mode propriétaire : ce qui relève de Guidz (commande
+   * de plaque, statistiques, mise en ligne) y est masqué.
+   *
+   * L'ancien formulaire ne sert plus qu'à l'offre Essentielle, qui n'a pas
+   * encore été reprise.
+   */
+  const editeurDirect = accommodation.offerType === "comfort" || accommodation.template === "cleo";
+
+  if (editeurDirect) {
+    return (
+      <AdminModernTileEditor
+        initialData={accommodation}
+        onSubmit={async (updated) => {
+          await handleSubmit(updated);
+        }}
+        isLoading={isSubmitting}
+        role="proprietaire"
+      />
+    );
+  }
 
   return (
     <div>

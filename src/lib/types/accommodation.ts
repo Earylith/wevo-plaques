@@ -90,6 +90,88 @@ export interface UpsellItem {
   icon?: string;
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+   PLAQUE GRAVÉE
+   ────────────────────────────────────────────────────────────────────────── */
+
+/** Essence du bois. Une seule dimension physique, deux teintes. */
+/**
+ * Essences de bois.
+ *
+ * `clair` n'est plus proposé à la commande, mais reste dans le type : des
+ * livrets l'ont enregistré, et le retirer rendrait leur configuration
+ * invalide au lieu de simplement retomber sur le noyer.
+ */
+export type PlaqueWood = "clair" | "noyer";
+
+/**
+ * Configuration de la plaque.
+ *
+ * Volontairement encadrée : le client choisit parmi des modèles Guidz, il ne
+ * déplace ni ne redimensionne rien. C'est ce qui garantit la lisibilité, les
+ * marges et la compatibilité avec la gravure laser.
+ */
+export interface PlaqueConfig {
+  wood: PlaqueWood;
+  /** Modèle de mise en page (un seul pour l'instant). */
+  model?: string;
+  /** Nom gravé. Par défaut celui du logement. */
+  engravedName?: string;
+  /** Phrase d'accueil gravée. */
+  engravedTagline?: string;
+  /** Rubriques dont le pictogramme apparaît sur la plaque. */
+  pictograms?: ModuleId[];
+}
+
+/** Étapes de fabrication d'une commande de plaque. */
+export type OrderStatus =
+  | "en_attente_paiement"
+  | "payee"
+  | "fichier_genere"
+  | "en_gravure"
+  | "expediee"
+  | "annulee";
+
+/**
+ * Une commande de plaque.
+ *
+ * Elle fige la configuration au moment de l'achat : modifier le livret plus
+ * tard ne doit jamais altérer une plaque déjà gravée.
+ */
+export interface PlaqueOrder {
+  id?: string;
+  /** Numéro lisible, du type GUIDZ-1058. */
+  reference: string;
+  accommodationId: string;
+  accommodationSlug: string;
+  accommodationName: string;
+  ownerName: string;
+  ownerEmail: string;
+  offerType: OfferType;
+  /** URL permanente gravée sur la plaque — elle ne changera jamais. */
+  permanentUrl: string;
+  /** Instantané figé de la configuration validée par le client. */
+  plaque: PlaqueConfig;
+  status: OrderStatus;
+  /** Version du fichier de gravure, incrémentée à chaque nouvelle plaque. */
+  version: number;
+  /** Chemin du fichier de gravure une fois produit. */
+  engravingFile?: string;
+  /** Session de paiement qui a déclenché la commande. */
+  stripeSessionId?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
+  en_attente_paiement: "En attente de paiement",
+  payee: "Payée",
+  fichier_genere: "Fichier de gravure prêt",
+  en_gravure: "En gravure",
+  expediee: "Expédiée",
+  annulee: "Annulée",
+};
+
 /** Une consigne de départ, cochable par le voyageur. */
 export interface DepartureInstruction {
   text: string;
@@ -137,8 +219,32 @@ export interface Accommodation {
   template?: TemplateId;
   mustChangePassword?: boolean; // true à la 1ère connexion propriétaire
   ownerUid?: string; // UID Firebase Auth du propriétaire
-  /** Horodatage de la première publication (bouton « Publier · 29 € »). */
+  /** Horodatage de la première mise en ligne. */
   publishedAt?: number;
+
+  /**
+   * Identifiant court et IMMUABLE, gravé dans le QR code (/g/k7m2).
+   *
+   * Le slug reste modifiable pour le partage par lien, mais le QR pointe sur
+   * cet identifiant : renommer son logement ne peut donc jamais tuer les
+   * plaques déjà gravées.
+   */
+  permanentId?: string;
+  /** Client Stripe, posé au premier paiement. */
+  stripeCustomerId?: string | null;
+  /** Abonnement Stripe qui maintient le livret en ligne. */
+  stripeSubscriptionId?: string | null;
+  /** Date du dernier encaissement confirmé. */
+  paidAt?: number;
+
+  /**
+   * Verrouillé dès qu'une plaque est commandée : l'adresse publique devient
+   * définitive, puisqu'elle est gravée dans le bois.
+   */
+  slugLocked?: boolean;
+
+  /** Configuration de la plaque en cours de personnalisation. */
+  plaque?: PlaqueConfig;
 
   owner: {
     name: string;

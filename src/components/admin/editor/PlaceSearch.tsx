@@ -25,6 +25,16 @@ interface PlaceSearchProps {
   autoFocus?: boolean;
   /** Rappel « renseignez l'adresse du logement » — hors du champ d'adresse. */
   hintWhenNoOrigin?: boolean;
+  /**
+   * Neutralise la recherche.
+   *
+   * La démo publique n'a pas de session d'administration : laisser le champ
+   * actif ferait répondre « accès non autorisé » au premier visiteur qui tape
+   * une adresse.
+   */
+  disabled?: boolean;
+  /** Ce qu'on affiche à la place, quand la recherche est neutralisée. */
+  disabledHint?: string;
 }
 
 export default function PlaceSearch({
@@ -34,6 +44,8 @@ export default function PlaceSearch({
   clearOnSelect = true,
   autoFocus = false,
   hintWhenNoOrigin = false,
+  disabled = false,
+  disabledHint,
 }: PlaceSearchProps) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlaceResult[]>([]);
@@ -47,7 +59,7 @@ export default function PlaceSearch({
    * une requête par seconde, et l'hôte n'a pas besoin d'un résultat par lettre.
    */
   const trimmed = query.trim();
-  const canSearch = trimmed.length >= 3;
+  const canSearch = !disabled && trimmed.length >= 3;
   // On DÉRIVE ce qui est visible plutôt que de vider l'état dans l'effet :
   // un setState synchrone en corps d'effet déclenche un rendu en cascade.
   const visibleResults = canSearch ? results : [];
@@ -103,21 +115,22 @@ export default function PlaceSearch({
         <MagnifyingGlass
           size={15}
           weight="bold"
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-[#B0A79E] pointer-events-none"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8998A] pointer-events-none"
         />
         <input
           type="text"
           value={query}
+          disabled={disabled}
           autoFocus={autoFocus}
           onChange={(e) => {
             setQuery(e.target.value);
             setTouched(true);
           }}
           placeholder={placeholder}
-          className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-gray-200 bg-white text-xs outline-none focus:border-[#FF385C] focus:ring-2 focus:ring-[#FF385C]/15 transition-colors"
+          className="w-full pl-9 pr-9 py-2.5 rounded-xl border border-gray-200 bg-white text-xs outline-none focus:border-[#C4714A] focus:ring-2 focus:ring-[#C4714A]/15 transition-colors disabled:bg-gray-50 disabled:text-[#A8998A] disabled:cursor-not-allowed"
         />
         {loading && (
-          <Spinner size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#FF385C] animate-spin" />
+          <Spinner size={15} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#C4714A] animate-spin" />
         )}
         {!loading && query && (
           <button
@@ -128,7 +141,7 @@ export default function PlaceSearch({
               setError(null);
             }}
             aria-label="Effacer la recherche"
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#B0A79E] hover:text-[#2A2016] p-0.5"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#A8998A] hover:text-[#2A2016] p-0.5"
           >
             <X size={13} weight="bold" />
           </button>
@@ -146,15 +159,15 @@ export default function PlaceSearch({
                   onClick={() => handleSelect(place)}
                   className="w-full text-left px-3 py-2.5 hover:bg-[#FFF5F7] transition-colors flex items-start gap-2.5"
                 >
-                  <MapPin size={14} weight="fill" className="text-[#FF385C] shrink-0 mt-0.5" />
+                  <MapPin size={14} weight="fill" className="text-[#C4714A] shrink-0 mt-0.5" />
                   <span className="min-w-0 flex-1">
                     <span className="block text-xs font-bold text-[#2A2016] truncate">{place.name}</span>
-                    <span className="block text-[11px] text-[#8A8078] truncate">{place.address}</span>
+                    <span className="block text-[11px] text-[#6B5D4E] truncate">{place.address}</span>
                     <span className="flex items-center gap-1.5 mt-1">
                       <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#6B5D4E] bg-gray-100 px-1.5 py-0.5 rounded">
                         {place.category}
                       </span>
-                      {distance && <span className="text-[10px] text-[#B0A79E]">{distance}</span>}
+                      {distance && <span className="text-[10px] text-[#A8998A]">{distance}</span>}
                     </span>
                   </span>
                 </button>
@@ -165,14 +178,18 @@ export default function PlaceSearch({
       )}
 
       {visibleError && touched && !loading && (
-        <p className="text-[11px] text-[#8A8078] flex items-start gap-1.5">
+        <p className="text-[11px] text-[#6B5D4E] flex items-start gap-1.5">
           <Warning size={12} weight="fill" className="shrink-0 mt-0.5 text-amber-500" />
           {visibleError}
         </p>
       )}
 
-      {hintWhenNoOrigin && !near && (
-        <p className="text-[11px] text-[#8A8078]">
+      {disabled && disabledHint && (
+        <p className="text-[11px] text-[#6B5D4E]">{disabledHint}</p>
+      )}
+
+      {!disabled && hintWhenNoOrigin && !near && (
+        <p className="text-[11px] text-[#6B5D4E]">
           Renseignez l&apos;adresse du logement pour que les distances se calculent toutes seules.
         </p>
       )}

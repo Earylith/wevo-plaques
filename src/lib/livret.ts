@@ -55,7 +55,7 @@ export function createEmptyAccommodation(slug: string): Accommodation {
     comfortOptions: {
       faq: [],
       upsells: [],
-      theme: { primaryColor: "#FF385C", fontFamily: "classic" },
+      theme: { primaryColor: "#C4714A", fontFamily: "classic" },
     },
     createdAt: now,
     updatedAt: now,
@@ -242,14 +242,106 @@ export function visibleModulesOf(
    Chaque entrée sait dans quel onglet et sur quel champ envoyer l'utilisateur.
    ────────────────────────────────────────────────────────────────────────── */
 
-export type EditorTab = "general" | "apparence" | "modules" | "langues" | "partager";
+/**
+ * Sections de l'éditeur, rangées dans l'ordre vécu par le voyageur.
+ *
+ * Ce n'est pas un rangement par type de donnée (« général », « modules ») mais
+ * par MOMENT du séjour : c'est le modèle mental de l'hôte, et ça garantit
+ * qu'une information n'a qu'un seul endroit possible.
+ */
+export type EditorSection =
+  | "plaque"
+  | "logement"
+  | "arrivee"
+  | "sejour"
+  | "depart"
+  | "apparence"
+  | "diffusion";
+
+/** Conservé pour compatibilité : ancien nom du même concept. */
+export type EditorTab = EditorSection;
+
+export interface SectionDefinition {
+  id: EditorSection;
+  label: string;
+  /** Libellé court, pour la barre de rubriques horizontale. */
+  short: string;
+  /** Phrase d'accroche affichée sous le titre de la section. */
+  hint: string;
+  emoji: string;
+  /** Rubriques du livret éditées dans cette section. */
+  modules: ModuleId[];
+}
+
+export const ADMIN_SECTIONS: SectionDefinition[] = [
+  {
+    id: "plaque",
+    label: "Votre plaque",
+    short: "Plaque",
+    hint: "La teinte du bois, l’aperçu, et la commande.",
+    emoji: "🪵",
+    modules: [],
+  },
+  {
+    id: "logement",
+    label: "Le logement",
+    short: "Logement",
+    hint: "Son nom, où il se trouve, et comment vous joindre.",
+    emoji: "🏠",
+    modules: ["bienvenue"],
+  },
+  {
+    id: "arrivee",
+    label: "Avant l’arrivée",
+    short: "Arrivée",
+    hint: "Ce que le voyageur doit savoir avant de sonner.",
+    emoji: "🔑",
+    modules: ["arrivee"],
+  },
+  {
+    id: "sejour",
+    label: "Pendant le séjour",
+    short: "Séjour",
+    hint: "Tout ce qui sert une fois la porte franchie.",
+    emoji: "🛋️",
+    modules: ["wifi", "equipements", "reglement", "contacts", "adresses", "transports", "faq"],
+  },
+  {
+    id: "depart",
+    label: "Le départ",
+    short: "Départ",
+    hint: "L’heure, la check-list, et le mot de la fin.",
+    emoji: "🚪",
+    modules: ["depart", "livredor"],
+  },
+  {
+    id: "apparence",
+    label: "Apparence",
+    short: "Apparence",
+    hint: "Photos, couleurs et disposition du livret.",
+    emoji: "🎨",
+    modules: [],
+  },
+  {
+    id: "diffusion",
+    label: "Diffusion",
+    short: "Diffusion",
+    hint: "Langues, lien, QR code et mise en ligne.",
+    emoji: "🌍",
+    modules: [],
+  },
+];
+
+export function getSectionDefinition(id: EditorSection): SectionDefinition {
+  return ADMIN_SECTIONS.find((s) => s.id === id) as SectionDefinition;
+}
 
 export interface EssentialItem {
   key: string;
   label: string;
   filled: boolean;
-  /** Onglet à ouvrir quand on clique sur la ligne. */
-  tab: EditorTab;
+  /** Section à ouvrir quand on clique sur la ligne. */
+  tab: EditorSection;
   /** Ancre DOM (`data-field`) à faire défiler puis surligner. */
   field: string;
   /** Module à déplier si l'on atterrit dans l'onglet Modules. */
@@ -262,14 +354,14 @@ export function getEssentials(data: Accommodation): EssentialItem[] {
       key: "name",
       label: "Nommer votre livret",
       filled: has(data.property?.name),
-      tab: "general",
+      tab: "logement",
       field: "property.name",
     },
     {
       key: "address",
       label: "Choisir l'adresse du logement dans les suggestions",
       filled: has(data.property?.address),
-      tab: "general",
+      tab: "logement",
       field: "property.address",
     },
     {
@@ -283,43 +375,47 @@ export function getEssentials(data: Accommodation): EssentialItem[] {
       key: "wifi",
       label: "Indiquer le Wi-Fi",
       filled: has(data.wifi?.ssid),
-      tab: "general",
+      tab: "sejour",
       field: "wifi.ssid",
+      module: "wifi",
     },
     {
       key: "phone",
       label: "Ajouter votre téléphone",
       filled: has(data.owner?.phone),
-      tab: "general",
+      tab: "logement",
       field: "owner.phone",
     },
     {
       key: "hostname",
       label: "Votre nom d'hôte",
       filled: has(data.owner?.name),
-      tab: "general",
+      tab: "logement",
       field: "owner.name",
     },
     {
       key: "checkin",
       label: "Préciser l'horaire d'arrivée",
       filled: has(data.practicalInfo?.checkin),
-      tab: "general",
+      tab: "arrivee",
       field: "practicalInfo.checkin",
+      module: "arrivee",
     },
     {
       key: "checkout",
       label: "Préciser l'horaire de départ",
       filled: has(data.practicalInfo?.checkout),
-      tab: "general",
+      tab: "depart",
       field: "practicalInfo.checkout",
+      module: "depart",
     },
     {
       key: "arrivalNotes",
       label: "Ajouter les consignes d'arrivée",
       filled: has(data.practicalInfo?.arrivalNotes),
-      tab: "general",
+      tab: "arrivee",
       field: "practicalInfo.arrivalNotes",
+      module: "arrivee",
     },
     {
       key: "departure",
@@ -328,7 +424,7 @@ export function getEssentials(data: Accommodation): EssentialItem[] {
         data.practicalInfo?.departureInstructions?.some((i) => has(i.text)) ||
           has(data.practicalInfo?.departureNotes)
       ),
-      tab: "modules",
+      tab: "depart",
       field: "module.depart",
       module: "depart",
     },
@@ -336,7 +432,7 @@ export function getEssentials(data: Accommodation): EssentialItem[] {
       key: "reportEmail",
       label: "Choisir où recevoir les signalements",
       filled: has(data.owner?.reportEmail) || has(data.owner?.email),
-      tab: "general",
+      tab: "logement",
       field: "owner.reportEmail",
     },
   ];
@@ -355,6 +451,20 @@ export function resolveGallery(property?: Accommodation["property"]): string[] {
     list.unshift(property.mainImageUrl);
   }
   return list.filter(Boolean);
+}
+
+/**
+ * Avancement d'une section : combien de ses points essentiels sont remplis.
+ *
+ * C'est ce qui remplace la carte « Les essentiels » flottante — la navigation
+ * porte elle-même l'information, il n'y a plus de doublon.
+ */
+export function getSectionProgress(
+  data: Accommodation,
+  section: EditorSection
+): { done: number; total: number } {
+  const items = getEssentials(data).filter((item) => item.tab === section);
+  return { done: items.filter((i) => i.filled).length, total: items.length };
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

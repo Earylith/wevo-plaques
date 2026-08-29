@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useDeferredValue, useSyncExternalStore } from "react";
+import React, { useState, useEffect, useCallback, useDeferredValue, useRef, useSyncExternalStore } from "react";
 import { Accommodation, ModuleId, UpsellItem, getModuleDefinition } from "@/lib/types/accommodation";
 import { getModuleStatus, visibleModulesOf, getLocalTimeInfo, resolveGallery } from "@/lib/livret";
 import { fetchWeather, formatForecastDay, WeatherSnapshot } from "@/lib/weather";
 import SkyBackdrop, { conditionFromCode } from "@/components/templates/SkyBackdrop";
 import LanguagePicker from "@/components/templates/LanguagePicker";
+import { trackLivretOpen, trackModuleOpen } from "@/app/stats-actions";
 import {
   Lang, availableLangs, localizeAccommodation, moduleLabel, tr, INTL_LOCALE,
 } from "@/lib/i18n";
@@ -44,6 +45,11 @@ interface CleoTemplateProps {
   onSelect?: (target: PreviewTarget) => void;
   /** Élément actuellement édité dans le panneau de gauche. */
   selected?: PreviewTarget | null;
+  /**
+   * Identifiant du livret. Fourni côté voyageur uniquement : on ne compte pas
+   * les allers-retours de l'hôte dans son propre éditeur.
+   */
+  trackingId?: string;
 }
 
 const MODULE_ICONS: Record<ModuleId, React.ComponentType<{ size?: number; weight?: "regular" | "bold" | "fill" | "duotone"; className?: string }>> = {
@@ -174,6 +180,7 @@ export default function CleoTemplate({
   onActiveModuleChange,
   onSelect,
   selected = null,
+  trackingId,
 }: CleoTemplateProps) {
   /*
    * Langue du livret. On traduit les DONNÉES plutôt que d'injecter un t()
@@ -248,6 +255,18 @@ export default function CleoTemplate({
     };
   }, [weatherCity, weatherLat, weatherLon]);
 
+  /*
+   * Mesure d'usage. Une seule remontée par visite, et jamais depuis l'éditeur
+   * — l'hôte qui relit son livret n'est pas un voyageur.
+   */
+  const trackedRef = useRef(false);
+  useEffect(() => {
+    if (!trackingId || editable || trackedRef.current) return;
+    trackedRef.current = true;
+    const viaQr = document.referrer === "" && window.location.search.includes("qr");
+    void trackLivretOpen(trackingId, viaQr);
+  }, [trackingId, editable]);
+
   /* ── Verrouillage du scroll (plein écran uniquement) ────────────────── */
   useEffect(() => {
     if (inlineModal) return;
@@ -283,6 +302,7 @@ export default function CleoTemplate({
   const openModuleAndEdit = (id: ModuleId) => {
     setOpenModule(id);
     activate(id);
+    if (trackingId && !editable) void trackModuleOpen(trackingId, id);
   };
 
   const hotClass = (target: PreviewTarget) =>

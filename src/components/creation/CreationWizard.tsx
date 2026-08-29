@@ -85,7 +85,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
 
   const filledCount = checklist.filter(c => c.filled).length;
 
-  const colorPresets = ["#0E7C86", "#C4714A", "#5A7A4E", "#FF385C", "#D4A34A", "#1A1510"];
+  const colorPresets = ["#0E7C86", "#C4714A", "#5A7A4E", "#C4714A", "#D4A34A", "#1A1510"];
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#2A2016]">
@@ -97,8 +97,8 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
         <div className="min-h-screen flex flex-col">
           {/* Header Progress Bar */}
           <header className="w-full bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
-            <Link href="/" className="font-bold text-xl tracking-tight text-[#FF385C] flex items-center gap-2">
-              <span className="w-8 h-8 rounded-full bg-[#FF385C] text-white flex items-center justify-center font-serif text-lg font-bold">C</span>
+            <Link href="/" className="font-bold text-xl tracking-tight text-[#C4714A] flex items-center gap-2">
+              <span className="w-8 h-8 rounded-full bg-[#C4714A] text-white flex items-center justify-center font-serif text-lg font-bold">C</span>
               Cléo
             </Link>
             <div className="flex items-center gap-2 text-sm text-[#6B5D4E]">
@@ -108,7 +108,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                   <div
                     key={s}
                     className={`h-2 rounded-full transition-all ${
-                      s === step ? "w-6 bg-[#FF385C]" : s < step ? "w-2 bg-[#FF385C]/50" : "w-2 bg-gray-200"
+                      s === step ? "w-6 bg-[#C4714A]" : s < step ? "w-2 bg-[#C4714A]/50" : "w-2 bg-gray-200"
                     }`}
                   />
                 ))}
@@ -140,7 +140,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                       value={data.property.name}
                       onChange={(e) => updateProperty({ name: e.target.value })}
                       placeholder="Ex : Villa des Pins — Cassis"
-                      className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-[#FF385C] focus:ring-2 focus:ring-[#FF385C]/20 outline-none text-base transition-all"
+                      className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-[#C4714A] focus:ring-2 focus:ring-[#C4714A]/20 outline-none text-base transition-all"
                     />
                     <p className="text-xs text-[#6B5D4E] mt-1.5">C'est le titre que verront vos voyageurs.</p>
                   </div>
@@ -154,7 +154,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                       value={data.property.address || ""}
                       onChange={(e) => updateProperty({ address: e.target.value })}
                       placeholder="Tapez puis choisissez dans la liste..."
-                      className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-[#FF385C] focus:ring-2 focus:ring-[#FF385C]/20 outline-none text-base transition-all"
+                      className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-[#C4714A] focus:ring-2 focus:ring-[#C4714A]/20 outline-none text-base transition-all"
                     />
                     <div className="mt-3 text-xs text-[#6B5D4E] bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-start gap-2">
                       <Info size={18} className="text-[#6B5D4E] shrink-0 mt-0.5" />
@@ -176,7 +176,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                       value={data.property.city}
                       onChange={(e) => updateProperty({ city: e.target.value })}
                       placeholder="Ex : Cassis"
-                      className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-[#FF385C] focus:ring-2 focus:ring-[#FF385C]/20 outline-none text-base transition-all"
+                      className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-[#C4714A] focus:ring-2 focus:ring-[#C4714A]/20 outline-none text-base transition-all"
                     />
                   </div>
                 </div>
@@ -207,7 +207,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                         value={data.wifi.ssid}
                         onChange={(e) => updateWifi({ ssid: e.target.value })}
                         placeholder="Ex : Livebox-A1B2"
-                        className="w-full px-3.5 py-3 rounded-xl border border-gray-200 bg-white focus:border-[#FF385C] outline-none text-sm"
+                        className="w-full px-3.5 py-3 rounded-xl border border-gray-200 bg-white focus:border-[#C4714A] outline-none text-sm"
                       />
                     </div>
                     <div>
@@ -219,7 +219,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                         value={data.wifi.password || ""}
                         onChange={(e) => updateWifi({ password: e.target.value })}
                         placeholder="Ex : CodeSecret123"
-                        className="w-full px-3.5 py-3 rounded-xl border border-gray-200 bg-white focus:border-[#FF385C] outline-none text-sm"
+                        className="w-full px-3.5 py-3 rounded-xl border border-gray-200 bg-white focus:border-[#C4714A] outline-none text-sm"
                       />
                     </div>
                   </div>
@@ -291,7 +291,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                       value={data.practicalInfo.arrivalNotes || ""}
                       onChange={(e) => updatePracticalInfo({ arrivalNotes: e.target.value })}
                       placeholder="Ex : Entrez par le portail bleu, la boîte à clés est à gauche..."
-                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#FF385C] outline-none text-sm"
+                      className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:border-[#C4714A] outline-none text-sm"
                     />
                   </div>
 
@@ -313,7 +313,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                         updatePracticalInfo({ departureInstructions: newInst });
                       }}
                       placeholder="Ex : Déposer les clés dans la boîte à clés"
-                      className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-[#FF385C] outline-none text-sm"
+                      className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-[#C4714A] outline-none text-sm"
                     />
                   </div>
 
@@ -327,7 +327,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                       value={data.owner.name}
                       onChange={(e) => updateOwner({ name: e.target.value })}
                       placeholder="Ex : Sophie & Marc"
-                      className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-[#FF385C] outline-none text-sm"
+                      className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-[#C4714A] outline-none text-sm"
                     />
                   </div>
                 </div>
@@ -386,7 +386,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                             setNewPhotoUrl("");
                           }
                         }}
-                        className="px-5 py-3 bg-white border border-gray-200 hover:border-[#FF385C] text-[#2A2016] rounded-2xl text-sm font-bold flex items-center gap-1.5 shadow-sm"
+                        className="px-5 py-3 bg-white border border-gray-200 hover:border-[#C4714A] text-[#2A2016] rounded-2xl text-sm font-bold flex items-center gap-1.5 shadow-sm"
                       >
                         <Check size={16} /> Ajouter
                       </button>
@@ -409,7 +409,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                           onClick={() => setPrimaryColor(color)}
                           className={`w-10 h-10 rounded-full flex items-center justify-center transition-transform ${
                             (data.comfortOptions?.theme?.primaryColor || "#0E7C86") === color
-                              ? "scale-110 ring-4 ring-offset-2 ring-[#FF385C]"
+                              ? "scale-110 ring-4 ring-offset-2 ring-[#C4714A]"
                               : "hover:scale-105"
                           }`}
                           style={{ backgroundColor: color }}
@@ -457,7 +457,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                   <ol className="space-y-3 text-sm text-[#4A3D30] leading-relaxed">
                     <li><strong>1.</strong> Complétez les consignes d’arrivée et de départ propres à ce logement</li>
                     <li><strong>2.</strong> Ajoutez vos bonnes adresses — Google remplit photo, note et distance automatiquement</li>
-                    <li><strong>3.</strong> Quand tout vous plaît, publiez (29 € une seule fois, à vie) et partagez le lien ou le QR code</li>
+                    <li><strong>3.</strong> Quand tout vous plaît, publiez votre livret et partagez-le par lien ou par QR code</li>
                   </ol>
                 </div>
 
@@ -480,7 +480,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
 
               <button
                 onClick={() => setStep(step + 1)}
-                className="px-8 py-3.5 rounded-full bg-[#FF385C] hover:bg-[#E03150] text-white text-sm font-bold flex items-center gap-2 shadow-lg shadow-[#FF385C]/25 transition-all hover:scale-105 active:scale-95"
+                className="px-8 py-3.5 rounded-full bg-[#C4714A] hover:bg-[#A35A38] text-white text-sm font-bold flex items-center gap-2 shadow-lg shadow-[#C4714A]/25 transition-all hover:scale-105 active:scale-95"
               >
                 {step === 4 ? "Compléter mon livret →" : "Continuer →"}
               </button>
@@ -493,7 +493,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
       {/* STEP 5 : FULL INTERACTIVE EDITOR WITH LIVE SMARTPHONE PREVIEW */}
       {/* ========================================================================= */}
       {step === 5 && (
-        <div className="h-screen flex flex-col bg-[#F8F6F0] overflow-hidden">
+        <div className="h-screen flex flex-col bg-[#FBF5EC] overflow-hidden">
           {/* Top Bar */}
           <header className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between shrink-0 z-30">
             <div className="flex items-center gap-4">
@@ -508,7 +508,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                 <h1 className="font-bold text-base text-[#2A2016] flex items-center gap-2">
                   {data.property.name || "Nouveau livret invité"}
                   <span className="text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                    Brouillon · 29 € pour publier
+                    Brouillon · pas encore en ligne
                   </span>
                 </h1>
               </div>
@@ -534,8 +534,8 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
               <button className="px-4 py-2 rounded-xl border border-gray-300 hover:bg-gray-50 text-sm font-bold text-[#2A2016] transition-all">
                 Enregistrer
               </button>
-              <button className="px-5 py-2 rounded-xl bg-[#FF385C] hover:bg-[#E03150] text-white text-sm font-bold flex items-center gap-1.5 shadow-md transition-all">
-                Publier · 29 € →
+              <button className="px-5 py-2 rounded-xl bg-[#C4714A] hover:bg-[#A35A38] text-white text-sm font-bold flex items-center gap-1.5 shadow-md transition-all">
+                Mettre en ligne
               </button>
             </div>
           </header>
@@ -557,7 +557,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                     onClick={() => setEditorTab(t.id as any)}
                     className={`py-3.5 flex flex-col items-center gap-1 transition-colors border-b-2 ${
                       editorTab === t.id
-                        ? "border-[#FF385C] text-[#FF385C] bg-white"
+                        ? "border-[#C4714A] text-[#C4714A] bg-white"
                         : "border-transparent hover:text-[#2A2016]"
                     }`}
                   >
@@ -598,7 +598,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                           type="text"
                           value={data.property.name}
                           onChange={(e) => updateProperty({ name: e.target.value })}
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF385C]"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#C4714A]"
                         />
                       </div>
                       <div>
@@ -607,7 +607,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                           type="text"
                           value={data.property.address || ""}
                           onChange={(e) => updateProperty({ address: e.target.value })}
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF385C]"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#C4714A]"
                         />
                       </div>
                       <div>
@@ -616,7 +616,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                           type="text"
                           value={data.property.city}
                           onChange={(e) => updateProperty({ city: e.target.value })}
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF385C]"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#C4714A]"
                         />
                       </div>
                     </div>
@@ -629,7 +629,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                           type="text"
                           value={data.wifi.ssid}
                           onChange={(e) => updateWifi({ ssid: e.target.value })}
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF385C]"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#C4714A]"
                         />
                       </div>
                       <div>
@@ -638,7 +638,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                           type="text"
                           value={data.wifi.password || ""}
                           onChange={(e) => updateWifi({ password: e.target.value })}
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF385C]"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#C4714A]"
                         />
                       </div>
                     </div>
@@ -651,7 +651,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                           type="text"
                           value={data.owner.name}
                           onChange={(e) => updateOwner({ name: e.target.value })}
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF385C]"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#C4714A]"
                         />
                       </div>
                       <div>
@@ -660,7 +660,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                           type="text"
                           value={data.owner.phone}
                           onChange={(e) => updateOwner({ phone: e.target.value })}
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#FF385C]"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm outline-none focus:border-[#C4714A]"
                         />
                       </div>
                     </div>
@@ -702,7 +702,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                             }))}
                             className={`p-3 rounded-xl border text-left text-xs font-bold ${
                               (data.comfortOptions?.theme?.fontFamily || "classic") === font
-                                ? "border-[#FF385C] bg-[#FF385C]/5 text-[#FF385C]"
+                                ? "border-[#C4714A] bg-[#C4714A]/5 text-[#C4714A]"
                                 : "border-gray-200 text-[#2A2016]"
                             }`}
                           >
@@ -720,7 +720,7 @@ export default function CreationWizard({ initialData }: CreationWizardProps) {
                     {["Wi-Fi & Codes", "Consignes Arrivée & Départ", "Bonnes adresses & Carte", "Transports", "Urgences"].map((mod, idx) => (
                       <div key={idx} className="flex items-center justify-between p-3.5 rounded-xl border border-gray-100 bg-gray-50">
                         <span className="text-sm font-bold text-[#2A2016]">{mod}</span>
-                        <input type="checkbox" defaultChecked className="w-5 h-5 accent-[#FF385C] rounded" />
+                        <input type="checkbox" defaultChecked className="w-5 h-5 accent-[#C4714A] rounded" />
                       </div>
                     ))}
                   </div>

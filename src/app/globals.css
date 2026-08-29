@@ -1,6 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/*
+ * Police de gravure de la plaque.
+ *
+ * Servie par l'application, et non prise sur le poste : l'aperçu doit être
+ * identique pour tous les hôtes, quelle que soit leur machine. Le nom de
+ * famille reprend celui que le gabarit de gravure déclare, pour que le SVG
+ * la trouve sans retouche.
+ */
+@font-face {
+  font-family: "BELLABOO";
+  src: url("/fonts/bellaboo.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme inline {
   /* === Nature / Mediterranean Palette === */
   --color-background: #FBF5EC;
