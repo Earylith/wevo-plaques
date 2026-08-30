@@ -18,6 +18,7 @@ import PlaceSearch from "@/components/admin/editor/PlaceSearch";
 import TranslationsTab from "@/components/admin/editor/TranslationsTab";
 import PlaqueTab, { essenceCommandable, TAGLINE_PAR_DEFAUT } from "@/components/admin/editor/PlaqueTab";
 import PlaqueScenes from "@/components/admin/editor/PlaqueScenes";
+import { ouvrirPaiementConfort } from "@/app/paiement-actions";
 import StatsPanel from "@/components/admin/editor/StatsPanel";
 import LibraryPicker, { PickedEntry } from "@/components/admin/editor/LibraryPicker";
 import { createPlaqueOrder, getOrdersForAccommodation } from "@/app/admin/orders";
@@ -159,6 +160,8 @@ export default function AdminModernTileEditor({
   const [editingLang, setEditingLang] = useState<TranslatableLang>("en");
   const [orders, setOrders] = useState<PlaqueOrder[]>([]);
   const [ordering, setOrdering] = useState(false);
+  /** Redirection vers Stripe en cours. */
+  const [paiement, setPaiement] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [autosave, setAutosave] = useState(!demo);
@@ -263,6 +266,33 @@ export default function AdminModernTileEditor({
 
   const setPlaque = (fields: Partial<PlaqueConfig>) =>
     mutate((d) => ({ ...d, plaque: { wood: "noyer", ...d.plaque, ...fields } }));
+
+  /**
+   * Ouvre le paiement de la formule Confort.
+   *
+   * On enregistre d'abord : la session porte l'identifiant du livret, et le
+   * webhook publiera CE qui est en base. Payer sur un brouillon non
+   * enregistré mettrait en ligne une version antérieure à ce que l'hôte
+   * vient d'écrire.
+   */
+  const handlePayer = async () => {
+    setPaiement(true);
+    setOrderError(null);
+    try {
+      if (dirty) await handleSave();
+      const { auth } = await import("@/lib/firebase/config");
+      const jeton = await auth.currentUser?.getIdToken();
+      const { url } = await ouvrirPaiementConfort(docId, window.location.origin, jeton);
+      // `assign` plutôt qu'une affectation sur `location.href` : le
+      // compilateur React interdit d'écrire dans une valeur définie hors du
+      // composant, et le résultat est le même.
+      window.location.assign(url);
+    } catch (err) {
+      console.error(err);
+      setOrderError(err instanceof Error ? err.message : "Le paiement n’a pas pu être ouvert.");
+      setPaiement(false);
+    }
+  };
 
   /**
    * Enregistre la commande de plaque.
@@ -1947,7 +1977,16 @@ export default function AdminModernTileEditor({
             >
               Voir le livret <ArrowSquareOut size={13} weight="bold" />
             </a>
-          ) : estAdmin ? (
+          ) : !estAdmin ? (
+            <button
+              type="button"
+              onClick={() => void handlePayer()}
+              disabled={paiement || isLoading}
+              className="px-4 sm:px-6 py-2.5 rounded-full bg-[#C4714A] hover:bg-[#A35A38] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#C4714A]/20 transition-all disabled:opacity-60"
+            >
+              {paiement ? "Ouverture du paiement…" : "Publier et commander ma plaque"}
+            </button>
+          ) : (
             <button
               type="button"
               onClick={() => void handlePublish()}
@@ -1956,7 +1995,7 @@ export default function AdminModernTileEditor({
             >
               {publishing ? "Publication…" : "Mettre en ligne"}
             </button>
-          ) : null}
+          )}
         </div>
       </header>
 

@@ -28,7 +28,9 @@ export default function PricingSection() {
       ],
       after: "Paiement unique",
       cta: "Choisir l'Essentiel",
-      href: "https://buy.stripe.com/7sY4gyb8BfzU9s7brl7IY00",
+      // Pas de lien de paiement direct : il encaisserait sans qu'aucun
+      // livret n'existe, et sans moyen de savoir quoi livrer à qui.
+      href: "/creer-livret",
     },
     {
       name: "Confort",
@@ -50,7 +52,9 @@ export default function PricingSection() {
       ],
       after: "Puis 1,99 €/mois ou 19 €/an",
       cta: "Choisir le Confort",
-      href: "https://buy.stripe.com/eVq6oG2C5afAgUz52X7IY01",
+      // Le paiement intervient à la publication, depuis l'éditeur : ici on
+      // ouvre le compte, puis le livret.
+      href: "/commencer",
     },
   ];
 

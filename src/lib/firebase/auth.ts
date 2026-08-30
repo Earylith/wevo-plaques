@@ -1,5 +1,8 @@
 import {
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
   updatePassword,
@@ -13,6 +16,28 @@ import { auth } from "./config";
  */
 export const signIn = async (email: string, password: string) => {
   return signInWithEmailAndPassword(auth, email, password);
+};
+
+/**
+ * Création d'un compte par e-mail et mot de passe.
+ *
+ * L'hôte est connecté dans la foulée : c'est ce qui permet d'enchaîner
+ * directement sur la création de son livret, sans étape de connexion.
+ */
+export const signUp = async (email: string, password: string) => {
+  return createUserWithEmailAndPassword(auth, email, password);
+};
+
+/**
+ * Connexion par Google.
+ *
+ * En fenêtre surgissante plutôt qu'en redirection : la redirection perd le
+ * contexte de la page et complique le retour vers l'étape suivante.
+ */
+export const signInWithGoogle = async () => {
+  const fournisseur = new GoogleAuthProvider();
+  fournisseur.setCustomParameters({ prompt: "select_account" });
+  return signInWithPopup(auth, fournisseur);
 };
 
 /**
