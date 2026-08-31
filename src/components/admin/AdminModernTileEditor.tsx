@@ -47,8 +47,6 @@ interface Props {
    */
   onSubmit: (updatedData: Accommodation) => Promise<string | void>;
   isLoading?: boolean;
-  /** Bloc « Compte propriétaire » injecté par la page, affiché dans Partager. */
-  ownerPanel?: React.ReactNode;
   /**
    * Reçoit une fonction permettant à la page d'appliquer une modification
    * faite HORS de l'éditeur (création d'un compte propriétaire, qui réécrit
@@ -136,7 +134,6 @@ export default function AdminModernTileEditor({
   initialData,
   onSubmit,
   isLoading = false,
-  ownerPanel,
   externalPatchRef,
   role = "admin",
   demo = false,
@@ -2400,7 +2397,6 @@ export default function AdminModernTileEditor({
                 {/* Ce que le livret publié produit réellement. */}
                 {docId && estAdmin && <StatsPanel accommodationId={docId} />}
 
-                {ownerPanel && <div className="pt-4 border-t border-gray-100">{ownerPanel}</div>}
               </div>
             )}
           </div>

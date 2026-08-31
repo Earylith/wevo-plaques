@@ -26,6 +26,16 @@ export default function EditAccommodationPage({ params }: { params: Promise<{ id
             router.replace("/proprietaire/dashboard");
             return;
           }
+          /*
+           * L'Essentielle ne se modifie pas en autonomie : c'est ce que la
+           * formule vend, et l'espace client l'annonce. Sans ce renvoi, un
+           * hôte arrivé ici par l'adresse directe éditerait des champs que
+           * son offre ne couvre pas.
+           */
+          if (acc.offerType !== "comfort") {
+            router.replace("/proprietaire/dashboard");
+            return;
+          }
           setAccommodation(acc);
         })
         .finally(() => setLoadingAcc(false));

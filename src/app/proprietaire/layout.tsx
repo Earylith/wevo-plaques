@@ -12,7 +12,7 @@ export default function ProprietaireLayout({ children }: { children: React.React
   const pathname = usePathname();
   const router = useRouter();
 
-  const isPublicPage = pathname === "/proprietaire/login" || pathname === "/proprietaire/change-password";
+  const isPublicPage = pathname === "/proprietaire/login";
 
   useEffect(() => {
     if (!loading && !user && !isPublicPage) {
