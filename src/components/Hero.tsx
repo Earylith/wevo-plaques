@@ -31,10 +31,10 @@ export default function Hero() {
       {/* Background image with overlay */}
       <div className="absolute inset-0">
         {/*
-          WebP d'abord, JPEG en repli. Le fond reste chargé en priorité :
-          c'est l'image que le visiteur attend. Sur mobile, un recadrage
-          carré de la photo — elle est large, object-cover n'y montrerait
-          qu'un morceau de mur.
+          WebP d'abord, JPEG en repli. La photo a reçu 70 px de mur en plus
+          au-dessus : cadrée au ras, la plaque passait sous le bandeau du
+          menu. Ancrée en haut (object-top), c'est le bas du meuble qui se
+          rogne sur les écrans courts, jamais la plaque.
         */}
         <picture>
           <source media="(max-width: 768px)" type="image/webp" srcSet="/images/newhero-mobile.webp" />

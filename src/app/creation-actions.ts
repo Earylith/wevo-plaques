@@ -75,7 +75,26 @@ export async function ouvrirLivret(
 
   if (!deja.empty) {
     const doc = deja.docs[0];
-    return { id: doc.id, slug: (doc.data() as Accommodation).slug, existant: true };
+    const livretExistant = doc.data() as Accommodation;
+
+    /*
+     * Passage à la formule supérieure.
+     *
+     * Sans cela, cliquer « Passer à la formule Confort » ramenait l'hôte sur
+     * son livret Essentiel inchangé : l'invitation ne menait nulle part. On
+     * ne redescend JAMAIS automatiquement — un retour à l'Essentielle
+     * masquerait du contenu déjà saisi, et cela doit rester une décision
+     * explicite.
+     */
+    if (offre === "comfort" && livretExistant.offerType !== "comfort") {
+      await doc.ref.update({
+        offerType: "comfort",
+        template: "cleo",
+        updatedAt: Date.now(),
+      });
+    }
+
+    return { id: doc.id, slug: livretExistant.slug, existant: true };
   }
 
   const slug = await slugDisponible(email.split("@")[0] || "livret");
