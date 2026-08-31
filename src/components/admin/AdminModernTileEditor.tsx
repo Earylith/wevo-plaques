@@ -19,7 +19,7 @@ import PlaqueTab, { essenceCommandable, TAGLINE_PAR_DEFAUT } from "@/components/
 import PlaquePreview from "@/components/admin/editor/PlaquePreview";
 import VerrouConfort from "@/components/admin/editor/VerrouConfort";
 import EssentialTemplate from "@/components/templates/EssentialTemplate";
-import { ouvrirPaiementConfort } from "@/app/paiement-actions";
+import { ouvrirPaiement } from "@/app/paiement-actions";
 import StatsPanel from "@/components/admin/editor/StatsPanel";
 import LibraryPicker, { PickedEntry } from "@/components/admin/editor/LibraryPicker";
 import { createPlaqueOrder, getOrdersForAccommodation } from "@/app/admin/orders";
@@ -297,7 +297,7 @@ export default function AdminModernTileEditor({
       if (dirty) await handleSave();
       const { auth } = await import("@/lib/firebase/config");
       const jeton = await auth.currentUser?.getIdToken();
-      const { url } = await ouvrirPaiementConfort(docId, window.location.origin, jeton);
+      const { url } = await ouvrirPaiement(docId, window.location.origin, jeton);
       // `assign` plutôt qu'une affectation sur `location.href` : le
       // compilateur React interdit d'écrire dans une valeur définie hors du
       // composant, et le résultat est le même.
@@ -1731,17 +1731,10 @@ export default function AdminModernTileEditor({
         return (
           <div className="space-y-3">
             <Hint>
-              Le livre d&apos;or invite vos voyageurs à vous écrire en fin de séjour. Les messages
-              arrivent sur l&apos;adresse e-mail de réception des signalements.
+              Le livre d&apos;or invite vos voyageurs à vous écrire en fin de séjour. Le bouton
+              ouvre leur messagerie et adresse le message à l&apos;e-mail de l&apos;hôte, celui
+              de la rubrique Logement.
             </Hint>
-            <TextField
-              label="Adresse de réception"
-              value={data.owner?.reportEmail || data.owner?.email || ""}
-              onChange={(v) => setOwner({ reportEmail: v })}
-              placeholder="vous@email.com"
-              field="owner.reportEmail"
-              highlighted={highlight === "owner.reportEmail"}
-            />
           </div>
         );
 
@@ -1811,6 +1804,16 @@ export default function AdminModernTileEditor({
           )}
           <div className="min-w-0">
             <h1 className="font-[family-name:var(--font-display)] font-bold text-[19px] truncate text-[#2A2016]">{data.property?.name || "Livret sans titre"}</h1>
+            <span className="flex items-center gap-1.5 flex-wrap">
+              <span
+                className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${
+                  estConfort
+                    ? "bg-[#F7EBE4] text-[#A35A38] border-[#EDD9A3]"
+                    : "bg-gray-100 text-[#6B5D4E] border-gray-200"
+                }`}
+              >
+                {estConfort ? "Confort" : "Essentielle"}
+              </span>
             {data.isActive ? (
               <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
                 <CheckCircle size={12} weight="fill" /> En ligne
@@ -1826,6 +1829,7 @@ export default function AdminModernTileEditor({
                 </span>
               </span>
             )}
+            </span>
           </div>
         </div>
 
@@ -2088,15 +2092,6 @@ export default function AdminModernTileEditor({
                     type="email"
                     value={data.owner?.email || ""}
                     onChange={(v) => setOwner({ email: v })}
-                  />
-                  <TextField
-                    label="Où recevoir les signalements"
-                    hint="Laissez vide pour utiliser l'e-mail ci-dessus."
-                    type="email"
-                    value={data.owner?.reportEmail || ""}
-                    onChange={(v) => setOwner({ reportEmail: v })}
-                    field="owner.reportEmail"
-                    highlighted={highlight === "owner.reportEmail"}
                   />
                 </div>
 

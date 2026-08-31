@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import ProblemSection from "@/components/ProblemSection";
 import SolutionSection from "@/components/SolutionSection";
 import DemoPreviewSection from "@/components/DemoPreviewSection";
+import LivretsDemoSection from "@/components/LivretsDemoSection";
 import FeaturesSection from "@/components/FeaturesSection";
 import DifferentiationSection from "@/components/DifferentiationSection";
 import PricingSection from "@/components/PricingSection";
@@ -21,6 +22,7 @@ export default function Home() {
         <DifferentiationSection />
         <SolutionSection />
         <DemoPreviewSection />
+        <LivretsDemoSection />
         <FeaturesSection />
         <PricingSection />
         <ProSection />

@@ -428,13 +428,6 @@ export function getEssentials(data: Accommodation): EssentialItem[] {
       field: "module.depart",
       module: "depart",
     },
-    {
-      key: "reportEmail",
-      label: "Choisir où recevoir les signalements",
-      filled: has(data.owner?.reportEmail) || has(data.owner?.email),
-      tab: "logement",
-      field: "owner.reportEmail",
-    },
   ];
 }
 

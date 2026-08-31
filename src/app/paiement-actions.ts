@@ -3,10 +3,10 @@
 import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { Accommodation } from "@/lib/types/accommodation";
-import { stripe, tarifsConfort, paiementConfigure } from "@/lib/stripe";
+import { stripe, tarifsFormule, paiementConfigure } from "@/lib/stripe";
 
 /**
- * Ouverture d'un paiement Confort.
+ * Ouverture du paiement, quelle que soit la formule.
  *
  * Le paiement est ce qui fait basculer un livret de brouillon à publié, et qui
  * déclenche la commande de plaque. Ces deux effets sont produits par le
@@ -48,14 +48,14 @@ export interface OuvertureSession {
  * `client_reference_id` et les métadonnées portent l'identifiant du livret :
  * c'est ainsi que le webhook saura quoi publier, sans avoir à deviner.
  */
-export async function ouvrirPaiementConfort(
+export async function ouvrirPaiement(
   accommodationId: string,
   origin: string,
   jetonHote?: string
 ): Promise<OuvertureSession> {
   if (!paiementConfigure()) {
     throw new Error(
-      "Le paiement n’est pas encore configuré. Ajoutez STRIPE_SECRET_KEY et STRIPE_PRICE_CONFORT dans .env.local."
+      "Le paiement n’est pas encore configuré. Ajoutez STRIPE_SECRET_KEY et les identifiants de tarif dans .env.local."
     );
   }
 
@@ -65,7 +65,8 @@ export async function ouvrirPaiementConfort(
 
   await verifierAcces(livret, jetonHote);
 
-  const { ponctuel, abonnement } = tarifsConfort();
+  // La formule du livret décide de ce qui est facturé.
+  const { ponctuel, abonnement } = tarifsFormule(livret.offerType);
   const lignes = [{ price: ponctuel, quantity: 1 }];
   if (abonnement) lignes.push({ price: abonnement, quantity: 1 });
 
@@ -80,6 +81,7 @@ export async function ouvrirPaiementConfort(
     // plaque : elle pourrait changer entre le paiement et sa confirmation.
     metadata: {
       accommodationId,
+      offre: livret.offerType,
       slug: livret.slug || "",
       plaqueWood: livret.plaque?.wood || "noyer",
       plaqueTagline: livret.plaque?.engravedTagline || "",

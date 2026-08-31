@@ -318,8 +318,10 @@ export default function PlaqueTab({
           </a>
         )}
 
-        <p className="text-[10px] text-[#6B5D4E] text-center">
-          Le paiement Stripe sera branché sur cette étape.
+        <p className="text-[10px] text-[#6B5D4E] text-center leading-relaxed">
+          Commande directe, réservée à Guidz. Côté hôte, la plaque part avec le
+          paiement : « Publier et commander ma plaque » règle et lance la
+          gravure d&apos;un seul geste.
         </p>
       </div>
       )}

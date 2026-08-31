@@ -1,4 +1,5 @@
 import Stripe from "stripe";
+import { OfferType } from "@/lib/types/accommodation";
 
 /**
  * Client Stripe, côté serveur uniquement.
@@ -33,18 +34,34 @@ export function stripe(): Stripe {
 
 /** Le paiement est-il configuré ? Permet de masquer ce qui ne marcherait pas. */
 export function paiementConfigure(): boolean {
-  return Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_CONFORT);
+  return Boolean(
+    process.env.STRIPE_SECRET_KEY &&
+      (process.env.STRIPE_PRICE_CONFORT || process.env.STRIPE_PRICE_ESSENTIEL)
+  );
 }
 
 /**
- * Tarifs facturés pour la formule Confort.
+ * Tarifs facturés, selon la formule.
  *
- * Deux lignes sur la même commande : la prestation, réglée une fois, et
- * l'abonnement qui maintient le livret en ligne. Stripe accepte un tarif
- * ponctuel dans une session en mode `subscription` : il est porté par la
- * première facture.
+ * L'Essentielle se règle en une fois : une page composée, une plaque, et
+ * l'affaire est close. Le Confort ajoute l'abonnement qui maintient le livret
+ * en ligne et les modifications illimitées — deux lignes sur la même commande.
+ *
+ * Stripe accepte un tarif ponctuel dans une session en mode `subscription` :
+ * il est simplement porté par la première facture.
  */
-export function tarifsConfort(): { ponctuel: string; abonnement: string | null } {
+export function tarifsFormule(offre: OfferType): {
+  ponctuel: string;
+  abonnement: string | null;
+} {
+  if (offre === "essential") {
+    const ponctuel = process.env.STRIPE_PRICE_ESSENTIEL;
+    if (!ponctuel) {
+      throw new Error("STRIPE_PRICE_ESSENTIEL absente. Ajoutez-la dans .env.local.");
+    }
+    return { ponctuel, abonnement: null };
+  }
+
   const ponctuel = process.env.STRIPE_PRICE_CONFORT;
   if (!ponctuel) {
     throw new Error("STRIPE_PRICE_CONFORT absente. Ajoutez-la dans .env.local.");
