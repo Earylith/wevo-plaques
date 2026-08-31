@@ -16,6 +16,18 @@ import { PlaceResult, LatLon, categoryFromOsm } from "@/lib/geo";
  */
 
 const NOMINATIM = "https://nominatim.openstreetmap.org/search";
+
+/**
+ * Base Adresse Nationale, interrogée AVANT Nominatim.
+ *
+ * Nominatim interdit l'usage depuis une ferme de serveurs et bloque en
+ * pratique les adresses IP d'hébergeurs : la recherche marche en local et
+ * échoue une fois déployée, sans message clair. La BAN, elle, est faite pour
+ * cet usage, ne demande pas de clé, et connaît mieux les adresses françaises
+ * — c'est l'essentiel de nos logements. Nominatim reste en secours, pour les
+ * lieux-dits, les commerces et l'étranger.
+ */
+const BAN = "https://api-adresse.data.gouv.fr/search/";
 const USER_AGENT = "wevo-plaques/1.0 (livret d'accueil; contact via admin)";
 const MIN_INTERVAL_MS = 1100;
 const TIMEOUT_MS = 8000;
@@ -120,6 +132,51 @@ function toPlace(item: NominatimItem): PlaceResult {
   };
 }
 
+/** Une adresse renvoyée par la Base Adresse Nationale. */
+interface BanFeature {
+  properties: {
+    id: string;
+    label: string;
+    name?: string;
+    city?: string;
+    type?: string;
+  };
+  geometry: { coordinates: [number, number] };
+}
+
+/** Un appel à la BAN. Pas de cadence à respecter : le service est ouvert. */
+async function callBan(query: string, near?: LatLon): Promise<PlaceResult[]> {
+  const params = new URLSearchParams({ q: query, limit: "8", autocomplete: "0" });
+  // Le centrage n'est qu'une préférence de tri, pas un filtre.
+  if (near) {
+    params.set("lat", String(near.lat));
+    params.set("lon", String(near.lon));
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  try {
+    const response = await fetch(`${BAN}?${params.toString()}`, {
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`Recherche indisponible (${response.status}).`);
+    const data = (await response.json()) as { features?: BanFeature[] };
+    return (data.features || []).map((f) => ({
+      id: `ban-${f.properties.id}`,
+      name: f.properties.name || f.properties.label,
+      address: f.properties.label,
+      city: f.properties.city,
+      lat: f.geometry.coordinates[1],
+      lon: f.geometry.coordinates[0],
+      category: "autre" as PlaceResult["category"],
+    }));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Un appel Nominatim, cadencé. */
 async function callNominatim(params: URLSearchParams): Promise<NominatimItem[]> {
   const sinceLast = Date.now() - lastCallAt;
@@ -186,13 +243,25 @@ export async function searchPlaces(query: string, near?: LatLon): Promise<PlaceR
 
   let lastError: unknown = null;
 
+  // La BAN d'abord : c'est elle qui répond en production.
+  for (const attempt of attempts) {
+    try {
+      const trouves = await callBan(attempt, near);
+      if (trouves.length > 0) return trouves;
+    } catch (error) {
+      lastError = error;
+      // Un essai qui échoue ne condamne pas les suivants : on continue.
+    }
+  }
+
+  // Nominatim en second : il connaît les commerces et les lieux-dits que la
+  // BAN ignore, quand il veut bien répondre.
   for (const attempt of attempts) {
     try {
       const items = await callNominatim(baseParams(attempt, near));
       if (items.length > 0) return items.map(toPlace);
     } catch (error) {
       lastError = error;
-      // Un essai qui échoue ne condamne pas les suivants : on continue.
     }
   }
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 import {
   Accommodation, AccessCodeItem, ContactInfo, Recommendation, TransportLine,
-  EquipmentItem, UpsellItem, DepartureInstruction, ModuleId, ModuleConfig,
+  EquipmentItem, DepartureInstruction, ModuleId, ModuleConfig,
   ModuleGroup, resolveModules, getModuleDefinition,
 } from "@/lib/types/accommodation";
 import {
@@ -17,7 +17,7 @@ import PhotoManager from "@/components/admin/editor/PhotoManager";
 import PlaceSearch from "@/components/admin/editor/PlaceSearch";
 import TranslationsTab from "@/components/admin/editor/TranslationsTab";
 import PlaqueTab, { essenceCommandable, TAGLINE_PAR_DEFAUT } from "@/components/admin/editor/PlaqueTab";
-import PlaqueScenes from "@/components/admin/editor/PlaqueScenes";
+import PlaquePreview from "@/components/admin/editor/PlaquePreview";
 import { ouvrirPaiementConfort } from "@/app/paiement-actions";
 import StatsPanel from "@/components/admin/editor/StatsPanel";
 import LibraryPicker, { PickedEntry } from "@/components/admin/editor/LibraryPicker";
@@ -122,8 +122,6 @@ const EMERGENCY_PRESETS = [
 
 const EMOJI_PALETTE = ["🌐", "📺", "🍳", "☕", "🍽️", "🧺", "❄️", "💻", "🚗", "🛌", "💨", "☀️", "🛁", "🔥", "🎮", "🚲"];
 
-const uid = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-
 export default function AdminModernTileEditor({
   initialData,
   onSubmit,
@@ -146,7 +144,14 @@ export default function AdminModernTileEditor({
    * clics non détournés vers l'éditeur. C'est le seul moyen pour l'hôte de
    * savoir ce que son client verra vraiment.
    */
-  const [previewAsGuest, setPreviewAsGuest] = useState(false);
+  /**
+   * L'aperçu reste en mode édition.
+   *
+   * La bascule « Vue hôte / Vue voyageur » a été retirée : elle demandait de
+   * comprendre deux modes pour un écran qui doit se lire d'un coup d'œil. La
+   * constante subsiste parce que l'aperçu et les modales s'y réfèrent.
+   */
+  const previewAsGuest = false;
   const [openModule, setOpenModule] = useState<ModuleId | null>(null);
   const [selected, setSelected] = useState<PreviewTarget | null>(null);
   const [highlight, setHighlight] = useState<string | null>(null);
@@ -494,10 +499,6 @@ export default function AdminModernTileEditor({
   const departures = listOps<DepartureInstruction>(
     (d) => d.practicalInfo?.departureInstructions || [],
     (d, l) => ({ ...d, practicalInfo: { ...d.practicalInfo, departureInstructions: l } })
-  );
-  const upsells = listOps<UpsellItem>(
-    (d) => d.comfortOptions?.upsells || [],
-    (d, l) => ({ ...d, comfortOptions: { ...d.comfortOptions, upsells: l } })
   );
   const faq = listOps<{ question: string; answer: string }>(
     (d) => d.comfortOptions?.faq || [],
@@ -1465,71 +1466,6 @@ export default function AdminModernTileEditor({
               </AddButton>
             </div>
 
-            <div className="space-y-2.5 pt-4 border-t border-gray-100">
-              <SectionTitle>Les petits plus (en supplément)</SectionTitle>
-              <p className="text-[11px] text-[#6B5D4E] leading-relaxed">
-                Vos services payants : petit-déjeuner, arrivée anticipée, départ tardif, ménage…
-                Le voyageur les découvre et vous contacte pour réserver. Aucun paiement ne passe
-                par le livret — vous réglez cela entre vous.
-              </p>
-              {(data.comfortOptions?.upsells || []).map((item, idx) => (
-                <div key={item.id || idx} className="p-3 bg-white rounded-xl border border-gray-200 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={item.title}
-                      onChange={(e) => upsells.update(idx, { title: e.target.value })}
-                      placeholder="Petit-déjeuner livré"
-                      className="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs font-bold outline-none focus:border-[#C4714A]"
-                    />
-                    <ItemToolbar
-                      index={idx}
-                      total={(data.comfortOptions?.upsells || []).length}
-                      onMove={upsells.move}
-                      onDelete={() => upsells.remove(idx)}
-                    />
-                  </div>
-                  <textarea
-                    rows={2}
-                    value={item.description}
-                    onChange={(e) => upsells.update(idx, { description: e.target.value })}
-                    placeholder="Ce que comprend le service…"
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A] resize-y"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="number"
-                      min={0}
-                      value={item.price ?? 0}
-                      onChange={(e) => upsells.update(idx, { price: Number(e.target.value) || 0 })}
-                      placeholder="15"
-                      className="px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
-                    />
-                    <select
-                      value={item.priceUnit || "per_stay"}
-                      onChange={(e) => upsells.update(idx, { priceUnit: e.target.value as UpsellItem["priceUnit"] })}
-                      className="px-2 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
-                    >
-                      <option value="per_stay">par séjour</option>
-                      <option value="per_person">par personne</option>
-                      <option value="per_day">par jour</option>
-                    </select>
-                  </div>
-                  <input
-                    type="text"
-                    value={item.priceLabel || ""}
-                    onChange={(e) => upsells.update(idx, { priceLabel: e.target.value })}
-                    placeholder="Étiquette libre (« sur devis », « offert ») — remplace le prix"
-                    className="w-full px-2.5 py-1.5 rounded-lg border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
-                  />
-                </div>
-              ))}
-              <AddButton
-                onClick={() => upsells.add({ id: uid(), title: "", description: "", price: 0, priceUnit: "per_stay" })}
-              >
-                Ajouter un petit plus
-              </AddButton>
-            </div>
           </div>
         );
 
@@ -2213,7 +2149,7 @@ export default function AdminModernTileEditor({
                 </div>
 
                 <div className="pt-4 border-t border-gray-100 space-y-3">
-                  <SectionTitle>Couleur d&apos;accent</SectionTitle>
+                  <SectionTitle>Couleur principale</SectionTitle>
                   <div className="flex items-center gap-2.5 flex-wrap">
                     {COLOR_PRESETS.map((color) => {
                       const active = (data.comfortOptions?.theme?.primaryColor || "#2B5F75") === color;
@@ -2282,36 +2218,6 @@ export default function AdminModernTileEditor({
                   ))}
                 </div>
 
-                <div className="pt-4 border-t border-gray-100 space-y-3">
-                  <SectionTitle>Disposition sur ordinateur</SectionTitle>
-                  <p className="text-[11px] text-[#6B5D4E] leading-relaxed">
-                    Sur téléphone, le livret reste toujours en liste. Vos voyageurs
-                    pourront basculer eux-mêmes depuis le livret.
-                  </p>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {([
-                      { value: "list" as const, label: "Liste", hint: "Rubriques fermées, une fiche s’ouvre au clic" },
-                      { value: "grid" as const, label: "Grille", hint: "Fiches dépliées côte à côte, plus illustré" },
-                    ]).map((mode) => {
-                      const active = (data.display?.desktopLayout || "list") === mode.value;
-                      return (
-                        <button
-                          key={mode.value}
-                          type="button"
-                          onClick={() => setDisplay({ desktopLayout: mode.value })}
-                          className={`p-3 rounded-xl border text-left transition-colors ${
-                            active ? "border-[#C4714A] bg-[#C4714A]/5" : "border-gray-200 hover:border-gray-300"
-                          }`}
-                        >
-                          <span className={`block text-xs font-bold ${active ? "text-[#C4714A]" : "text-[#2A2016]"}`}>
-                            {mode.label}
-                          </span>
-                          <span className="block text-[10px] text-[#6B5D4E] mt-0.5 leading-snug">{mode.hint}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
 
                 <div className="pt-4 border-t border-gray-100 space-y-3">
                   <SectionTitle>Typographie des titres</SectionTitle>
@@ -2601,40 +2507,28 @@ export default function AdminModernTileEditor({
             autres rubriques retrouvent le mockup habituel.
           */}
           {editorSection === "plaque" ? (
-            <PlaqueScenes
-              wood={essenceCommandable(data.plaque?.wood)}
-              tagline={data.plaque?.engravedTagline ?? TAGLINE_PAR_DEFAUT}
-              qrValue={engravedUrl}
-            />
+            <div className="w-full max-w-[540px] flex flex-col items-center gap-4">
+              <PlaquePreview
+                wood={essenceCommandable(data.plaque?.wood)}
+                tagline={
+                  data.plaque?.engravedTagline?.trim()
+                    ? data.plaque.engravedTagline
+                    : TAGLINE_PAR_DEFAUT
+                }
+                qrValue={engravedUrl}
+              />
+              <p className="text-[11px] text-[#6B5D4E] text-center leading-relaxed px-4">
+                Cet aperçu est construit sur le gabarit de gravure lui-même : ce
+                que vous voyez est ce qui sera gravé.
+                <span className="block text-[10px] text-[#A8998A] mt-1">
+                  Seule la texture du bois est une illustration.
+                </span>
+              </p>
+            </div>
           ) : (
           <>
-          {/* Bascule aperçu d'édition ⇄ rendu réel côté voyageur */}
-          <div className="mb-4 flex bg-white p-1 rounded-full border border-gray-200 shadow-sm shrink-0">
-            {([
-              { value: false, label: "Vue hôte", hint: "Cliquez un élément pour l’éditer" },
-              { value: true, label: "Vue voyageur", hint: "Exactement ce que verra votre client" },
-            ] as const).map((mode) => (
-              <button
-                key={String(mode.value)}
-                type="button"
-                onClick={() => setPreviewAsGuest(mode.value)}
-                title={mode.hint}
-                className={`px-4 py-1.5 rounded-full text-[11px] font-bold transition-all ${
-                  previewAsGuest === mode.value
-                    ? "bg-[#2A2016] text-white shadow-sm"
-                    : "text-[#6B5D4E] hover:text-[#2A2016]"
-                }`}
-              >
-                {mode.label}
-              </button>
-            ))}
-          </div>
 
-          {previewAsGuest && (
-            <p className="mb-3 text-[11px] text-[#6B5D4E] shrink-0">
-              Les rubriques encore vides sont masquées, comme pour vos voyageurs.
-            </p>
-          )}
+
 
           {viewDevice === "mobile" ? (
             <div className="relative w-[375px] h-[740px] bg-black rounded-[3rem] p-3 shadow-2xl border-4 border-gray-800 flex flex-col overflow-hidden shrink-0">
