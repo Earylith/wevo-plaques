@@ -76,6 +76,15 @@ interface Props {
   demo?: boolean;
 }
 
+/**
+ * Rubriques comprises dans la formule Essentielle.
+ *
+ * Ce sont celles annoncées sur la page de tarifs : Wi-Fi, arrivée et départ,
+ * règlement, contacts et urgences. Tout le reste appartient au Confort — et
+ * doit le dire, plutôt que de disparaître.
+ */
+const MODULES_ESSENTIELLE: ModuleId[] = ["wifi", "arrivee", "depart", "reglement", "contacts"];
+
 const MODULE_ICONS: Record<ModuleId, React.ComponentType<{ size?: number; weight?: "regular" | "bold" | "fill" | "duotone"; className?: string }>> = {
   arrivee: Key, wifi: WifiHigh, contacts: Phone, depart: DoorOpen, bienvenue: HandWaving,
   reglement: BookOpen, equipements: Medal, adresses: MapPin, transports: Bus,
@@ -937,6 +946,35 @@ export default function AdminModernTileEditor({
           const isOpen = openModule === id;
           const showTodo = ESSENTIAL_MODULES.includes(id) && !status.complete;
 
+          // Hors formule : la rubrique se montre, mais ne se remplit pas.
+          const horsFormule = !estConfort && !MODULES_ESSENTIELLE.includes(id);
+          if (horsFormule) {
+            return (
+              <VerrouConfort
+                key={id}
+                verrouille
+                argument={`« ${definition.label} » enrichit la page de vos voyageurs.`}
+              >
+                <div className="rounded-2xl border border-gray-200 bg-white p-4 flex items-center gap-3">
+                  <span
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: tint.bg, color: tint.fg }}
+                  >
+                    <Icon size={17} weight="duotone" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-bold text-[#2A2016] truncate">
+                      {definition.label}
+                    </span>
+                    <span className="block text-[11px] text-[#6B5D4E] truncate">
+                      Disponible dans la formule Confort
+                    </span>
+                  </span>
+                </div>
+              </VerrouConfort>
+            );
+          }
+
           return (
             <div
               key={id}
@@ -1430,6 +1468,7 @@ export default function AdminModernTileEditor({
                 disabled={demo}
                 disabledHint="Recherche d’adresse indisponible dans la démo."
                 placeholder="Ex : Pizzeria Chez Étienne, Parc Borély…"
+                mode="lieu"
                 near={propertyPoint}
                 onSelect={applyRecommendation}
                 hintWhenNoOrigin
@@ -2075,19 +2114,14 @@ export default function AdminModernTileEditor({
             )}
 
             {/* ─────── APPARENCE ─────── */}
-            {editorSection === "apparence" && !estConfort && (
-              <VerrouConfort
-                verrouille
-                argument="Couleurs, typographie et photos personnalisées donnent à votre page l’allure de votre logement."
-              >
-                <div className="h-64" />
-              </VerrouConfort>
-            )}
-
-            {editorSection === "apparence" && estConfort && (
+            {editorSection === "apparence" && (
               <>
                 {renderSectionIntro("apparence")}
 
+                <VerrouConfort
+                  verrouille={!estConfort}
+                  argument="Vos propres photos donnent à la page l’allure de votre logement."
+                >
                 <div className="space-y-3" data-field="property.gallery">
                   <SectionTitle>Photos</SectionTitle>
                   <p className="text-[11px] text-[#6B5D4E] leading-relaxed">
@@ -2104,10 +2138,17 @@ export default function AdminModernTileEditor({
                   </div>
                 </div>
 
+                </VerrouConfort>
+
                 <div className="pt-4 border-t border-gray-100 space-y-3">
                   <SectionTitle>Couleur principale</SectionTitle>
+                  {/*
+                    L'Essentielle propose quatre couleurs, pas davantage :
+                    c'est ce qui est vendu. La palette libre appartient au
+                    Confort.
+                  */}
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    {COLOR_PRESETS.map((color) => {
+                    {(estConfort ? COLOR_PRESETS : COLOR_PRESETS.slice(0, 4)).map((color) => {
                       const active = (data.comfortOptions?.theme?.primaryColor || "#2B5F75") === color;
                       return (
                         <button
@@ -2123,6 +2164,7 @@ export default function AdminModernTileEditor({
                         </button>
                       );
                     })}
+                    {estConfort && (
                     <label className="w-9 h-9 rounded-full border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-[#C4714A]">
                       <Plus size={14} weight="bold" className="text-[#6B5D4E]" />
                       <input
@@ -2132,9 +2174,14 @@ export default function AdminModernTileEditor({
                         className="sr-only"
                       />
                     </label>
+                    )}
                   </div>
                 </div>
 
+                <VerrouConfort
+                  verrouille={!estConfort}
+                  argument="Météo, carte et typographie affinent la page ; l’Essentielle garde la mise en page standard."
+                >
                 <div className="pt-4 border-t border-gray-100 space-y-3">
                   <SectionTitle>Blocs du livret</SectionTitle>
                   {([
@@ -2204,6 +2251,7 @@ export default function AdminModernTileEditor({
                     })}
                   </div>
                 </div>
+                </VerrouConfort>
               </>
             )}
 

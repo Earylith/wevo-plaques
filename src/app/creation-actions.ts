@@ -1,7 +1,7 @@
 "use server";
 
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
-import { Accommodation } from "@/lib/types/accommodation";
+import { Accommodation, OfferType } from "@/lib/types/accommodation";
 import { createEmptyAccommodation } from "@/lib/livret";
 import { slugify } from "@/lib/utils";
 
@@ -49,13 +49,16 @@ export interface LivretOuvert {
 }
 
 /**
- * Ouvre — ou retrouve — le livret Confort de l'hôte connecté.
+ * Ouvre — ou retrouve — le livret de l'hôte connecté, dans la formule choisie.
  *
  * Idempotent par construction : un hôte qui revient sur la page de tarifs, ou
  * qui clique deux fois, retrouve son brouillon au lieu d'en accumuler. Sans
  * cela, chaque retour laisserait un livret vide de plus en base.
  */
-export async function ouvrirLivretConfort(jetonHote: string): Promise<LivretOuvert> {
+export async function ouvrirLivret(
+  jetonHote: string,
+  offre: OfferType = "comfort"
+): Promise<LivretOuvert> {
   if (!jetonHote) throw new Error("Connectez-vous pour commencer.");
 
   // Le jeton est vérifié côté serveur : un identifiant envoyé par le
@@ -78,8 +81,10 @@ export async function ouvrirLivretConfort(jetonHote: string): Promise<LivretOuve
   const slug = await slugDisponible(email.split("@")[0] || "livret");
   const livret: Accommodation = {
     ...createEmptyAccommodation(slug),
-    offerType: "comfort",
-    template: "cleo",
+    offerType: offre,
+    // Le gabarit découle de la formule : « cleo » est la page Confort,
+    // l'Essentielle a la sienne.
+    template: offre === "comfort" ? "cleo" : "essential",
     // Brouillon : rien n'est visible avant le paiement.
     isActive: false,
     ownerUid: uid,

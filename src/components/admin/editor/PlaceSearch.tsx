@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { MagnifyingGlass, MapPin, Spinner, Warning, X } from "@phosphor-icons/react";
-import { searchPlaces } from "@/app/admin/places";
+import { searchPlaces, ModeRecherche } from "@/app/admin/places";
 import { PlaceResult, LatLon, describeDistance } from "@/lib/geo";
 
 /*
@@ -35,10 +35,19 @@ interface PlaceSearchProps {
   disabled?: boolean;
   /** Ce qu'on affiche à la place, quand la recherche est neutralisée. */
   disabledHint?: string;
+  /**
+   * Ce qu'on cherche.
+   *
+   * « adresse » interroge d'abord la Base Adresse Nationale ; « lieu »
+   * interroge d'abord l'annuaire de points d'intérêt, qui seul connaît les
+   * commerces par leur nom.
+   */
+  mode?: ModeRecherche;
 }
 
 export default function PlaceSearch({
   placeholder = "Rechercher un lieu…",
+  mode = "adresse",
   near,
   onSelect,
   clearOnSelect = true,
@@ -53,6 +62,15 @@ export default function PlaceSearch({
   const [error, setError] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const requestIdRef = useRef(0);
+  /**
+   * Le dernier changement du champ vient-il d'une sélection ?
+   *
+   * Choisir une suggestion réécrit le champ avec le nom du lieu retenu. Sans
+   * ce garde-fou, l'effet repartait sur ce texte et rouvrait la liste : le
+   * lieu était bien enregistré, mais l'écran donnait l'impression du
+   * contraire.
+   */
+  const choisiRef = useRef(false);
 
   /*
    * Recherche différée de 600 ms après la dernière frappe : Nominatim tolère
@@ -72,6 +90,11 @@ export default function PlaceSearch({
 
   useEffect(() => {
     if (!canSearch) return;
+    if (choisiRef.current) {
+      // Le texte vient d'une sélection, pas d'une frappe : rien à chercher.
+      choisiRef.current = false;
+      return;
+    }
 
     const requestId = ++requestIdRef.current;
     const timer = setTimeout(() => {
@@ -80,7 +103,7 @@ export default function PlaceSearch({
         typeof nearLat === "number" && typeof nearLon === "number"
           ? { lat: nearLat, lon: nearLon }
           : undefined;
-      searchPlaces(trimmed, point)
+      searchPlaces(trimmed, point, mode)
         .then((found) => {
           // Une réponse tardive ne doit pas écraser une recherche plus récente.
           if (requestId !== requestIdRef.current) return;
@@ -98,9 +121,10 @@ export default function PlaceSearch({
     }, 600);
 
     return () => clearTimeout(timer);
-  }, [trimmed, canSearch, nearLat, nearLon]);
+  }, [trimmed, canSearch, nearLat, nearLon, mode]);
 
   const handleSelect = (place: PlaceResult) => {
+    choisiRef.current = true;
     const distance = near ? describeDistance(near, { lat: place.lat, lon: place.lon }) : undefined;
     onSelect(place, distance);
     setResults([]);
@@ -163,12 +187,16 @@ export default function PlaceSearch({
                   <span className="min-w-0 flex-1">
                     <span className="block text-xs font-bold text-[#2A2016] truncate">{place.name}</span>
                     <span className="block text-[11px] text-[#6B5D4E] truncate">{place.address}</span>
-                    <span className="flex items-center gap-1.5 mt-1">
-                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#6B5D4E] bg-gray-100 px-1.5 py-0.5 rounded">
-                        {place.category}
+                    {(place.category !== "autre" || distance) && (
+                      <span className="flex items-center gap-1.5 mt-1">
+                        {place.category !== "autre" && (
+                          <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#6B5D4E] bg-gray-100 px-1.5 py-0.5 rounded">
+                            {place.category}
+                          </span>
+                        )}
+                        {distance && <span className="text-[10px] text-[#A8998A]">{distance}</span>}
                       </span>
-                      {distance && <span className="text-[10px] text-[#A8998A]">{distance}</span>}
-                    </span>
+                    )}
                   </span>
                 </button>
               </li>

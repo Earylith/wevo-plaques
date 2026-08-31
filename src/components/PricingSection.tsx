@@ -28,9 +28,8 @@ export default function PricingSection() {
       ],
       after: "Paiement unique",
       cta: "Choisir l'Essentiel",
-      // Pas de lien de paiement direct : il encaisserait sans qu'aucun
-      // livret n'existe, et sans moyen de savoir quoi livrer à qui.
-      href: "/creer-livret",
+      // Même parcours que le Confort : compte, contenu, puis paiement.
+      href: "/commencer?offre=essentiel",
     },
     {
       name: "Confort",
@@ -54,7 +53,7 @@ export default function PricingSection() {
       cta: "Choisir le Confort",
       // Le paiement intervient à la publication, depuis l'éditeur : ici on
       // ouvre le compte, puis le livret.
-      href: "/commencer",
+      href: "/commencer?offre=confort",
     },
   ];
 

@@ -32,23 +32,23 @@ export default function EssentialTemplate({ data }: { data: Accommodation }) {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] font-[family-name:var(--font-sans)] text-[#2A2016] overflow-x-hidden">
+    <div className="@container min-h-screen bg-[#FDFBF7] font-[family-name:var(--font-sans)] text-[#2A2016] overflow-x-hidden">
       {/* Top Navigation */}
-      <header className="sticky top-0 z-50 bg-white border-b border-[#EDD9A3]/30 px-4 sm:px-6 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-50 bg-white border-b border-[#EDD9A3]/30 px-4 @2xl:px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-[#E8BE72]/20 rounded-full flex items-center justify-center text-[#C4714A]">
             <MapPin size={24} weight="duotone" />
           </div>
           <div>
-            <h1 className="font-[family-name:var(--font-display)] font-bold text-base sm:text-lg leading-tight uppercase tracking-widest">
+            <h1 className="font-[family-name:var(--font-display)] font-bold text-base @2xl:text-lg leading-tight uppercase tracking-widest">
               {data.property.name}
             </h1>
-            <p className="text-[9px] sm:text-[10px] text-[#6B5D4E] uppercase tracking-wider">{data.property.type}</p>
+            <p className="text-[9px] @2xl:text-[10px] text-[#6B5D4E] uppercase tracking-wider">{data.property.type}</p>
           </div>
         </div>
 
         {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center gap-6">
+        <nav className="hidden @5xl:flex items-center gap-6">
           {navLinks.map((link) => (
             <a key={link.label} href={link.href} className="flex items-center gap-2 text-sm font-medium text-[#6B5D4E] hover:text-[#C4714A] transition-colors">
               {link.icon}
@@ -58,7 +58,7 @@ export default function EssentialTemplate({ data }: { data: Accommodation }) {
         </nav>
 
         {/* Mobile Nav Toggle */}
-        <button className="lg:hidden p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+        <button className="@5xl:hidden p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
           {isMenuOpen ? <X size={24} /> : <List size={24} />}
         </button>
       </header>
@@ -80,38 +80,33 @@ export default function EssentialTemplate({ data }: { data: Accommodation }) {
         </div>
       )}
 
-      {/* Hero Section */}
-      <div id="accueil" className="relative h-[50vh] sm:h-[60vh] min-h-[350px]">
-        {data.property.mainImageUrl ? (
-          <img src={data.property.mainImageUrl} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[#E4EEF3] to-[#F5E6C8]" />
-        )}
-        
-        {/* Welcome Box overlapping */}
-        <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 px-4 sm:px-6">
-          <div className="max-w-2xl mx-auto bg-white p-6 sm:p-10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] text-center">
-            <h2 className="font-[family-name:var(--font-display)] text-2xl sm:text-4xl font-bold mb-3 sm:mb-4 leading-tight">
-              Bienvenue à {data.property.name}
-            </h2>
-            <p className="text-[#6B5D4E] text-xs sm:text-[15px] leading-relaxed max-w-lg mx-auto line-clamp-4 sm:line-clamp-none">
-              Nous sommes ravis de vous accueillir. Vous trouverez ici toutes les informations utiles pour votre séjour : Wi-Fi, horaires, règles de la maison, bonnes adresses et contacts pratiques.
-            </p>
-            <p className="text-xs sm:text-sm font-medium text-[#C4714A] mt-4 sm:mt-6 italic">
-              — L&apos;équipe {data.property.name}
-            </p>
-          </div>
+      {/*
+        Pas de photo de couverture : elle n'est pas comprise dans la formule
+        Essentielle. En afficher une promettrait ce qui n'est pas vendu — le
+        mot d'accueil ouvre donc directement la page.
+      */}
+      <div id="accueil" className="px-4 @2xl:px-6 pt-8 @2xl:pt-12">
+        <div className="max-w-2xl mx-auto bg-white p-6 @2xl:p-10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] text-center">
+          <h2 className="font-[family-name:var(--font-display)] text-2xl @2xl:text-4xl font-bold mb-3 @2xl:mb-4 leading-tight">
+            Bienvenue à {data.property.name}
+          </h2>
+          <p className="text-[#6B5D4E] text-xs @2xl:text-[15px] leading-relaxed max-w-lg mx-auto">
+            {data.property.welcomeMessage?.trim() ||
+              "Nous sommes ravis de vous accueillir. Vous trouverez ici toutes les informations utiles pour votre séjour."}
+          </p>
+          <p className="text-xs @2xl:text-sm font-medium text-[#C4714A] mt-4 @2xl:mt-6 italic">
+            — L&apos;équipe {data.property.name}
+          </p>
         </div>
       </div>
 
-      {/* Spacer for overlapping box */}
-      <div className="h-40 sm:h-48" />
+      <div className="h-10 @2xl:h-14" />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 pb-24">
+      <main className="max-w-4xl mx-auto px-4 @2xl:px-6 pb-24">
         {/* Accès rapides */}
-        <div className="mb-12 sm:mb-16">
-          <h3 className="font-semibold text-lg mb-4 sm:mb-6 px-2">Accès rapides</h3>
-          <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4">
+        <div className="mb-12 @2xl:mb-16">
+          <h3 className="font-semibold text-lg mb-4 @2xl:mb-6 px-2">Accès rapides</h3>
+          <div className="grid grid-cols-3 @5xl:grid-cols-6 gap-2 @2xl:gap-4">
             {quickLinks.map((link) => (
               <a 
                 key={link.label}
@@ -121,15 +116,15 @@ export default function EssentialTemplate({ data }: { data: Accommodation }) {
                 <div className="text-[#6B5D4E] group-hover:text-[#C4714A] transition-colors">
                   {link.icon}
                 </div>
-                <span className="text-[10px] sm:text-xs font-semibold">{link.label}</span>
+                <span className="text-[10px] @2xl:text-xs font-semibold">{link.label}</span>
               </a>
             ))}
           </div>
         </div>
 
         {/* Content Grids */}
-        <div className="space-y-6 sm:space-y-10">
-          <div className="grid sm:grid-cols-2 gap-6 sm:gap-8">
+        <div className="space-y-6 @2xl:space-y-10">
+          <div className="grid @2xl:grid-cols-2 gap-6 @2xl:gap-8">
             <div id="wifi"><WifiCard ssid={data.wifi.ssid} password={data.wifi.password} /></div>
             <div id="infos">
               <PracticalInfoCard 
@@ -142,7 +137,7 @@ export default function EssentialTemplate({ data }: { data: Accommodation }) {
             </div>
           </div>
 
-          <div id="urgences" className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-red-100">
+          <div id="urgences" className="bg-white rounded-3xl p-6 @2xl:p-8 shadow-sm border border-red-100">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center shrink-0">
                 <WarningCircle size={24} weight="duotone" color="#EF4444" />
@@ -153,7 +148,7 @@ export default function EssentialTemplate({ data }: { data: Accommodation }) {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+            <div className="grid grid-cols-2 @2xl:grid-cols-4 gap-3 mb-8">
               <a href={`tel:${data.standardEmergencies?.samu || "15"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
                 <span className="text-[10px] font-bold text-red-700 mb-1">SAMU</span>
                 <span className="text-base font-bold text-red-600">{data.standardEmergencies?.samu || "15"}</span>
@@ -198,22 +193,22 @@ export default function EssentialTemplate({ data }: { data: Accommodation }) {
             )}
           </div>
 
-          <div className="grid lg:grid-cols-2 gap-0 sm:gap-8">
+          <div className="grid @5xl:grid-cols-2 gap-0 @2xl:gap-8">
             <MobileAccordion title="Règles de la maison" icon={<BookOpen size={24} weight="duotone" color="#5A7A4E" />}>
-              <div id="regles" className="lg:bg-white lg:rounded-3xl lg:p-6 lg:shadow-sm lg:border lg:border-[#EDD9A3]/30">
+              <div id="regles" className="@5xl:bg-white @5xl:rounded-3xl @5xl:p-6 @5xl:shadow-sm @5xl:border @5xl:border-[#EDD9A3]/30">
                 <RulesCard rules={data.rules} />
               </div>
             </MobileAccordion>
             
             <MobileAccordion title="Contacts utiles" icon={<Phone size={24} weight="duotone" color="#C4714A" />}>
-              <div id="contacts" className="lg:bg-white lg:rounded-3xl lg:p-6 lg:shadow-sm lg:border lg:border-[#EDD9A3]/30">
+              <div id="contacts" className="@5xl:bg-white @5xl:rounded-3xl @5xl:p-6 @5xl:shadow-sm @5xl:border @5xl:border-[#EDD9A3]/30">
                 <ContactsCard contacts={data.contacts} />
               </div>
             </MobileAccordion>
           </div>
 
           <MobileAccordion title="À découvrir & Restaurants" icon={<ForkKnife size={24} weight="duotone" color="#C4714A" />}>
-            <div id="restaurants" className="lg:bg-white lg:rounded-3xl lg:p-6 lg:shadow-sm lg:border lg:border-[#EDD9A3]/30">
+            <div id="restaurants" className="@5xl:bg-white @5xl:rounded-3xl @5xl:p-6 @5xl:shadow-sm @5xl:border @5xl:border-[#EDD9A3]/30">
               <RecommendationsCard recommendations={data.recommendations} showImages={false} />
             </div>
           </MobileAccordion>

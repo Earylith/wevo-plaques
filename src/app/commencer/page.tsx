@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { GoogleLogo, EnvelopeSimple, Spinner, Warning, ArrowRight } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { signIn, signUp, signInWithGoogle } from "@/lib/firebase/auth";
-import { ouvrirLivretConfort } from "@/app/creation-actions";
+import { ouvrirLivret } from "@/app/creation-actions";
+import { OfferType } from "@/lib/types/accommodation";
 
 /**
- * Entrée du parcours Confort.
+ * Entrée du parcours, pour les deux formules.
  *
  * L'ordre compte : compte d'abord, contenu ensuite, paiement en dernier.
  * L'hôte crée son livret et le remplit gratuitement ; il ne paie qu'au
@@ -38,8 +39,42 @@ function messageErreur(erreur: unknown): string {
   return erreur instanceof Error ? erreur.message : "Une erreur est survenue.";
 }
 
+/** Ce qui distingue les deux entrées : le nom, et ce qu'on promet. */
+const FORMULES: Record<OfferType, { nom: string; promesse: string }> = {
+  comfort: {
+    nom: "Formule Confort",
+    promesse:
+      "Vous composerez votre livret librement. Le paiement n’intervient qu’au moment de le mettre en ligne et de commander votre plaque.",
+  },
+  essential: {
+    nom: "Formule Essentielle",
+    promesse:
+      "Vous composerez votre page librement. Le paiement n’intervient qu’au moment de la mettre en ligne et de commander votre plaque.",
+  },
+};
+
 export default function CommencerPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#FBF5EC] flex items-center justify-center px-6">
+          <p className="text-xs text-[#A8998A]">Chargement…</p>
+        </main>
+      }
+    >
+      <Formulaire />
+    </Suspense>
+  );
+}
+
+function Formulaire() {
   const router = useRouter();
+  const parametres = useSearchParams();
+  /*
+   * La formule vient de l'adresse. Sans elle, on ouvre un Confort : c'est la
+   * formule mise en avant, et l'admin pourra toujours corriger.
+   */
+  const offre: OfferType = parametres.get("offre") === "essentiel" ? "essential" : "comfort";
   const { user, loading } = useAuth();
   const [mode, setMode] = useState<Mode>("inscription");
   const [email, setEmail] = useState("");
@@ -61,7 +96,7 @@ export default function CommencerPage() {
       const courant = auth.currentUser;
       if (!courant) throw new Error("Session perdue. Reconnectez-vous.");
       const jeton = await courant.getIdToken();
-      const livret = await ouvrirLivretConfort(jeton);
+      const livret = await ouvrirLivret(jeton, offre);
       router.push(`/proprietaire/dashboard/${livret.id}/edit`);
     } catch (e) {
       console.error(e);
@@ -106,14 +141,13 @@ export default function CommencerPage() {
       <div className="w-full max-w-md">
         <div className="text-center mb-7">
           <span className="inline-block text-[10px] font-extrabold tracking-[0.18em] uppercase text-[#A35A38] bg-[#F7EBE4] border border-[#EDD9A3] rounded-full px-3 py-1">
-            Formule Confort
+            {FORMULES[offre].nom}
           </span>
           <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-[#2A2016] mt-4">
             Créez votre compte
           </h1>
           <p className="text-sm text-[#6B5D4E] mt-2.5 leading-relaxed">
-            Vous composerez votre livret librement. Le paiement n’intervient
-            qu’au moment de le mettre en ligne et de commander votre plaque.
+            {FORMULES[offre].promesse}
           </p>
         </div>
 

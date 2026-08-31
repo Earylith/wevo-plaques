@@ -223,7 +223,13 @@ function baseParams(query: string, near?: LatLon): URLSearchParams {
  * s'arrête au premier essai qui donne quelque chose. En pratique c'est ce qui
  * fait la différence entre « aucun résultat » et l'adresse trouvée.
  */
-export async function searchPlaces(query: string, near?: LatLon): Promise<PlaceResult[]> {
+export type ModeRecherche = "adresse" | "lieu";
+
+export async function searchPlaces(
+  query: string,
+  near?: LatLon,
+  mode: ModeRecherche = "adresse"
+): Promise<PlaceResult[]> {
   await requireAdminAuth();
 
   const trimmed = query.trim();
@@ -243,26 +249,46 @@ export async function searchPlaces(query: string, near?: LatLon): Promise<PlaceR
 
   let lastError: unknown = null;
 
-  // La BAN d'abord : c'est elle qui répond en production.
-  for (const attempt of attempts) {
-    try {
-      const trouves = await callBan(attempt, near);
-      if (trouves.length > 0) return trouves;
-    } catch (error) {
-      lastError = error;
-      // Un essai qui échoue ne condamne pas les suivants : on continue.
+  /*
+   * L'ordre des sources dépend de ce qu'on cherche.
+   *
+   * Une ADRESSE : la Base Adresse Nationale d'abord — elle est faite pour ça,
+   * et elle répond depuis un serveur là où Nominatim bloque.
+   * Un LIEU : Nominatim d'abord — un restaurant n'existe pas dans un annuaire
+   * de rues, seul un annuaire de points d'intérêt le connaît par son nom.
+   */
+  const chercherBan = async () => {
+    for (const attempt of attempts) {
+      try {
+        const trouves = await callBan(attempt, near);
+        if (trouves.length > 0) return trouves;
+      } catch (error) {
+        lastError = error;
+        // Un essai qui échoue ne condamne pas les suivants : on continue.
+      }
     }
-  }
+    return [];
+  };
 
-  // Nominatim en second : il connaît les commerces et les lieux-dits que la
-  // BAN ignore, quand il veut bien répondre.
-  for (const attempt of attempts) {
-    try {
-      const items = await callNominatim(baseParams(attempt, near));
-      if (items.length > 0) return items.map(toPlace);
-    } catch (error) {
-      lastError = error;
+  const chercherNominatim = async () => {
+    for (const attempt of attempts) {
+      try {
+        const items = await callNominatim(baseParams(attempt, near));
+        if (items.length > 0) return items.map(toPlace);
+      } catch (error) {
+        lastError = error;
+      }
     }
+    return [];
+  };
+
+  const sources = mode === "lieu"
+    ? [chercherNominatim, chercherBan]
+    : [chercherBan, chercherNominatim];
+
+  for (const source of sources) {
+    const trouves = await source();
+    if (trouves.length > 0) return trouves;
   }
 
   if (lastError) {
