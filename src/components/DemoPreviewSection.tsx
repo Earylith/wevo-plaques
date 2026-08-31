@@ -215,6 +215,16 @@ export default function DemoPreviewSection() {
               >
                 Voir le livret Confort <ExternalLink size={18} />
               </a>
+              {/* L'Essentielle a sa propre démo : la comparer est le meilleur
+                  argument pour choisir, dans un sens comme dans l'autre. */}
+              <a
+                href="/demo-essentielle"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-[#C4714A] bg-white px-6 py-3 font-bold text-[#C4714A] shadow-sm transition-colors hover:bg-[#F7EBE4]"
+              >
+                Voir le livret Essentiel <ExternalLink size={18} />
+              </a>
               <a
                 href="/demo-editeur"
                 target="_blank"

@@ -51,12 +51,21 @@ export default function DifferentiationSection() {
               <span className="section-label mb-6 inline-flex px-4 py-2 rounded-full bg-[#EBF0E6] text-[#5A7A4E] text-sm font-semibold tracking-wide uppercase shadow-sm">
                 Le meilleur des deux mondes
               </span>
-              <h2 className="font-[family-name:var(--font-display)] text-5xl lg:text-[4.5rem] font-bold text-[#2A2016] leading-[1.1] mt-4 mb-8 tracking-tight">
-                Le charme du bois,{" "}
-                <br className="hidden lg:block" />
-                <em className="not-italic text-gradient-terra relative inline-block">
+              {/*
+                Sur mobile les deux membres de la phrase deviennent deux
+                lignes distinctes : d'un seul tenant, le titre se tassait et
+                le trait ondulé passait au travers du texte.
+              */}
+              <h2 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl lg:text-[4.5rem] font-bold text-[#2A2016] leading-[1.15] lg:leading-[1.1] mt-4 mb-8 tracking-tight">
+                <span className="block lg:inline">Le charme du bois,</span>{" "}
+                <em className="not-italic text-gradient-terra relative inline-block mt-1 lg:mt-0">
                   la flexibilité du digital
-                  <svg className="absolute w-full h-3 -bottom-1 left-0 text-[#C4714A]/30" viewBox="0 0 100 10" preserveAspectRatio="none">
+                  <svg
+                    className="hidden lg:block absolute w-full h-3 -bottom-1 left-0 text-[#C4714A]/30"
+                    viewBox="0 0 100 10"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  >
                     <path d="M0,5 Q50,10 100,5" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
                   </svg>
                 </em>
@@ -102,7 +111,10 @@ export default function DifferentiationSection() {
                 </ul>
                 <div className="rounded-3xl overflow-hidden shadow-inner bg-gray-50 mt-auto relative border border-gray-100 group-hover:border-[#EDD9A3]/50 transition-colors duration-500">
                   <img 
-                    src="/images/mockup/guidz_mockup.png" 
+                    src="/images/mockup/guidz_mockup.webp"
+                    loading="lazy"
+                    decoding="async"
+                    
                     alt="Support Guidz" 
                     className="w-full h-auto object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out" 
                   />

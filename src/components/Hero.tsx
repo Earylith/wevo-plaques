@@ -1,19 +1,49 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Eye, Sparkles } from "lucide-react";
 import AnimateOnScroll from "./AnimateOnScroll";
 
 export default function Hero() {
+  /*
+   * Carrousel mobile : le défilement tactile reste maître, les points ne font
+   * que le piloter. Rien n'est piloté par un état qui pourrait diverger de la
+   * position réelle — la position réelle est la source.
+   */
+  const carrousel = useRef<HTMLDivElement>(null);
+  const [vue, setVue] = useState(0);
+
+  const allerA = (index: number) => {
+    const piste = carrousel.current;
+    if (!piste) return;
+    piste.scrollTo({ left: index * piste.clientWidth, behavior: "smooth" });
+  };
+
+  const suivreDefilement = () => {
+    const piste = carrousel.current;
+    if (!piste || !piste.clientWidth) return;
+    setVue(Math.round(piste.scrollLeft / piste.clientWidth));
+  };
+
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
       {/* Background image with overlay */}
       <div className="absolute inset-0">
+        {/*
+          WebP d'abord, PNG en repli. Le fond pesait 7,5 Mo : c'est lui qui
+          dictait le temps d'affichage du premier écran. Il reste chargé en
+          priorité — c'est l'image que le visiteur attend.
+        */}
         <picture>
+          <source media="(max-width: 768px)" type="image/webp" srcSet="/images/mobile-hero-bg.webp" />
           <source media="(max-width: 768px)" srcSet="/images/mobile-hero-bg.png" />
+          <source type="image/webp" srcSet="/images/hero-finalec.webp" />
           <img
             src="/images/hero-finalec.png"
             alt=""
+            fetchPriority="high"
+            decoding="async"
             className="w-full h-full object-cover object-center"
           />
         </picture>
@@ -69,7 +99,7 @@ export default function Hero() {
         </div>
 
         {/* Mobile Product Showcase (Premium) */}
-        <div className="order-2 w-full lg:hidden block">
+        <div ref={carrousel} onScroll={suivreDefilement} className="order-3 lg:order-2 w-full lg:hidden block">
           <AnimateOnScroll delay={0.4}>
             <div className="mb-10 w-full relative">
               
@@ -94,7 +124,9 @@ export default function Hero() {
                     {/* Drop shadow underneath */}
                     <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[70%] h-4 bg-black/50 blur-[15px] rounded-[100%]" />
                     <img
-                      src="/images/mockup/guidz_mockup.png"
+                      src="/images/mockup/guidz_mockup.webp"
+                      loading="lazy"
+                      decoding="async"
                       alt="Aperçu Guidz sur le mur"
                       className="w-full h-auto object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)]"
                     />
@@ -111,7 +143,9 @@ export default function Hero() {
                     {/* Drop shadow underneath */}
                     <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[70%] h-4 bg-black/50 blur-[15px] rounded-[100%]" />
                     <img
-                      src="/images/mockup/guidz_chevalet.png"
+                      src="/images/mockup/guidz_chevalet.webp"
+                      loading="lazy"
+                      decoding="async"
                       alt="Guidz sur chevalet"
                       className="w-full h-auto object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)]"
                     />
@@ -120,17 +154,27 @@ export default function Hero() {
 
               </div>
               
-              {/* Scroll Indicator */}
-              <div className="absolute bottom-0 left-0 right-0 flex justify-center items-center gap-2 text-white/40 text-[10px] uppercase tracking-[0.2em] font-bold z-20">
-                <span className="animate-pulse">Faire défiler</span>
-                <ArrowRight size={12} className="animate-pulse text-[#C4714A]" />
+              {/* Points de navigation du carrousel */}
+              <div className="absolute bottom-0 left-0 right-0 flex justify-center items-center gap-2.5 z-20">
+                {[0, 1].map((index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => allerA(index)}
+                    aria-label={`Voir l’illustration ${index + 1}`}
+                    aria-current={vue === index}
+                    className={`h-2 rounded-full transition-all ${
+                      vue === index ? "w-6 bg-[#C4714A]" : "w-2 bg-white/40 hover:bg-white/70"
+                    }`}
+                  />
+                ))}
               </div>
             </div>
           </AnimateOnScroll>
         </div>
 
         {/* CTAs */}
-        <div className="max-w-2xl order-3">
+        <div className="max-w-2xl order-2 lg:order-3">
           <AnimateOnScroll delay={0.5}>
             <div className="flex flex-col sm:flex-row gap-4">
               <a

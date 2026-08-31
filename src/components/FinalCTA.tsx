@@ -68,7 +68,7 @@ export default function FinalCTA() {
 
               <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
                 <a
-                  href="#"
+                  href="#offres"
                   className="inline-flex items-center justify-center gap-3 px-10 py-5 rounded-full bg-[#C4714A] text-white font-bold text-lg hover:bg-[#A35A38] transition-all btn-press shadow-[0_10px_20px_rgba(196,113,74,0.3)] hover:shadow-[0_15px_30px_rgba(196,113,74,0.4)] hover:-translate-y-1 group"
                 >
                   Commander mon Guidz

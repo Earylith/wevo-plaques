@@ -1,6 +1,6 @@
 "use client";
 
-import { Leaf, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -21,12 +21,9 @@ export default function Footer() {
           
           {/* Brand Col */}
           <div className="lg:col-span-5 flex flex-col items-start">
-            <a href="#" className="flex items-center gap-3 group mb-6">
-              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center shadow-lg transition-transform duration-500 group-hover:scale-105 border border-white/10">
-                <Leaf size={16} className="text-[#EDD9A3]" />
-              </div>
+            <a href="#" className="flex items-center group mb-6">
               <span className="font-[family-name:var(--font-display)] text-3xl font-bold text-white tracking-tight">
-                Guidz<span className="text-[#C4714A]">.</span>
+                Guidzme<span className="text-[#C4714A]">.</span>
               </span>
             </a>
             <p className="text-sm md:text-base text-white/40 max-w-sm leading-relaxed font-light mb-10">

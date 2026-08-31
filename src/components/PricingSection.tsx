@@ -16,7 +16,7 @@ export default function PricingSection() {
       desc: "Une solution simple en paiement unique, avec page fixe et modifications à la demande.",
       features: [
         "1 support Guidz standard",
-        "Choix parmi 4 thèmes",
+        "Choix parmi 4 couleurs",
         "QR code unique",
         "Page mobile dédiée",
         "Wi‑Fi",
@@ -37,13 +37,13 @@ export default function PricingSection() {
       price: "69",
       popular: true,
       badge: "La plus populaire",
-      desc: "Modifiez votre Guidz quand vous voulez depuis votre espace",
+      desc: "Modifiez votre guide en illimité depuis votre espace",
       features: [
         "Toutes les fonctionnalités de l'Essentiel",
         "1 Support Guidz personnalisé",
         "Couleurs personnalisées",
         "Nom du logement",
-        "Logo ou visuel du logement",
+        "Phrase personnalisée gravée",
         "Message de bienvenue",
         "Recommandations locales",
         "Page multilingue",
@@ -256,8 +256,8 @@ export default function PricingSection() {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {[
-                        { name: "Support Guidz en bois", ess: "Standard (4 thèmes)", conf: "100% Personnalisé", hl: true },
-                        { name: "Nom & Logo sur le support", ess: "-", conf: "check", hl: false },
+                        { name: "Support Guidz en bois", ess: "Standard (4 couleurs)", conf: "100% Personnalisé", hl: true },
+                        { name: "Phrase personnalisée gravée", ess: "-", conf: "check", hl: false },
                         { name: "Page mobile dédiée", ess: "check-green", conf: "check", hl: false },
                         { name: "Wi-Fi, Horaires, Consignes, Contacts", ess: "check-green", conf: "check", hl: false },
                         { name: "Transports & Recommandations", ess: "-", conf: "check", hl: false },

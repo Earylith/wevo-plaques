@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Leaf } from "lucide-react";
+import { Menu, X } from "lucide-react";
 
 const navLinks = [
   { label: "Concept", href: "#concept" },
@@ -34,12 +34,9 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className={`flex items-center justify-between transition-all duration-700 ${scrolled ? "h-16" : "h-24"}`}>
           {/* Logo */}
-          <a href="#" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-full bg-[#2A2016] flex items-center justify-center shadow-md transition-transform duration-500 group-hover:scale-105">
-              <Leaf size={16} className="text-[#EDD9A3]" />
-            </div>
+          <a href="#" className="flex items-center group">
             <span className="font-[family-name:var(--font-display)] text-2xl font-bold text-[#2A2016] tracking-tight">
-              Guidz<span className="text-[#C4714A]">.</span>
+              Guidzme<span className="text-[#C4714A]">.</span>
             </span>
           </a>
 
