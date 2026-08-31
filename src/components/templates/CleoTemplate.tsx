@@ -110,7 +110,7 @@ const GRID_SPAN: Record<ModuleId, string> = {
  * voisines de contenus inégaux s'égalisent proprement.
  */
 function GridCard({
-  span, Icon, tint, title, titleFont, onOpen, onSelect, extraClass, children,
+  span, Icon, tint, title, titleFont, titleColor, onOpen, onSelect, extraClass, children,
 }: {
   id: ModuleId;
   span: string;
@@ -118,6 +118,8 @@ function GridCard({
   tint: { bg: string; fg: string };
   title: string;
   titleFont: string;
+  /** Couleur choisie par l'hôte : c'est sur les titres qu'elle se voit. */
+  titleColor: string;
   onOpen: () => void;
   onSelect: () => void;
   extraClass: string;
@@ -140,7 +142,7 @@ function GridCard({
           >
             <Icon size={16} weight="duotone" />
           </span>
-          <h3 className={`text-[12px] xl:text-[13px] font-extrabold text-[#2A2016] truncate ${titleFont}`}>{title}</h3>
+          <h3 className={`text-[12px] xl:text-[13px] font-extrabold truncate ${titleFont}`} style={{ color: titleColor }}>{title}</h3>
         </div>
         <div className="w-6 h-6 rounded-full bg-gray-100/90 group-hover:bg-[#2A2016] group-hover:text-white text-[#8A8078] flex items-center justify-center transition-all shrink-0">
           <CaretRight size={11} weight="bold" />
@@ -734,7 +736,7 @@ export default function CleoTemplate({
             <div className="w-14 h-14 rounded-2xl bg-[#FFF6E9] text-[#C98A17] flex items-center justify-center mx-auto">
               <HandWaving size={28} weight="duotone" />
             </div>
-            <h3 className={`text-xl font-bold text-[#2A2016] ${titleFont}`}>
+            <h3 className={`text-xl font-bold ${titleFont}`} style={{ color: primaryColor }}>
               {t("welcome")} {data.owner?.name ? `— ${data.owner.name}` : ""}
             </h3>
             <p className="text-sm text-[#4A3D30] leading-relaxed whitespace-pre-line">
@@ -783,7 +785,7 @@ export default function CleoTemplate({
                 <span className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: primaryColor }}>
                   {t("howItWorks")}
                 </span>
-                <h3 className="text-base font-bold text-[#2A2016]">{t("yourEquipment")}</h3>
+                <h3 className="text-base font-bold" style={{ color: primaryColor }}>{t("yourEquipment")}</h3>
                 <p className="text-xs text-[#8A8078]">
                   {equipments.length} {equipments.length > 1 ? t("equipmentsAvailable") : t("equipmentAvailable")} · {t("openForInstructions")}
                 </p>
@@ -883,7 +885,7 @@ export default function CleoTemplate({
               </div>
               <div>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider" style={{ color: primaryColor }}>{t("localBook")}</span>
-                <h3 className="text-base font-bold text-[#2A2016]">{t("discoverAround")}</h3>
+                <h3 className="text-base font-bold" style={{ color: primaryColor }}>{t("discoverAround")}</h3>
                 <p className="text-xs text-[#8A8078]">{recommendations.length} {recommendations.length > 1 ? t("addressesSelected") : t("addressSelected")}</p>
               </div>
             </div>
@@ -1046,7 +1048,7 @@ export default function CleoTemplate({
             <div className="w-14 h-14 rounded-2xl bg-[#F5EFFF] text-[#7048B6] flex items-center justify-center mx-auto">
               <BookBookmark size={28} weight="duotone" />
             </div>
-            <h3 className={`text-lg font-bold text-[#2A2016] ${titleFont}`}>{t("guestbookTitle")}</h3>
+            <h3 className={`text-lg font-bold ${titleFont}`} style={{ color: primaryColor }}>{t("guestbookTitle")}</h3>
             <p className="text-xs text-[#8A8078] leading-relaxed max-w-xs mx-auto">
               Votre séjour touche à sa fin ? Écrivez quelques lignes à {data.owner?.name || "votre hôte"} —
               cela fait toujours plaisir.
@@ -1776,7 +1778,7 @@ export default function CleoTemplate({
           <div className="hidden @4xl:block space-y-3">
             <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-2xl bg-white/75 backdrop-blur-md border border-white/90 shadow-2xs text-[11px] text-[#6B5D4E] font-semibold text-center">
               <span className="text-amber-500 font-bold">💡 Astuce :</span>
-              <span>Cliquez sur n'importe quelle carte pour l'agrandir et consulter le guide complet.</span>
+              <span>Cliquez sur n&apos;importe quelle carte pour l&apos;agrandir et consulter le guide complet.</span>
             </div>
             <div className="grid grid-cols-6 gap-4 auto-rows-fr [grid-auto-flow:row_dense]">
               {gridOrder.map((id) => {
@@ -1793,6 +1795,7 @@ export default function CleoTemplate({
                     tint={MODULE_TINTS[id]}
                     title={moduleLabel(activeLang, id)}
                     titleFont={titleFont}
+                    titleColor={primaryColor}
                     onOpen={() => openModuleAndEdit(id)}
                     onSelect={() => activate(id)}
                     extraClass={hotClass(id)}

@@ -5,6 +5,7 @@ import {
   Check, Warning, Spinner, ArrowSquareOut, Package, Lock,
 } from "@phosphor-icons/react";
 import { Accommodation, PlaqueConfig, PlaqueWood, PlaqueOrder, ORDER_STATUS_LABELS } from "@/lib/types/accommodation";
+import VerrouConfort from "@/components/admin/editor/VerrouConfort";
 
 /**
  * Onglet « Plaque » de l'éditeur.
@@ -161,6 +162,10 @@ export default function PlaqueTab({
       </ul>
 
       {/* ── Phrase gravée ── */}
+      <VerrouConfort
+        verrouille={data.offerType !== "comfort"}
+        argument="Faites graver votre propre phrase au bas de la plaque, à la place du texte standard."
+      >
       <div className="space-y-2 pt-4 border-t border-[#EDD9A3]/60">
         <h3 className="font-[family-name:var(--font-display)] text-[15px] font-bold text-[#5C3D2E]">
           Votre phrase
@@ -203,6 +208,7 @@ export default function PlaqueTab({
           </span>
         </div>
       </div>
+      </VerrouConfort>
 
 
       {/* ── Commandes passées ── */}

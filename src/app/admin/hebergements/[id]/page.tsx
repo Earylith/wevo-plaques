@@ -2,7 +2,6 @@
 
 import { useState, useEffect, use, useRef } from "react";
 import { useRouter } from "next/navigation";
-import AdminAccommodationForm from "@/components/admin/AdminAccommodationForm";
 import AdminModernTileEditor from "@/components/admin/AdminModernTileEditor";
 import { getAdminAccommodationById, updateAdminAccommodation, detachOwnerAccount } from "../../actions";
 import { Accommodation } from "@/lib/types/accommodation";
@@ -62,23 +61,6 @@ export default function EditAccommodationPage({ params }: Props) {
       cancelled = true;
     };
   }, [id, router, reloadToken]);
-
-  /**
-   * Enregistrement depuis le formulaire classique : on repart vers la liste.
-   */
-  const handleSubmitAndLeave = async (updatedData: Omit<Accommodation, "id" | "createdAt" | "updatedAt">) => {
-    setIsSubmitting(true);
-    try {
-      await updateAdminAccommodation(id, updatedData);
-      router.push("/admin/hebergements");
-      router.refresh();
-    } catch (error) {
-      console.error("Erreur lors de la mise à jour :", error);
-      alert("Une erreur est survenue lors de la mise à jour.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   /**
    * Enregistrement depuis l'éditeur en direct : on RESTE sur la page pour
@@ -341,34 +323,20 @@ export default function EditAccommodationPage({ params }: Props) {
     </div>
   );
 
-  /* ── Éditeur nouvelle génération (plein écran) ─────────────────────── */
-  const useModernEditor = data.template === "cleo" || data.slug === "demo-confort2";
-
-  if (useModernEditor) {
-    return (
-      <AdminModernTileEditor
-        initialData={data}
-        onSubmit={handleSubmitInPlace}
-        isLoading={isSubmitting}
-        ownerPanel={ownerPanel}
-        externalPatchRef={applyToEditor}
-      />
-    );
-  }
-
-  /* ── Formulaire classique ──────────────────────────────────────────── */
+  /*
+   * Un seul éditeur, quelle que soit la formule.
+   *
+   * L'Essentielle passait par un formulaire distinct, moins abouti et
+   * entretenu en double. Elle utilise le même écran : ce qui relève du
+   * Confort y est grisé, et l'aperçu prend le gabarit de sa formule.
+   */
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-[#2A2016]">
-          Modifier le logement
-        </h1>
-        <p className="text-sm text-[#6B5D4E] mt-1">Édition de {data.property.name}</p>
-      </div>
-
-      <div className="mb-8">{ownerPanel}</div>
-
-      <AdminAccommodationForm initialData={data} onSubmit={handleSubmitAndLeave} isLoading={isSubmitting} />
-    </div>
+    <AdminModernTileEditor
+      initialData={data}
+      onSubmit={handleSubmitInPlace}
+      isLoading={isSubmitting}
+      ownerPanel={ownerPanel}
+      externalPatchRef={applyToEditor}
+    />
   );
 }

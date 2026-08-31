@@ -17,6 +17,8 @@ import PlaceSearch from "@/components/admin/editor/PlaceSearch";
 import TranslationsTab from "@/components/admin/editor/TranslationsTab";
 import PlaqueTab, { essenceCommandable, TAGLINE_PAR_DEFAUT } from "@/components/admin/editor/PlaqueTab";
 import PlaquePreview from "@/components/admin/editor/PlaquePreview";
+import VerrouConfort from "@/components/admin/editor/VerrouConfort";
+import EssentialTemplate from "@/components/templates/EssentialTemplate";
 import { ouvrirPaiementConfort } from "@/app/paiement-actions";
 import StatsPanel from "@/components/admin/editor/StatsPanel";
 import LibraryPicker, { PickedEntry } from "@/components/admin/editor/LibraryPicker";
@@ -132,6 +134,13 @@ export default function AdminModernTileEditor({
 }: Props) {
   const estAdmin = role === "admin";
   const [data, setData] = useState<Accommodation>(initialData);
+  /**
+   * La formule décide de ce qui est ouvert et de l'allure de l'aperçu.
+   *
+   * On lit les données courantes et non l’instantané initial : l'admin peut changer la formule en
+   * cours d'édition, et l'écran doit suivre immédiatement.
+   */
+  const estConfort = data.offerType === "comfort";
   // On ouvre sur la PREMIÈRE rubrique de la barre : sans ça, le bouton
   // « Suivant » sauterait la rubrique d'ouverture, qu'on n'atteindrait qu'en
   // revenant en arrière.
@@ -2066,7 +2075,16 @@ export default function AdminModernTileEditor({
             )}
 
             {/* ─────── APPARENCE ─────── */}
-            {editorSection === "apparence" && (
+            {editorSection === "apparence" && !estConfort && (
+              <VerrouConfort
+                verrouille
+                argument="Couleurs, typographie et photos personnalisées donnent à votre page l’allure de votre logement."
+              >
+                <div className="h-64" />
+              </VerrouConfort>
+            )}
+
+            {editorSection === "apparence" && estConfort && (
               <>
                 {renderSectionIntro("apparence")}
 
@@ -2210,6 +2228,10 @@ export default function AdminModernTileEditor({
             {editorSection === "diffusion" && renderSectionIntro("diffusion")}
 
             {editorSection === "diffusion" && (
+              <VerrouConfort
+                verrouille={!estConfort}
+                argument="Vos voyageurs étrangers lisent le livret dans leur langue, traduit automatiquement."
+              >
               <TranslationsTab
                 data={data}
                 onLayerChange={updateTranslationLayer}
@@ -2222,6 +2244,7 @@ export default function AdminModernTileEditor({
                   }))
                 }
               />
+              </VerrouConfort>
             )}
 
             {editorSection === "diffusion" && (
@@ -2237,7 +2260,11 @@ export default function AdminModernTileEditor({
                   <div className="mx-auto w-full max-w-[320px] rounded-[2rem] border-4 border-gray-800 bg-black p-2 shadow-xl">
                     <div className="h-[520px] rounded-[1.5rem] overflow-hidden bg-[#FBF5EC] relative grid">
                       <div className="overflow-y-auto min-h-0 hide-scrollbar overscroll-contain">
-                        <CleoTemplate data={data} inlineModal />
+                        {estConfort ? (
+                          <CleoTemplate data={data} inlineModal />
+                        ) : (
+                          <EssentialTemplate data={data} />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -2413,15 +2440,19 @@ export default function AdminModernTileEditor({
               */}
               <div className="w-full h-full bg-[#FBF5EC] rounded-[2.2rem] relative overflow-hidden grid">
                 <div className="overflow-y-auto min-h-0 hide-scrollbar overscroll-contain">
-                  <CleoTemplate
-                    data={data}
-                    inlineModal
-                    editable={!previewAsGuest}
-                    activeModule={previewAsGuest ? undefined : openModule}
-                    onActiveModuleChange={previewAsGuest ? undefined : handlePreviewModuleChange}
-                    onSelect={handlePreviewSelect}
-                    selected={selected}
-                  />
+                  {estConfort ? (
+                    <CleoTemplate
+                      data={data}
+                      inlineModal
+                      editable={!previewAsGuest}
+                      activeModule={previewAsGuest ? undefined : openModule}
+                      onActiveModuleChange={previewAsGuest ? undefined : handlePreviewModuleChange}
+                      onSelect={handlePreviewSelect}
+                      selected={selected}
+                    />
+                  ) : (
+                    <EssentialTemplate data={data} />
+                  )}
                 </div>
               </div>
             </div>
@@ -2439,15 +2470,19 @@ export default function AdminModernTileEditor({
               </div>
               <div className="flex-1 min-h-0 bg-[#FBF5EC] relative overflow-hidden grid">
                 <div className="overflow-y-auto min-h-0 overscroll-contain">
-                  <CleoTemplate
-                    data={data}
-                    inlineModal
-                    editable={!previewAsGuest}
-                    activeModule={previewAsGuest ? undefined : openModule}
-                    onActiveModuleChange={previewAsGuest ? undefined : handlePreviewModuleChange}
-                    onSelect={handlePreviewSelect}
-                    selected={selected}
-                  />
+                  {estConfort ? (
+                    <CleoTemplate
+                      data={data}
+                      inlineModal
+                      editable={!previewAsGuest}
+                      activeModule={previewAsGuest ? undefined : openModule}
+                      onActiveModuleChange={previewAsGuest ? undefined : handlePreviewModuleChange}
+                      onSelect={handlePreviewSelect}
+                      selected={selected}
+                    />
+                  ) : (
+                    <EssentialTemplate data={data} />
+                  )}
                 </div>
               </div>
             </div>
