@@ -6,7 +6,7 @@ import AnimateOnScroll from "./AnimateOnScroll";
  *
  * Le résumé de chaque carte reprend le message d'accueil du livret : la carte
  * doit annoncer ce que le visiteur va réellement trouver derrière le lien.
- * Les pastilles restent thématiques, sans chiffres — le contenu des démos vit
+ * Les repères restent thématiques, sans chiffres — le contenu des démos vit
  * dans Firestore, un décompte figé ici finirait par mentir.
  */
 const livrets = [
@@ -22,7 +22,7 @@ const livrets = [
     icone: Building2,
     accent: "#2B5F75",
     accentPale: "#E4EEF3",
-    pastilles: ["Métro & transports", "Bonnes adresses"],
+    reperes: "Métro & transports · Bonnes adresses",
   },
   {
     slug: "demo-biarritz",
@@ -36,7 +36,7 @@ const livrets = [
     icone: Waves,
     accent: "#4A849E",
     accentPale: "#E4EEF3",
-    pastilles: ["Local à planches", "Options sur place"],
+    reperes: "Local à planches · Options sur place",
   },
   {
     slug: "demo-chamonix",
@@ -50,7 +50,7 @@ const livrets = [
     icone: Mountain,
     accent: "#5A7A4E",
     accentPale: "#EBF0E6",
-    pastilles: ["Ski room & garage", "Consignes d'hiver"],
+    reperes: "Ski room & garage · Consignes d'hiver",
   },
   {
     slug: "demo-confort2",
@@ -64,7 +64,7 @@ const livrets = [
     icone: Sun,
     accent: "#C4714A",
     accentPale: "#F7EBE4",
-    pastilles: ["Calanques & plages", "Codes d'accès"],
+    reperes: "Calanques & plages · Codes d'accès",
   },
 ];
 
@@ -83,79 +83,90 @@ export default function LivretsDemoSection() {
         <AnimateOnScroll>
           <div className="text-center max-w-2xl mx-auto">
             <span className="section-label section-label-ocean mb-5 inline-flex">
-              Côté voyageur
+              Côté voyageurs
             </span>
             <h2 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl font-bold text-[#2A2016] leading-tight mb-5 mt-5">
-              Quatre livrets Confort,{" "}
-              <em className="not-italic text-gradient-terra">quatre ambiances</em>
+              Ouvrez un <em className="not-italic text-gradient-terra">vrai livret</em>
             </h2>
             <p className="text-lg text-[#6B5D4E] leading-relaxed">
-              Ce sont de vraies pages, celles que vos voyageurs découvrent après avoir scanné la
-              plaque. Ouvrez-en une, de préférence sur votre téléphone.
+              Parcourez nos quatre livrets de présentation. Ce sont des pages en ligne, pas des
+              maquettes : exactement ce que vos voyageurs découvrent après avoir scanné la plaque.
             </p>
           </div>
         </AnimateOnScroll>
 
-        <div className="mt-12 lg:mt-16 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 lg:gap-8">
+        <div className="mt-12 lg:mt-16 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6">
           {livrets.map((livret, index) => (
             <AnimateOnScroll key={livret.slug} delay={0.1 + index * 0.08} className="h-full">
+              {/*
+                Carte « produit » : la photo est encadrée à l'intérieur du
+                carton, pas à ses bords, et le contour est une ombre plutôt
+                qu'un trait. C'est la marge blanche autour de l'image qui donne
+                l'impression d'un objet posé.
+              */}
               <a
                 href={`/${livret.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group card-hover flex h-full flex-col overflow-hidden rounded-[28px] bg-white border border-[#EDD9A3]/50 shadow-[0_12px_30px_rgba(42,32,22,0.05)]"
+                className="group flex h-full flex-col rounded-[30px] bg-white p-3 ring-1 ring-[#2A2016]/[0.06] shadow-[0_1px_2px_rgba(42,32,22,0.04),0_8px_24px_-12px_rgba(42,32,22,0.14)] transition-all duration-500 ease-out hover:-translate-y-1.5 hover:shadow-[0_2px_4px_rgba(42,32,22,0.04),0_28px_50px_-18px_rgba(42,32,22,0.28)]"
               >
                 {/* Photo de couverture */}
-                <div className="relative h-48 overflow-hidden">
+                <div className="relative aspect-[4/3] overflow-hidden rounded-[22px] bg-[#F0E8D6]">
                   <img
                     src={livret.image}
                     alt={`${livret.nom}, ${livret.ville}`}
                     loading="lazy"
                     decoding="async"
-                    className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                    className="h-full w-full object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.06]"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#2A2016]/60 via-transparent to-transparent" />
-                  <span
-                    className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider shadow-sm backdrop-blur-sm"
-                    style={{ color: livret.accent }}
-                  >
-                    <livret.icone size={13} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#2A2016]/25 via-transparent to-transparent" />
+                  <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-[11px] font-semibold tracking-tight text-[#2A2016] shadow-[0_2px_8px_rgba(42,32,22,0.12)] backdrop-blur-md">
+                    <livret.icone size={13} style={{ color: livret.accent }} />
                     {livret.ville}
                   </span>
                 </div>
 
                 {/* Contenu */}
-                <div className="flex flex-1 flex-col p-6">
+                <div className="flex flex-1 flex-col px-3 pb-2 pt-5">
                   <p
-                    className="text-[11px] font-bold uppercase tracking-widest mb-1.5"
+                    className="text-[11px] font-semibold uppercase tracking-[0.14em] mb-2"
                     style={{ color: livret.accent }}
                   >
                     {livret.type}
                   </p>
-                  <h3 className="font-[family-name:var(--font-display)] text-2xl font-bold text-[#2A2016] leading-snug mb-3">
+                  <h3 className="text-[19px] font-bold tracking-[-0.02em] text-[#2A2016] leading-snug mb-2.5">
                     {livret.nom}
                   </h3>
-                  <p className="text-sm leading-relaxed text-[#6B5D4E] mb-5">{livret.resume}</p>
+                  <p className="text-[13.5px] leading-relaxed text-[#6B5D4E]">{livret.resume}</p>
 
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {livret.pastilles.map((pastille) => (
+                  <p className="mt-4 mb-6 text-[11.5px] font-medium text-[#9C8F80]">{livret.reperes}</p>
+
+                  <div className="mt-auto flex items-center justify-between border-t border-[#2A2016]/[0.07] pt-5">
+                    <span
+                      className="text-[13px] font-semibold tracking-tight"
+                      style={{ color: livret.accent }}
+                    >
+                      Ouvrir le livret
+                    </span>
+                    {/*
+                      Pastille de lien : le fond plein n'apparaît qu'au survol.
+                      La flèche hérite sa couleur du parent, une classe la
+                      repasse en blanc — l'héritage cède devant la règle.
+                    */}
+                    <span
+                      className="relative flex h-9 w-9 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-105"
+                      style={{ backgroundColor: livret.accentPale, color: livret.accent }}
+                    >
                       <span
-                        key={pastille}
-                        className="rounded-full px-3 py-1 text-[11px] font-semibold"
-                        style={{ backgroundColor: livret.accentPale, color: livret.accent }}
-                      >
-                        {pastille}
-                      </span>
-                    ))}
+                        className="absolute inset-0 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                        style={{ backgroundColor: livret.accent }}
+                      />
+                      <ArrowUpRight
+                        size={17}
+                        className="relative transition-colors duration-300 group-hover:text-white"
+                      />
+                    </span>
                   </div>
-
-                  <span
-                    className="mt-auto inline-flex items-center gap-2 text-sm font-bold transition-transform duration-300 group-hover:translate-x-1"
-                    style={{ color: livret.accent }}
-                  >
-                    Ouvrir le livret
-                    <ArrowUpRight size={17} />
-                  </span>
                 </div>
               </a>
             </AnimateOnScroll>
@@ -164,8 +175,8 @@ export default function LivretsDemoSection() {
 
         <AnimateOnScroll delay={0.4}>
           <p className="mt-10 text-center text-sm text-[#6B5D4E]">
-            Chaque livret est modifiable depuis l&apos;éditeur, sans toucher à la plaque ni au QR
-            code.
+            À regarder de préférence sur votre téléphone — chaque livret reste modifiable depuis
+            l&apos;éditeur, sans toucher à la plaque ni au QR code.
           </p>
         </AnimateOnScroll>
       </div>

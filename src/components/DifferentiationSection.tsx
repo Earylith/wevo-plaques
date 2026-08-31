@@ -110,13 +110,14 @@ export default function DifferentiationSection() {
                   ))}
                 </ul>
                 <div className="rounded-3xl overflow-hidden shadow-inner bg-gray-50 mt-auto relative border border-gray-100 group-hover:border-[#EDD9A3]/50 transition-colors duration-500">
-                  <img 
-                    src="/images/mockup/guidz_mockup.webp"
+                  <img
+                    src="/images/mockup/guidz_physique.webp"
                     loading="lazy"
                     decoding="async"
-                    
-                    alt="Support Guidz" 
-                    className="w-full h-auto object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out" 
+                    width={1000}
+                    height={1150}
+                    alt="Une voyageuse scanne le QR code de la plaque Guidz avec son téléphone"
+                    className="w-full h-auto object-cover group-hover:scale-[1.03] transition-transform duration-700 ease-out"
                   />
                   {/* Subtle overlay gloss */}
                   <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />

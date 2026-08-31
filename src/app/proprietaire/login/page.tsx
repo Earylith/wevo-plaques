@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn, sendPasswordReset } from "@/lib/firebase/auth";
-import { getAccommodationsByOwnerEmail } from "@/lib/firebase/firestore";
-import { House } from "@phosphor-icons/react";
+import { signIn, signInWithGoogle, sendPasswordReset } from "@/lib/firebase/auth";
+import { House, GoogleLogo } from "@phosphor-icons/react";
 
 type Mode = "login" | "forgot";
 
@@ -17,27 +16,40 @@ export default function ProprietaireLogin() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  /*
+   * Entrée dans l'espace, une fois l'identité établie.
+   *
+   * On ne cherche plus le livret ici. Le tableau de bord le retrouve par
+   * `ownerUid`, alors que cette page interrogeait `owner.email` : un livret
+   * pouvait exister sans que cette recherche le voie, et l'hôte se voyait
+   * refuser l'entrée chez lui. L'espace sait déjà accueillir un compte sans
+   * livret et proposer de choisir une formule.
+   */
+
+  const avecGoogle = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      await signInWithGoogle();
+      router.push("/proprietaire/dashboard");
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code;
+      if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
+        setError("Connexion Google interrompue.");
+      } else {
+        setError("La connexion Google a échoué. Réessayez.");
+      }
+      setLoading(false);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const credential = await signIn(email, password);
-      const accommodations = await getAccommodationsByOwnerEmail(credential.user.email!);
-      if (!accommodations || accommodations.length === 0) {
-        setError("Aucun hébergement associé à cet email.");
-        await import("@/lib/firebase/auth").then(m => m.signOut());
-        setLoading(false);
-        return;
-      }
-      
-      // Si au moins un hébergement demande un changement de mot de passe (première connexion)
-      const mustChangePassword = accommodations.some(acc => acc.mustChangePassword);
-      if (mustChangePassword) {
-        router.push("/proprietaire/change-password");
-      } else {
-        router.push("/proprietaire/dashboard");
-      }
+      await signIn(email, password);
+      router.push("/proprietaire/dashboard");
     } catch (err: unknown) {
       const firebaseError = err as { code?: string };
       if (firebaseError.code === "auth/invalid-credential" || firebaseError.code === "auth/wrong-password" || firebaseError.code === "auth/user-not-found") {
@@ -83,6 +95,23 @@ export default function ProprietaireLogin() {
 
         <div className="bg-white rounded-3xl p-8 shadow-md border border-[#EDD9A3]/40">
           {mode === "login" ? (
+            <>
+              <button
+                type="button"
+                onClick={() => void avecGoogle()}
+                disabled={loading}
+                className="w-full flex items-center justify-center gap-2.5 py-3 rounded-xl border border-[#EDD9A3] bg-white text-[#2A2016] font-semibold hover:bg-[#FBF5EC] transition-colors disabled:opacity-60"
+              >
+                <GoogleLogo size={18} weight="bold" />
+                Continuer avec Google
+              </button>
+
+              <div className="flex items-center gap-3 my-5">
+                <span className="h-px flex-1 bg-[#EDD9A3]" />
+                <span className="text-[11px] uppercase tracking-wider text-[#B0A090] font-semibold">ou</span>
+                <span className="h-px flex-1 bg-[#EDD9A3]" />
+              </div>
+
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-[#6B5D4E] uppercase tracking-wider mb-1.5">
@@ -133,6 +162,7 @@ export default function ProprietaireLogin() {
                 Mot de passe oublié ?
               </button>
             </form>
+            </>
           ) : (
             <form onSubmit={handleForgotPassword} className="space-y-4">
               <div>

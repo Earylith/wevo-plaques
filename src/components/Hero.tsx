@@ -115,7 +115,7 @@ export default function Hero() {
               
               <div className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-10 pt-4 px-6 hide-scrollbar relative z-10 items-center -mx-6">
                 
-                {/* Item 1: Mockup sur le mur */}
+                {/* Item 1 : la plaque en situation, scannée */}
                 <div className="snap-center shrink-0 w-full relative flex justify-center">
                   <motion.div
                     animate={{ y: [0, -12, 0] }}
@@ -125,10 +125,10 @@ export default function Hero() {
                     {/* Drop shadow underneath */}
                     <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[70%] h-4 bg-black/50 blur-[15px] rounded-[100%]" />
                     <img
-                      src="/images/mockup/guidz_mockup.webp"
+                      src="/images/mockup/guidz_physique.webp"
                       loading="lazy"
                       decoding="async"
-                      alt="Aperçu Guidz sur le mur"
+                      alt="Une voyageuse scanne le QR code de la plaque Guidz avec son téléphone"
                       className="w-full h-auto object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)]"
                     />
                   </motion.div>

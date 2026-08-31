@@ -68,7 +68,7 @@ export default function ProprietaireLayout({ children }: { children: React.React
             }`}
           >
             <House size={18} />
-            Mon hébergement
+            Mon tableau de bord
           </Link>
         </nav>
 
