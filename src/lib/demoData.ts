@@ -1,52 +1,92 @@
 import { Accommodation } from "./types/accommodation";
 
+/**
+ * Démonstration de la formule Essentielle.
+ *
+ * Elle remplit TOUS les champs que la formule permet de modifier, et aucun
+ * autre : pas de message d'accueil personnalisé, pas de photos, pas de bonnes
+ * adresses — ce sont des promesses de la formule Confort.
+ *
+ * Ce jeu ne s'affiche qu'en secours, si Firestore est injoignable. La vitrine
+ * réelle est le livret `demo-essentielle`, modifiable depuis l'administration.
+ */
 export const demoEssentielle: Accommodation = {
   id: "demo-essentielle",
   slug: "demo-essentielle",
   isActive: true,
   offerType: "essential",
-  owner: { name: "L'équipe La Petite Boire", email: "contact@lapetiteboire.fr", phone: "06 12 34 56 78" },
-  property: { 
-    name: "La Petite Boire", 
-    type: "Chambres d'hôtes", 
-    city: "Villandry", 
-    welcomeMessage: "Nous sommes ravis de vous accueillir à La Petite Boire. Nous espérons que vous passerez un excellent séjour. Retrouvez ici toutes les informations utiles pour profiter pleinement de votre séjour.",
-    mainImageUrl: "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
+  template: "essential",
+
+  owner: {
+    name: "Camille Ferrand",
+    email: "camille@closdesoliviers.fr",
+    phone: "06 24 71 08 33",
   },
-  wifi: { ssid: "LaPetiteBoire_5G", password: "Bienvenue2024" },
-  practicalInfo: { 
-    checkin: "À partir de 17h", 
-    checkout: "Avant 11h", 
-    parking: "Parking privé disponible sur place", 
-    breakfast: "Servi de 8h30 à 10h" 
+  property: {
+    name: "Le Clos des Oliviers",
+    type: "Maison de village",
+    address: "14 rue des Remparts, 84160 Lourmarin",
+    city: "Lourmarin",
+    welcomeMessage: "",
+    gallery: [],
+    timezone: "Europe/Paris",
   },
+
+  wifi: { ssid: "ClosDesOliviers", password: "Lourmarin2026" },
+  codes: [
+    { label: "Portail de la rue", value: "14A72" },
+    { label: "Boîte à clés", value: "3081" },
+  ],
+
+  practicalInfo: {
+    checkin: "16h00",
+    checkout: "10h30",
+    arrivalNotes:
+      "La boîte à clés est fixée à gauche du portail, sous la boîte aux lettres.\nEntrez le code, récupérez le trousseau, et refermez bien le clapet.",
+    departureNotes:
+      "Laissez les clés dans la boîte, code inchangé. Un message me suffit pour me prévenir de votre départ.",
+    parking: "Place réservée n°3 dans la cour, entrée par la rue des Remparts",
+    breakfast: "Panier du boulanger sur demande, à commander la veille avant 18h",
+    departureInstructions: [
+      { text: "Sortir les poubelles (containers au bout de la rue)", required: true },
+      { text: "Lancer le lave-vaisselle", required: false },
+      { text: "Fermer les volets du rez-de-chaussée", required: true },
+      { text: "Remettre les clés dans la boîte", required: true },
+    ],
+  },
+
   rules: [
-    "Merci de ne pas fumer à l'intérieur",
-    "Les animaux ne sont pas admis",
-    "Merci de respecter le calme après 22h",
-    "Merci de fermer les portes et fenêtres en partant"
+    "Logement non-fumeur à l'intérieur",
+    "Pas de fête ni d'événement",
+    "Calme entre 22h et 8h — les murs sont anciens",
+    "Animaux acceptés sur demande préalable",
   ],
+
   contacts: [
-    { label: "La Petite Boire", name: "Réception", phone: "06 12 34 56 78", type: "owner" },
-    { label: "Urgences", name: "Secours 112", phone: "112", type: "emergency" },
-    { label: "Médecin de garde", name: "Médecin", phone: "02 47 47 47 47", type: "emergency" },
-    { label: "Pharmacie de garde", name: "Pharmacie", phone: "32 37", type: "emergency" },
+    { label: "Gardien", name: "Marc Aubry", phone: "06 11 45 22 90", type: "other" },
+    { label: "Ménage", name: "Sonia", phone: "06 78 90 12 34", type: "other" },
+    { label: "SAMU", name: "SAMU", phone: "15", type: "emergency" },
+    { label: "Pompiers", name: "Pompiers", phone: "18", type: "emergency" },
+    { label: "Police", name: "Police", phone: "17", type: "emergency" },
+    { label: "Urgences Europe", name: "Urgences Europe", phone: "112", type: "emergency" },
   ],
-  recommendations: [
-    { title: "Le Bistrot de la Place", category: "Cuisine traditionnelle", distance: "5 min", description: "Un charmant bistrot proposant une cuisine locale.", mapsUrl: "https://maps.google.com" },
-    { title: "La Table d'à Côté", category: "Gastronomique", distance: "8 min", description: "Restaurant étoilé pour une occasion spéciale.", mapsUrl: "https://maps.google.com" },
-    { title: "Pizza Marco", category: "Pizzeria", distance: "6 min", description: "D'excellentes pizzas au feu de bois.", mapsUrl: "https://maps.google.com" },
-    { title: "Château de Villandry", category: "À découvrir", distance: "20 min en voiture", description: "Magnifique château avec des jardins à la française exceptionnels.", mapsUrl: "https://maps.google.com" },
-    { title: "Bords de Loire", category: "À découvrir", distance: "15 min en voiture", description: "Idéal pour une balade à vélo ou à pied.", mapsUrl: "https://maps.google.com" },
-  ],
+
+  equipments: [],
+  recommendations: [],
   pointsOfInterest: [],
+  transportLines: [],
+
   comfortOptions: {
-    transports: "",
     faq: [],
-    theme: { primaryColor: "#C4714A" }
+    upsells: [],
+    theme: { primaryColor: "#5A7A4E", fontFamily: "classic" },
+    enabledLanguages: ["fr"],
   },
+
+  display: { weather: false, map: false, desktopLayout: "list" },
+
   createdAt: Date.now(),
-  updatedAt: Date.now()
+  updatedAt: Date.now(),
 };
 
 export const demoConfort: Accommodation = {
