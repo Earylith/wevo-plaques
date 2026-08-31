@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { CaretDown, CaretUp, Check, Translate, Warning, Sparkle, Spinner } from "@phosphor-icons/react";
+import { Check, Translate, Warning, Sparkle, Spinner } from "@phosphor-icons/react";
 import { translateTexts, TargetLang } from "@/app/admin/translate";
 import { Accommodation } from "@/lib/types/accommodation";
 import { LANGS, TranslatableLang, TranslationLayer, Translations } from "@/lib/i18n";
@@ -35,10 +35,11 @@ interface GroupSpec {
 
 interface TranslationsTabProps {
   data: Accommodation;
-  lang: TranslatableLang;
-  onLangChange: (lang: TranslatableLang) => void;
-  /** Applique une modification au calque de la langue courante. */
-  onLayerChange: (mutate: (layer: TranslationLayer) => TranslationLayer) => void;
+  /** Applique une modification au calque d'une langue donnée. */
+  onLayerChange: (
+    lang: TranslatableLang,
+    mutate: (layer: TranslationLayer) => TranslationLayer
+  ) => void;
   /** Langues proposées au voyageur. */
   enabled: string[];
   onEnabledChange: (langs: string[]) => void;
@@ -310,283 +311,194 @@ function buildGroups(
 
 export default function TranslationsTab({
   data,
-  lang,
-  onLangChange,
   onLayerChange,
   enabled,
   onEnabledChange,
   contactEmail,
 }: TranslationsTabProps) {
-  const [openGroup, setOpenGroup] = useState<string | null>("identity");
-  const [autoState, setAutoState] = useState<"idle" | "running">("idle");
-  const [autoMessage, setAutoMessage] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
-  /** Écraser les traductions déjà saisies, ou ne remplir que les vides. */
-  const [overwrite, setOverwrite] = useState(false);
+  const [enCours, setEnCours] = useState<TranslatableLang | null>(null);
+  const [message, setMessage] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
+  /** Retraduire ce qui est déjà traduit, ou ne remplir que les vides. */
+  const [ecraser, setEcraser] = useState(false);
 
-  const layer = ((data.translations as Translations | undefined)?.[lang] || {}) as TranslationLayer;
-  const groups = buildGroups(data, layer, onLayerChange);
+  const layers = ((data.translations as Translations | undefined) || {}) as Translations;
+  const traduisibles = LANGS.filter((l) => l.code !== "fr");
+  const choisies = traduisibles.filter((l) => enabled.includes(l.code));
 
-  const total = groups.reduce((sum, g) => sum + g.fields.length, 0);
-  const done = groups.reduce((sum, g) => sum + g.fields.filter((f) => has(f.value)).length, 0);
-  const translatable = LANGS.filter((l) => l.code !== "fr");
-
-  const pending = groups.flatMap((g) => g.fields).filter((f) => overwrite || !has(f.value));
+  /** Nombre de champs déjà traduits dans une langue. */
+  const avancement = (code: TranslatableLang) => {
+    const groupes = buildGroups(data, (layers[code] || {}) as TranslationLayer, () => {});
+    const champs = groupes.flatMap((g) => g.fields);
+    return { total: champs.length, faits: champs.filter((f) => has(f.value)).length };
+  };
 
   /**
-   * Traduction automatique de tous les champs concernés.
+   * Traduit tout le livret dans les langues choisies.
    *
-   * Les champs sont renvoyés dans l'ordre : on réapplique donc chaque
-   * traduction sur son propre champ. Les `onChange` s'enchaînent sur des
-   * mises à jour fonctionnelles, ils se composent sans s'écraser.
+   * Langue par langue, et non tout d'un bloc : le service impose un quota
+   * journalier, et s'arrêter proprement après l'anglais vaut mieux que
+   * d'échouer partout à la fois.
    */
-  const runAutoTranslate = async () => {
-    if (pending.length === 0 || autoState === "running") return;
-    setAutoState("running");
-    setAutoMessage(null);
-    try {
-      const result = await translateTexts(
-        pending.map((f) => f.source),
-        lang as TargetLang,
-        contactEmail
-      );
-      let applied = 0;
-      result.translations.forEach((value, index) => {
-        if (value && value.trim()) {
-          pending[index].onChange(value.trim());
-          applied++;
-        }
-      });
-      if (result.warning) {
-        setAutoMessage({ tone: "warn", text: result.warning });
-      } else {
-        setAutoMessage({
-          tone: "ok",
-          text: `${applied} champ${applied > 1 ? "s traduits" : " traduit"}. Relisez-les : la traduction automatique est un point de départ.`,
+  const traduire = async () => {
+    if (choisies.length === 0 || enCours) return;
+    setMessage(null);
+
+    const { auth } = await import("@/lib/firebase/config");
+    const jeton = await auth.currentUser?.getIdToken();
+
+    let totalApplique = 0;
+    let alerte: string | null = null;
+
+    for (const langue of choisies) {
+      const code = langue.code as TranslatableLang;
+      setEnCours(code);
+      try {
+        // Les champs sont reconstruits POUR cette langue : leurs `onChange`
+        // écrivent dans le bon calque, sans changer d'onglet.
+        const groupes = buildGroups(
+          data,
+          (layers[code] || {}) as TranslationLayer,
+          (apply) => onLayerChange(code, apply)
+        );
+        const aFaire = groupes
+          .flatMap((g) => g.fields)
+          .filter((f) => ecraser || !has(f.value));
+        if (aFaire.length === 0) continue;
+
+        const resultat = await translateTexts(
+          aFaire.map((f) => f.source),
+          code as TargetLang,
+          contactEmail,
+          jeton
+        );
+        resultat.translations.forEach((valeur, index) => {
+          if (valeur && valeur.trim()) {
+            aFaire[index].onChange(valeur.trim());
+            totalApplique++;
+          }
         });
+        if (resultat.warning) alerte = resultat.warning;
+      } catch (error) {
+        alerte = error instanceof Error ? error.message : "La traduction a échoué.";
+        break;
       }
-    } catch (error) {
-      setAutoMessage({
-        tone: "warn",
-        text: error instanceof Error ? error.message : "La traduction automatique a échoué.",
-      });
-    } finally {
-      setAutoState("idle");
     }
+
+    setEnCours(null);
+    setMessage(
+      alerte
+        ? { tone: "warn", text: alerte }
+        : {
+            tone: "ok",
+            text: `${totalApplique} champ${totalApplique > 1 ? "s traduits" : " traduit"}. Vos voyageurs peuvent lire le livret dans leur langue.`,
+          }
+    );
   };
 
   return (
     <div className="space-y-5">
-      {/* Langues proposées au voyageur */}
       <div className="space-y-2.5">
         <h3 className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[#7A5544]">
           Langues proposées
         </h3>
         <p className="text-[11px] text-[#6B5D4E] leading-relaxed">
-          Le français est toujours proposé. Une langue n’apparaît dans le livret
-          que si elle contient au moins une traduction.
+          Le français est toujours proposé. Choisissez les langues à ajouter,
+          puis lancez la traduction : tout le livret est traduit d’un coup.
         </p>
         <div className="flex flex-wrap gap-2">
-          {translatable.map((l) => {
-            const on = enabled.includes(l.code);
+          {traduisibles.map((l) => {
+            const active = enabled.includes(l.code);
+            const { total, faits } = avancement(l.code as TranslatableLang);
             return (
               <button
                 key={l.code}
                 type="button"
                 onClick={() =>
                   onEnabledChange(
-                    on ? enabled.filter((c) => c !== l.code) : [...new Set([...enabled, "fr", l.code])]
+                    active
+                      ? enabled.filter((c) => c !== l.code)
+                      : [...new Set([...enabled, "fr", l.code])]
                   )
                 }
                 className={`px-3 py-2 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-colors ${
-                  on ? "border-[#C4714A] bg-[#C4714A]/5 text-[#C4714A]" : "border-gray-200 text-[#6B5D4E] hover:border-gray-300"
+                  active
+                    ? "border-[#C4714A] bg-[#C4714A]/5 text-[#C4714A]"
+                    : "border-gray-200 text-[#6B5D4E] hover:border-gray-300"
                 }`}
               >
                 <span>{l.flag}</span>
                 {l.label}
-                {on && <Check size={12} weight="bold" />}
+                {active && total > 0 && (
+                  <span className="text-[10px] font-extrabold opacity-70">
+                    {faits}/{total}
+                  </span>
+                )}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Langue en cours de traduction */}
-      <div className="pt-4 border-t border-gray-100 space-y-3">
-        <div className="grid grid-cols-3 gap-2">
-          {translatable.map((l) => (
-            <button
-              key={l.code}
-              type="button"
-              onClick={() => onLangChange(l.code as TranslatableLang)}
-              className={`py-2.5 rounded-xl border text-xs font-bold flex items-center justify-center gap-1.5 transition-colors ${
-                lang === l.code ? "border-[#C4714A] bg-[#C4714A]/5 text-[#C4714A]" : "border-gray-200 text-[#2A2016] hover:border-gray-300"
-              }`}
-            >
-              <span>{l.flag}</span>
-              {l.short}
-            </button>
-          ))}
-        </div>
+      <div className="rounded-2xl border border-[#EDD9A3] bg-[#FDF9F2] p-4 space-y-3">
+        <p className="text-[11px] text-[#5C3D2E] leading-relaxed flex items-start gap-1.5">
+          <Sparkle size={13} weight="fill" className="shrink-0 mt-0.5 text-[#C4714A]" />
+          La traduction est automatique. Elle rend le livret compréhensible
+          dans chaque langue ; ce n’est pas une traduction d’auteur.
+        </p>
 
-        {/* Traduction automatique */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm space-y-3">
-          <div>
-            <h4 className="text-sm font-bold text-[#2A2016] flex items-center gap-2">
-              <Sparkle size={15} weight="fill" className="text-[#C4714A]" />
-              Traduire automatiquement
-            </h4>
-            <p className="text-[11px] text-[#6B5D4E] mt-1 leading-relaxed">
-              Remplit les champs d’un coup. La qualité est correcte sans être
-              éditoriale : relisez avant de publier. Service gratuit, limité à
-              quelques milliers de caractères par jour.
-            </p>
-          </div>
+        <label className="flex items-center gap-2 text-[11px] text-[#5C3D2E] cursor-pointer">
+          <input
+            type="checkbox"
+            checked={ecraser}
+            onChange={(e) => setEcraser(e.target.checked)}
+            className="accent-[#C4714A]"
+          />
+          Retraduire aussi ce qui est déjà traduit
+        </label>
 
-          <label className="flex items-center gap-2 text-[11px] text-[#6B5D4E] cursor-pointer">
-            <input
-              type="checkbox"
-              checked={overwrite}
-              onChange={(e) => setOverwrite(e.target.checked)}
-              className="w-3.5 h-3.5 accent-[#C4714A]"
-            />
-            Réécrire aussi les champs déjà traduits
-          </label>
+        <button
+          type="button"
+          onClick={() => void traduire()}
+          disabled={choisies.length === 0 || enCours !== null}
+          className="w-full py-2.5 rounded-xl bg-[#C4714A] hover:bg-[#A35A38] text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+        >
+          {enCours ? (
+            <>
+              <Spinner size={14} className="animate-spin" />
+              Traduction en {LANGS.find((l) => l.code === enCours)?.label}…
+            </>
+          ) : (
+            <>
+              <Translate size={14} weight="bold" />
+              {choisies.length === 0
+                ? "Choisissez au moins une langue"
+                : `Traduire mon livret (${choisies.length} langue${choisies.length > 1 ? "s" : ""})`}
+            </>
+          )}
+        </button>
 
-          <button
-            type="button"
-            onClick={() => void runAutoTranslate()}
-            disabled={autoState === "running" || pending.length === 0}
-            className="w-full py-2.5 rounded-xl bg-[#C4714A] hover:bg-[#A35A38] text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+        {message && (
+          <p
+            className={`text-[11px] leading-relaxed flex items-start gap-1.5 rounded-xl px-3 py-2.5 border ${
+              message.tone === "ok"
+                ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                : "bg-amber-50 border-amber-200 text-amber-800"
+            }`}
           >
-            {autoState === "running" ? (
-              <>
-                <Spinner size={14} className="animate-spin" />
-                Traduction en cours…
-              </>
-            ) : pending.length === 0 ? (
-              "Tout est déjà traduit"
+            {message.tone === "ok" ? (
+              <Check size={13} weight="bold" className="shrink-0 mt-0.5" />
             ) : (
-              <>
-                <Sparkle size={14} weight="fill" />
-                Traduire {pending.length} champ{pending.length > 1 ? "s" : ""} en {LANGS.find((l) => l.code === lang)?.label}
-              </>
+              <Warning size={13} weight="fill" className="shrink-0 mt-0.5" />
             )}
-          </button>
-
-          {autoMessage && (
-            <p
-              className={`text-[11px] rounded-xl px-3 py-2.5 flex items-start gap-1.5 ${
-                autoMessage.tone === "ok"
-                  ? "bg-emerald-50 border border-emerald-200 text-emerald-800"
-                  : "bg-amber-50 border border-amber-200 text-amber-800"
-              }`}
-            >
-              {autoMessage.tone === "ok"
-                ? <Check size={13} weight="bold" className="shrink-0 mt-0.5" />
-                : <Warning size={13} weight="fill" className="shrink-0 mt-0.5" />}
-              {autoMessage.text}
-            </p>
-          )}
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm">
-          <div className="flex items-center justify-between text-sm font-bold text-[#2A2016]">
-            <span className="flex items-center gap-2">
-              <Translate size={16} weight="bold" className="text-[#C4714A]" />
-              Progression
-            </span>
-            <span className="text-[#C4714A] font-extrabold">
-              {done}/{total}
-            </span>
-          </div>
-          <div className="mt-3 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-[#C4714A] transition-[width] duration-500"
-              style={{ width: total ? `${(done / total) * 100}%` : "0%" }}
-            />
-          </div>
-          {done < total && (
-            <p className="text-[11px] text-[#6B5D4E] mt-2.5">
-              Les champs non traduits s’afficheront en français — le livret reste lisible.
-            </p>
-          )}
-        </div>
-
-        {!enabled.includes(lang) && done > 0 && (
-          <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 flex items-start gap-1.5">
-            <Warning size={13} weight="fill" className="shrink-0 mt-0.5" />
-            Cette langue est traduite mais n’est pas proposée au voyageur.
-            Activez-la dans « Langues proposées » ci-dessus.
+            {message.text}
           </p>
         )}
       </div>
 
-      {/* Champs, section par section */}
-      {groups.map((group) => {
-        const groupDone = group.fields.filter((f) => has(f.value)).length;
-        const isOpen = openGroup === group.key;
-        return (
-          <div key={group.key} className="rounded-2xl border border-gray-200 overflow-hidden bg-white">
-            <button
-              type="button"
-              onClick={() => setOpenGroup(isOpen ? null : group.key)}
-              className="w-full px-4 py-3 flex items-center justify-between gap-2 text-left"
-            >
-              <span className="text-xs font-bold text-[#2A2016]">{group.title}</span>
-              <span className="flex items-center gap-2 shrink-0">
-                <span
-                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                    groupDone === group.fields.length
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-gray-100 text-[#6B5D4E]"
-                  }`}
-                >
-                  {groupDone}/{group.fields.length}
-                </span>
-                {isOpen ? <CaretUp size={13} weight="bold" /> : <CaretDown size={13} weight="bold" />}
-              </span>
-            </button>
-
-            {isOpen && (
-              <div className="px-4 pb-4 space-y-3.5 animate-fadeIn">
-                {group.fields.map((field, i) => (
-                  <div key={i}>
-                    <label className="block text-[11px] font-bold text-[#2A2016] mb-1">{field.label}</label>
-                    {/* Source française : visible en permanence, jamais modifiable ici. */}
-                    <p className="text-[11px] text-[#6B5D4E] bg-[#FDF9F2] border border-[#EDD9A3] rounded-lg px-2.5 py-2 mb-1.5 whitespace-pre-line">
-                      {field.source}
-                    </p>
-                    {field.multiline ? (
-                      <textarea
-                        rows={3}
-                        value={field.value}
-                        onChange={(e) => field.onChange(e.target.value)}
-                        placeholder="Traduction…"
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none focus:border-[#C4714A] resize-y"
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={field.value}
-                        onChange={(e) => field.onChange(e.target.value)}
-                        placeholder="Traduction…"
-                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs outline-none focus:border-[#C4714A]"
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      {groups.length === 0 && (
-        <p className="text-xs text-[#6B5D4E] text-center py-8">
-          Remplissez d’abord votre livret en français : les champs à traduire
-          apparaîtront ici automatiquement.
-        </p>
-      )}
+      <p className="text-[10px] text-[#A8998A] leading-relaxed">
+        Un champ non traduit s’affiche en français côté voyageur : un livret
+        partiellement traduit reste lisible.
+      </p>
     </div>
   );
 }

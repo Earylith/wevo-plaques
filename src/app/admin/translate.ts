@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { adminAuth } from "@/lib/firebase/admin";
 
 /**
  * Traduction automatique via MyMemory.
@@ -36,11 +37,20 @@ export interface TranslateResult {
   warning?: string;
 }
 
-async function requireAdminAuth() {
+/**
+ * Autorise l'appelant : l'administration par son cookie, ou un hôte connecté
+ * par son jeton Firebase.
+ *
+ * La version précédente n'acceptait que le cookie d'administration. Résultat :
+ * la traduction marchait depuis l'admin et échouait silencieusement depuis
+ * l'espace hôte — c'était le « ça ne marche pas des fois » constaté en
+ * production, et non un caprice du service de traduction.
+ */
+async function autoriser(jetonHote?: string) {
   const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value !== "true") {
-    throw new Error("Unauthorized access. Admin privileges required.");
-  }
+  if (cookieStore.get("admin_auth")?.value === "true") return;
+  if (!jetonHote) throw new Error("Connectez-vous pour utiliser la traduction.");
+  await adminAuth.verifyIdToken(jetonHote);
 }
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -138,9 +148,10 @@ async function translateChunk(
 export async function translateTexts(
   texts: string[],
   target: TargetLang,
-  contactEmail?: string
+  contactEmail?: string,
+  jetonHote?: string
 ): Promise<TranslateResult> {
-  await requireAdminAuth();
+  await autoriser(jetonHote);
 
   const email = contactEmail && /.+@.+\..+/.test(contactEmail) ? contactEmail : undefined;
   const cache = new Map<string, string | null>();

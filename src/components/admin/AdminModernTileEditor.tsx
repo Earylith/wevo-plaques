@@ -2,7 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { QRCodeSVG } from "qrcode.react";
 import {
   Accommodation, AccessCodeItem, ContactInfo, Recommendation, TransportLine,
   EquipmentItem, DepartureInstruction, ModuleId, ModuleConfig,
@@ -32,8 +31,8 @@ import {
 import { publishAdminAccommodation, unpublishAdminAccommodation } from "@/app/admin/actions";
 import {
   Key, ArrowLeft, Desktop, DeviceMobile, CaretUp, CaretDown,
-  ArrowRight, Check, PencilSimple, Plus, Copy, ArrowSquareOut, Warning, CheckCircle,
-  MapPin, DownloadSimple, Star, Trash, WifiHigh, Phone, DoorOpen, HandWaving,
+  ArrowRight, Check, PencilSimple, Plus, ArrowSquareOut, Warning, CheckCircle,
+  MapPin, Star, Trash, WifiHigh, Phone, DoorOpen, HandWaving,
   ArrowCounterClockwise, ArrowClockwise, CloudCheck, CloudSlash, EyeSlash,
   BookOpen, Medal, Bus, ChatCircleDots, BookBookmark,
 } from "@phosphor-icons/react";
@@ -159,10 +158,7 @@ export default function AdminModernTileEditor({
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [newAddress, setNewAddress] = useState("");
-  /** Langue actuellement traduite dans l'onglet « Langues ». */
-  const [editingLang, setEditingLang] = useState<TranslatableLang>("en");
   const [orders, setOrders] = useState<PlaqueOrder[]>([]);
   const [ordering, setOrdering] = useState(false);
   /** Redirection vers Stripe en cours. */
@@ -177,7 +173,6 @@ export default function AdminModernTileEditor({
   });
 
   const bodyRef = useRef<HTMLDivElement>(null);
-  const qrRef = useRef<SVGSVGElement>(null);
   const chipsRef = useRef<HTMLDivElement>(null);
   // Sur un livret neuf, l'identifiant n'existe qu'après le premier
   // enregistrement : il est remonté par onSubmit.
@@ -432,12 +427,15 @@ export default function AdminModernTileEditor({
   };
 
   /** Écrit dans le calque de traduction de la langue en cours. */
-  const updateTranslationLayer = (apply: (layer: TranslationLayer) => TranslationLayer) =>
+  const updateTranslationLayer = (
+    langue: TranslatableLang,
+    apply: (layer: TranslationLayer) => TranslationLayer
+  ) =>
     mutate((current) => {
       const all = (current.translations as Translations | undefined) || {};
       return {
         ...current,
-        translations: { ...all, [editingLang]: apply(all[editingLang] || {}) },
+        translations: { ...all, [langue]: apply(all[langue] || {}) },
       };
     });
 
@@ -855,70 +853,12 @@ export default function AdminModernTileEditor({
    * qu'elle est définitive.
    */
   const engravedUrl = data.permanentId ? `${origin}/g/${data.permanentId}` : `${origin}/g/…`;
-  const slugPending = data.slug !== savedSlug;
   const emergencyIdx = (data.contacts || [])
     .map((c, i) => ({ c, i }))
     .filter(({ c }) => c.type === "emergency");
   const regularIdx = (data.contacts || [])
     .map((c, i) => ({ c, i }))
     .filter(({ c }) => c.type !== "emergency" && c.type !== "owner");
-
-  const copyLink = () => {
-    navigator.clipboard?.writeText(publicUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  /** Sérialise le QR affiché ; `null` si le SVG n'est pas encore monté. */
-  const serializeQr = () => {
-    const svg = qrRef.current;
-    if (!svg) return null;
-    const clone = svg.cloneNode(true) as SVGSVGElement;
-    // Un SVG détaché du document doit porter son propre espace de noms.
-    clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
-    return new XMLSerializer().serializeToString(clone);
-  };
-
-  const triggerDownload = (href: string, filename: string) => {
-    const a = document.createElement("a");
-    a.href = href;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  };
-
-  const downloadQrSvg = () => {
-    const markup = serializeQr();
-    if (!markup) return;
-    const url = URL.createObjectURL(new Blob([markup], { type: "image/svg+xml;charset=utf-8" }));
-    triggerDownload(url, `qr-${data.slug}.svg`);
-    URL.revokeObjectURL(url);
-  };
-
-  /** Version PNG haute définition, prête à coller sur une affiche. */
-  const downloadQrPng = () => {
-    const markup = serializeQr();
-    if (!markup) return;
-    const size = 1024;
-    const source = URL.createObjectURL(new Blob([markup], { type: "image/svg+xml;charset=utf-8" }));
-    const image = new Image();
-    image.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, size, size);
-        ctx.drawImage(image, 0, 0, size, size);
-        triggerDownload(canvas.toDataURL("image/png"), `qr-${data.slug}.png`);
-      }
-      URL.revokeObjectURL(source);
-    };
-    image.onerror = () => URL.revokeObjectURL(source);
-    image.src = source;
-  };
 
   /* ══════════════════════════════════════════════════════════════════
      RENDU DES SECTIONS
@@ -1768,14 +1708,6 @@ export default function AdminModernTileEditor({
           : savedClock ? `Enregistré à ${savedClock}`
             : "Aucune modification";
 
-  /** Normalise le slug : c'est l'URL publique du livret. */
-  const slugify = (value: string) =>
-    value
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)+/g, "");
 
   const handleUnpublish = async () => {
     if (!confirm("Retirer ce livret de la ligne ? Le lien et le QR code cesseront de fonctionner.")) return;
@@ -1821,8 +1753,14 @@ export default function AdminModernTileEditor({
                 <CheckCircle size={12} weight="fill" /> En ligne
               </span>
             ) : (
-              <span className="text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Brouillon · pas encore en ligne
+              <span className="max-w-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                {/* Le complément tombe sur les petits écrans : le mot
+                    « Brouillon » suffit à comprendre, et la pastille cesse
+                    de déborder de l'en-tête. */}
+                <span className="truncate">
+                  Brouillon<span className="hidden sm:inline"> · pas encore en ligne</span>
+                </span>
               </span>
             )}
           </div>
@@ -2274,8 +2212,6 @@ export default function AdminModernTileEditor({
             {editorSection === "diffusion" && (
               <TranslationsTab
                 data={data}
-                lang={editingLang}
-                onLangChange={setEditingLang}
                 onLayerChange={updateTranslationLayer}
                 enabled={data.comfortOptions?.enabledLanguages || ["fr"]}
                 contactEmail={data.owner?.email}
@@ -2290,141 +2226,76 @@ export default function AdminModernTileEditor({
 
             {editorSection === "diffusion" && (
               <div className="space-y-5">
-                <div className="text-center space-y-3">
-                  <div className="w-52 h-52 mx-auto bg-white p-4 rounded-3xl shadow-sm border border-gray-200 flex items-center justify-center">
-                    <QRCodeSVG
-                      ref={qrRef}
-                      value={publicUrl}
-                      size={180}
-                      level="M"
-                      marginSize={2}
-                      title={`QR code du livret ${data.property?.name || ""}`}
-                      fgColor="#2A2016"
-                      bgColor="#FFFFFF"
-                    />
+                {/*
+                  Ni lien public, ni export : ils n'ont de sens qu'une fois la
+                  page en ligne, et rejoindront le tableau de bord. Ce qui
+                  compte ici, c'est de VOIR le résultat avant de valider —
+                  surtout sur téléphone, où l'aperçu de côté n'existe pas.
+                */}
+                <div className="lg:hidden space-y-3">
+                  <SectionTitle>Votre page, telle qu’elle sera vue</SectionTitle>
+                  <div className="mx-auto w-full max-w-[320px] rounded-[2rem] border-4 border-gray-800 bg-black p-2 shadow-xl">
+                    <div className="h-[520px] rounded-[1.5rem] overflow-hidden bg-[#FBF5EC] relative grid">
+                      <div className="overflow-y-auto min-h-0 hide-scrollbar overscroll-contain">
+                        <CleoTemplate data={data} inlineModal />
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-[11px] text-[#6B5D4E]">
-                    Ce QR code mène directement à votre livret.
+                </div>
+
+                <div className="hidden lg:block">
+                  <SectionTitle>Votre page est prête</SectionTitle>
+                  <p className="text-[11px] text-[#6B5D4E] leading-relaxed mt-1.5">
+                    L’aperçu de droite montre exactement ce que verront vos
+                    voyageurs. Relisez-le, puis validez.
                   </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Lien public</Label>
-                  <div className="flex gap-2">
-                    <input
-                      readOnly
-                      value={publicUrl}
-                      className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-[11px] font-mono outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={copyLink}
-                      className="px-3.5 py-2.5 rounded-xl border border-gray-200 hover:border-[#C4714A] text-xs font-bold flex items-center gap-1.5"
-                    >
-                      {copied ? <Check size={14} weight="bold" className="text-emerald-600" /> : <Copy size={14} />}
-                      {copied ? "Copié" : "Copier"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Le slug EST l'URL publique : il doit être modifiable, mais
-                    seulement en connaissance de cause (QR déjà imprimés). */}
-                <div className="space-y-2">
-                  <Label hint="Ce qui apparaît après /h/ dans l’adresse. Choisissez-le avant d’imprimer vos QR codes.">
-                    Personnaliser l’adresse
-                  </Label>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-mono text-[#A8998A] shrink-0">/h/</span>
-                    <input
-                      type="text"
-                      value={data.slug}
-                      readOnly={data.slugLocked}
-                      title={data.slugLocked ? "Adresse verrouillée : elle est gravée sur une plaque commandée." : undefined}
-                      onChange={(e) => {
-                        if (data.slugLocked) return;
-                        mutate((d) => ({ ...d, slug: e.target.value }));
-                      }}
-                      onBlur={(e) => {
-                        const clean = slugify(e.target.value);
-                        if (clean && clean !== data.slug) mutate((d) => ({ ...d, slug: clean }));
-                      }}
-                      className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-gray-200 text-[11px] font-mono outline-none focus:border-[#C4714A]"
-                    />
-                  </div>
-                  {slugPending && (
-                    <p className="text-[11px] text-[#6B5D4E] bg-[#FDF9F2] border border-[#EDD9A3] rounded-lg px-2.5 py-2">
-                      Le QR code et le lien ci-dessus pointent encore vers
-                      <strong> /h/{savedSlug}</strong>. Enregistrez pour appliquer la nouvelle adresse.
-                    </p>
-                  )}
-                  {data.isActive && data.slug !== initialData.slug && (
-                    <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 flex items-start gap-1.5">
-                      <Warning size={13} weight="fill" className="shrink-0 mt-0.5" />
-                      L’ancienne adresse cessera de fonctionner : les QR codes déjà imprimés
-                      devront être remplacés.
-                    </p>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={downloadQrPng}
-                    className="py-2.5 rounded-xl border border-gray-200 hover:border-[#C4714A] text-xs font-bold flex items-center justify-center gap-1.5"
-                  >
-                    <DownloadSimple size={14} weight="bold" /> PNG
-                  </button>
-                  <button
-                    type="button"
-                    onClick={downloadQrSvg}
-                    className="py-2.5 rounded-xl border border-gray-200 hover:border-[#C4714A] text-xs font-bold flex items-center justify-center gap-1.5"
-                  >
-                    <DownloadSimple size={14} weight="bold" /> SVG
-                  </button>
-                  <a
-                    href={`/h/${data.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="py-2.5 rounded-xl border border-gray-200 hover:border-[#C4714A] text-xs font-bold flex items-center justify-center gap-1.5"
-                  >
-                    <ArrowSquareOut size={14} weight="bold" /> Ouvrir
-                  </a>
                 </div>
 
                 <div
                   className={`rounded-2xl border p-4 text-xs ${
                     data.isActive
                       ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                      : "border-amber-200 bg-amber-50 text-amber-800"
+                      : "border-[#EDD9A3] bg-[#FDF9F2] text-[#5C3D2E]"
                   }`}
                 >
                   {data.isActive ? (
                     <>
                       <strong className="flex items-center gap-1.5 mb-1">
-                        <CheckCircle size={14} weight="fill" /> Livret en ligne
+                        <CheckCircle size={14} weight="fill" /> Page en ligne
                       </strong>
                       Vos voyageurs peuvent y accéder dès maintenant.
                       {estAdmin && (
-                      <button
-                        type="button"
-                        onClick={() => void handleUnpublish()}
-                        disabled={publishing}
-                        className="mt-3 w-full py-2 rounded-xl border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-60"
-                      >
-                        <EyeSlash size={14} weight="bold" />
-                        {publishing ? "Traitement…" : "Repasser en brouillon"}
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleUnpublish()}
+                          disabled={publishing}
+                          className="mt-3 w-full py-2 rounded-xl border border-emerald-300 bg-white hover:bg-emerald-50 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-60"
+                        >
+                          <EyeSlash size={14} weight="bold" />
+                          {publishing ? "Traitement…" : "Repasser en brouillon"}
+                        </button>
                       )}
                     </>
                   ) : (
                     <>
-                      <strong className="block mb-1">Livret en brouillon</strong>
+                      <strong className="block mb-1">Encore en brouillon</strong>
                       {estAdmin
-                        ? "Il n’est pas encore visible publiquement. Publiez-le depuis le bouton en haut à droite."
-                        : "Il n’est pas encore visible publiquement. Sa mise en ligne se fait à la validation de votre commande."}
+                        ? "Publiez-la depuis le bouton en haut à droite."
+                        : "Validez votre page pour la mettre en ligne et lancer la gravure de votre plaque."}
                     </>
                   )}
                 </div>
+
+                {!estAdmin && !data.isActive && (
+                  <button
+                    type="button"
+                    onClick={() => void handlePayer()}
+                    disabled={paiement || isLoading}
+                    className="w-full py-3 rounded-2xl bg-[#C4714A] hover:bg-[#A35A38] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-[#C4714A]/20 transition-colors disabled:opacity-60"
+                  >
+                    {paiement ? "Ouverture du paiement…" : "Valider ma page"}
+                  </button>
+                )}
 
                 {/* Ce que le livret publié produit réellement. */}
                 {docId && estAdmin && <StatsPanel accommodationId={docId} />}
