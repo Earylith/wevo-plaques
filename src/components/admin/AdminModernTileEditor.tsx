@@ -1118,6 +1118,17 @@ export default function AdminModernTileEditor({
               onChange={(v) => setPractical({ parking: v })}
               placeholder="Place n°42 au sous-sol, bip sur le trousseau"
             />
+            {/*
+              Le petit-déjeuner s'affichait déjà dans le livret sans que
+              personne puisse le renseigner : un bloc figé que l'hôte
+              subissait au lieu de le remplir.
+            */}
+            <TextField
+              label="Petit-déjeuner"
+              value={data.practicalInfo?.breakfast || ""}
+              onChange={(v) => setPractical({ breakfast: v })}
+              placeholder="Servi de 8h30 à 10h dans la véranda"
+            />
           </div>
         );
 

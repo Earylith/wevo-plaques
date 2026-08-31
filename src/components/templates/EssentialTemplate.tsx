@@ -1,13 +1,12 @@
 "use client";
 
 import { Accommodation, ModuleId } from "@/lib/types/accommodation";
-import React, { useState, useEffect } from "react";
-import { List, X, WifiHigh, Info, BookOpen, MapPin, Phone, WarningCircle, House, ForkKnife, Camera, Bus } from "@phosphor-icons/react";
+import React, { useState } from "react";
+import { List, X, WifiHigh, Info, BookOpen, MapPin, Phone, WarningCircle, House, Bus } from "@phosphor-icons/react";
 import WifiCard from "../cards/WifiCard";
 import PracticalInfoCard from "../cards/PracticalInfoCard";
 import RulesCard from "../cards/RulesCard";
 import ContactsCard from "../cards/ContactsCard";
-import RecommendationsCard from "../cards/RecommendationsCard";
 
 import MobileAccordion from "../ui/MobileAccordion";
 
@@ -67,7 +66,6 @@ export default function EssentialTemplate({
     { label: "Règles", href: "#regles", icon: <BookOpen size={18} /> },
     { label: "Contacts", href: "#contacts", icon: <Phone size={18} /> },
     { label: "Urgences", href: "#urgences", icon: <WarningCircle size={18} className="text-red-500" /> },
-    { label: "À découvrir", href: "#decouvrir", icon: <MapPin size={18} /> },
   ];
 
   const quickLinks = [
@@ -76,7 +74,6 @@ export default function EssentialTemplate({
     { label: "Règles", icon: <BookOpen size={24} />, href: "#regles" },
     { label: "Contacts", icon: <Phone size={24} />, href: "#contacts" },
     { label: "Urgences", icon: <WarningCircle size={24} />, href: "#urgences" },
-    { label: "À découvrir", icon: <MapPin size={24} />, href: "#decouvrir" },
   ];
 
   return (
@@ -176,7 +173,31 @@ export default function EssentialTemplate({
         {/* Content Grids */}
         <div className="space-y-6 @2xl:space-y-10">
           <div className="grid @2xl:grid-cols-2 gap-6 @2xl:gap-8">
-            <div id="wifi" {...zone("wifi")}><WifiCard ssid={data.wifi.ssid} password={data.wifi.password} /></div>
+            <div id="wifi" {...zone("wifi")}>
+              <WifiCard ssid={data.wifi.ssid} password={data.wifi.password} />
+              {/* Les digicodes se saisissent dans la même rubrique que le
+                  Wi-Fi : ils doivent s'afficher au même endroit. */}
+              {(data.codes || []).filter((c) => c.label || c.value).length > 0 && (
+                <div className="mt-4 bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/30">
+                  <h3 className="font-semibold text-[#2A2016] mb-3">Digicodes &amp; clés</h3>
+                  <div className="space-y-2">
+                    {(data.codes || [])
+                      .filter((c) => c.label || c.value)
+                      .map((code, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-[#FDFBF7] border border-[#EDD9A3]/30"
+                        >
+                          <span className="text-sm text-[#6B5D4E] min-w-0 truncate">{code.label}</span>
+                          <span className="font-mono text-sm font-bold text-[#2A2016] shrink-0">
+                            {code.value}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
             <div id="infos" {...zone("arrivee")}>
               <PracticalInfoCard 
                 checkin={data.practicalInfo.checkin} 
@@ -185,6 +206,53 @@ export default function EssentialTemplate({
                 breakfast={data.practicalInfo.breakfast}
                 address={data.property.address}
               />
+              {/*
+                Consignes d'arrivée, note de départ et check-list : saisies
+                dans l'éditeur, elles n'apparaissaient nulle part.
+              */}
+              {(data.practicalInfo?.arrivalNotes?.trim() ||
+                data.practicalInfo?.departureNotes?.trim() ||
+                (data.practicalInfo?.departureInstructions || []).some((i) => i.text?.trim())) && (
+                <div className="mt-6 bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/30 space-y-4">
+                  {data.practicalInfo?.arrivalNotes?.trim() && (
+                    <div>
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-[#6B5D4E] mb-1.5">
+                        À l&apos;arrivée
+                      </h4>
+                      <p className="text-sm text-[#2A2016] leading-relaxed whitespace-pre-line">
+                        {data.practicalInfo.arrivalNotes}
+                      </p>
+                    </div>
+                  )}
+                  {data.practicalInfo?.departureNotes?.trim() && (
+                    <div>
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-[#6B5D4E] mb-1.5">
+                        Au départ
+                      </h4>
+                      <p className="text-sm text-[#2A2016] leading-relaxed whitespace-pre-line">
+                        {data.practicalInfo.departureNotes}
+                      </p>
+                    </div>
+                  )}
+                  {(data.practicalInfo?.departureInstructions || []).some((i) => i.text?.trim()) && (
+                    <div>
+                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-[#6B5D4E] mb-2">
+                        Avant de partir
+                      </h4>
+                      <ul className="space-y-1.5">
+                        {(data.practicalInfo?.departureInstructions || [])
+                          .filter((i) => i.text?.trim())
+                          .map((etape, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-sm text-[#2A2016]">
+                              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#C4714A] shrink-0" />
+                              <span>{etape.text}</span>
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -270,11 +338,11 @@ export default function EssentialTemplate({
             </MobileAccordion>
           </div>
 
-          <MobileAccordion title="À découvrir & Restaurants" icon={<ForkKnife size={24} weight="duotone" color="#C4714A" />}>
-            <div id="restaurants" className="@5xl:bg-white @5xl:rounded-3xl @5xl:p-6 @5xl:shadow-sm @5xl:border @5xl:border-[#EDD9A3]/30">
-              <RecommendationsCard recommendations={data.recommendations} showImages={false} />
-            </div>
-          </MobileAccordion>
+          {/*
+            Pas de bonnes adresses : la rubrique n'est pas comprise dans la
+            formule Essentielle, et elle est verrouillée dans l'éditeur.
+            L'afficher promettait ce que l'hôte ne peut pas remplir.
+          */}
         </div>
       </main>
 
