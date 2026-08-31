@@ -275,3 +275,22 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-skyFlash { animation: none; }
 }
+
+/*
+ * Apparition des blocs de l'espace propriétaire.
+ *
+ * Une montée courte et décalée, qui donne à l'écran l'impression de se poser
+ * plutôt que de surgir. `backwards` garde le bloc invisible pendant son délai :
+ * sans lui, il clignerait avant de partir.
+ */
+@keyframes guidzApparait {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.guidz-apparait {
+  animation: guidzApparait 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guidz-apparait { animation: none; }
+}

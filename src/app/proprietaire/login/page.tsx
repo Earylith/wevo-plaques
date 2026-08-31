@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn, signInWithGoogle, sendPasswordReset } from "@/lib/firebase/auth";
-import { House, GoogleLogo } from "@phosphor-icons/react";
+import Link from "next/link";
+import { House, GoogleLogo, ArrowRight } from "@phosphor-icons/react";
 
 type Mode = "login" | "forgot";
 
@@ -53,7 +54,7 @@ export default function ProprietaireLogin() {
     } catch (err: unknown) {
       const firebaseError = err as { code?: string };
       if (firebaseError.code === "auth/invalid-credential" || firebaseError.code === "auth/wrong-password" || firebaseError.code === "auth/user-not-found") {
-        setError("Email ou mot de passe incorrect.");
+        setError("Email ou mot de passe incorrect. Si vous n’avez pas encore de compte, choisissez d’abord votre formule.");
       } else {
         setError("Une erreur est survenue. Réessayez.");
       }
@@ -201,6 +202,18 @@ export default function ProprietaireLogin() {
             </form>
           )}
         </div>
+
+        {mode === "login" && (
+          <div className="mt-6 text-center">
+            <p className="text-sm text-[#6B5D4E]">Vous n’avez pas encore de livret ?</p>
+            <Link
+              href="/#offres"
+              className="inline-flex items-center gap-1.5 mt-2 text-sm font-bold text-[#C4714A] hover:text-[#A35A38] transition-colors"
+            >
+              Choisir ma formule <ArrowRight size={14} weight="bold" />
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );

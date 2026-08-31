@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, UserCircle, LayoutDashboard } from "lucide-react";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 const navLinks = [
   { label: "Concept", href: "#concept" },
@@ -16,6 +17,16 @@ const navLinks = [
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  /*
+   * Le libellé suit l'état réel de la session : proposer « Se connecter » à
+   * quelqu'un qui l'est déjà lui ferait croire qu'il ne l'est pas. Pendant le
+   * premier instant, l'état est inconnu — on affiche alors la formulation
+   * neutre plutôt que d'annoncer une chose puis son contraire.
+   */
+  const { user, loading } = useAuth();
+  const connecte = !loading && Boolean(user);
+  const IconeEspace = connecte ? LayoutDashboard : UserCircle;
+  const libelleEspace = connecte ? "Mon espace" : "Se connecter";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -55,7 +66,15 @@ export default function Header() {
           </nav>
 
           {/* CTA + Mobile toggle */}
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4 lg:gap-5">
+            <a
+              href="/proprietaire/dashboard"
+              className="hidden sm:inline-flex items-center gap-1.5 text-[12px] font-semibold tracking-wider uppercase text-[#2A2016]/70 hover:text-[#C4714A] transition-colors duration-300"
+            >
+              <IconeEspace size={17} strokeWidth={2} />
+              {libelleEspace}
+            </a>
+
             <a
               href="#offres"
               className="hidden sm:inline-flex items-center px-7 py-3 rounded-full bg-[#2A2016] text-white text-[12px] font-semibold tracking-wider uppercase hover:bg-[#C4714A] transition-all duration-500 shadow-[0_4px_20px_rgba(42,32,22,0.15)] hover:shadow-[0_8px_30px_rgba(196,113,74,0.3)] hover:-translate-y-0.5"
@@ -101,6 +120,14 @@ export default function Header() {
                   className="flex items-center justify-center w-full px-6 py-4 rounded-full bg-[#2A2016] text-white text-[13px] font-semibold tracking-wider uppercase hover:bg-[#C4714A] transition-all"
                 >
                   Commander mon Guidz
+                </a>
+                <a
+                  href="/proprietaire/dashboard"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-2 w-full mt-3 px-6 py-4 rounded-full border border-[#EDD9A3] text-[#2A2016] text-[13px] font-semibold tracking-wider uppercase hover:border-[#C4714A] hover:text-[#C4714A] transition-all"
+                >
+                  <IconeEspace size={17} strokeWidth={2} />
+                  {libelleEspace}
                 </a>
               </div>
             </nav>

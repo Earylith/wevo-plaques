@@ -1,31 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight, Eye, Sparkles } from "lucide-react";
+import { ArrowRight, Eye } from "lucide-react";
 import AnimateOnScroll from "./AnimateOnScroll";
 
 export default function Hero() {
-  /*
-   * Carrousel mobile : le défilement tactile reste maître, les points ne font
-   * que le piloter. Rien n'est piloté par un état qui pourrait diverger de la
-   * position réelle — la position réelle est la source.
-   */
-  const carrousel = useRef<HTMLDivElement>(null);
-  const [vue, setVue] = useState(0);
-
-  const allerA = (index: number) => {
-    const piste = carrousel.current;
-    if (!piste) return;
-    piste.scrollTo({ left: index * piste.clientWidth, behavior: "smooth" });
-  };
-
-  const suivreDefilement = () => {
-    const piste = carrousel.current;
-    if (!piste || !piste.clientWidth) return;
-    setVue(Math.round(piste.scrollLeft / piste.clientWidth));
-  };
-
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden">
       {/* Background image with overlay */}
@@ -35,10 +14,14 @@ export default function Hero() {
           au-dessus : cadrée au ras, la plaque passait sous le bandeau du
           menu. Ancrée en haut (object-top), c'est le bas du meuble qui se
           rogne sur les écrans courts, jamais la plaque.
+
+          Sur mobile, un autre fond : l'appartement hors focus. La plaque y
+          est déjà au premier plan, en photo flottante — la montrer deux fois
+          faisait deux sujets qui se disputaient le même écran.
         */}
         <picture>
-          <source media="(max-width: 768px)" type="image/webp" srcSet="/images/newhero-mobile.webp" />
-          <source media="(max-width: 768px)" srcSet="/images/newhero-mobile.jpg" />
+          <source media="(max-width: 768px)" type="image/webp" srcSet="/images/hero-mobile.webp" />
+          <source media="(max-width: 768px)" srcSet="/images/hero-mobile.jpg" />
           <source type="image/webp" srcSet="/images/newhero.webp" />
           <img
             src="/images/newhero.jpg"
@@ -71,7 +54,7 @@ export default function Hero() {
           {/* Headline */}
           <AnimateOnScroll delay={0.2}>
             <h1 className="font-[family-name:var(--font-display)] text-4xl sm:text-6xl lg:text-7xl leading-[1.05] font-bold text-white mb-6">
-              Guidz, le livret d'accueil&nbsp;
+              Guidz, le livret d’accueil&nbsp;
               <span
                 style={{
                   background: "linear-gradient(135deg, #E8BE72, #C4714A)",
@@ -99,77 +82,31 @@ export default function Hero() {
           </AnimateOnScroll>
         </div>
 
-        {/* Mobile Product Showcase (Premium) */}
-        <div ref={carrousel} onScroll={suivreDefilement} className="order-3 lg:order-2 w-full lg:hidden block">
+        {/* Illustration mobile : la plaque en situation, sous le discours */}
+        <div className="order-3 lg:order-2 w-full lg:hidden block">
           <AnimateOnScroll delay={0.4}>
-            <div className="mb-10 w-full relative">
-              
-              {/* Glowing backdrop to make the wood pop */}
+            <div className="mb-10 w-full relative flex justify-center">
+              {/* Halos chauds : c'est ce qui détache la photo du fond sombre */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#C4714A]/40 rounded-full blur-[80px] pointer-events-none" />
               <div className="absolute top-1/2 left-1/2 -translate-x-1/4 -translate-y-1/3 w-48 h-48 bg-[#E8BE72]/30 rounded-full blur-[60px] pointer-events-none" />
 
-              <style dangerouslySetInnerHTML={{__html: `
-                .hide-scrollbar::-webkit-scrollbar { display: none; }
-                .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-              `}} />
-              
-              <div className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-10 pt-4 px-6 hide-scrollbar relative z-10 items-center -mx-6">
-                
-                {/* Item 1 : la plaque en situation, scannée */}
-                <div className="snap-center shrink-0 w-full relative flex justify-center">
-                  <motion.div
-                    animate={{ y: [0, -12, 0] }}
-                    transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
-                    className="relative w-[85%] max-w-[320px]"
-                  >
-                    {/* Drop shadow underneath */}
-                    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[70%] h-4 bg-black/50 blur-[15px] rounded-[100%]" />
-                    <img
-                      src="/images/mockup/guidz_physique.webp"
-                      loading="lazy"
-                      decoding="async"
-                      alt="Une voyageuse scanne le QR code de la plaque Guidz avec son téléphone"
-                      className="w-full h-auto object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)]"
-                    />
-                  </motion.div>
-                </div>
-
-                {/* Item 2: Chevalet */}
-                <div className="snap-center shrink-0 w-full relative flex justify-center">
-                  <motion.div
-                    animate={{ y: [0, -12, 0] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-                    className="relative w-[85%] max-w-[320px]"
-                  >
-                    {/* Drop shadow underneath */}
-                    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[70%] h-4 bg-black/50 blur-[15px] rounded-[100%]" />
-                    <img
-                      src="/images/mockup/guidz_chevalet.webp"
-                      loading="lazy"
-                      decoding="async"
-                      alt="Guidz sur chevalet"
-                      className="w-full h-auto object-contain drop-shadow-[0_20px_30px_rgba(0,0,0,0.4)]"
-                    />
-                  </motion.div>
-                </div>
-
-              </div>
-              
-              {/* Points de navigation du carrousel */}
-              <div className="absolute bottom-0 left-0 right-0 flex justify-center items-center gap-2.5 z-20">
-                {[0, 1].map((index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => allerA(index)}
-                    aria-label={`Voir l’illustration ${index + 1}`}
-                    aria-current={vue === index}
-                    className={`h-2 rounded-full transition-all ${
-                      vue === index ? "w-6 bg-[#C4714A]" : "w-2 bg-white/40 hover:bg-white/70"
-                    }`}
-                  />
-                ))}
-              </div>
+              <motion.div
+                animate={{ y: [0, -12, 0] }}
+                transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+                className="relative z-10 w-[85%] max-w-[320px]"
+              >
+                {/* Ombre posée au sol, sous la photo */}
+                <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[70%] h-4 bg-black/50 blur-[15px] rounded-[100%]" />
+                <img
+                  src="/images/mockup/guidz_physique.webp"
+                  loading="lazy"
+                  decoding="async"
+                  width={1000}
+                  height={1150}
+                  alt="Une voyageuse scanne le QR code de la plaque Guidz avec son téléphone"
+                  className="w-full h-auto rounded-[28px] object-cover shadow-[0_25px_50px_-12px_rgba(0,0,0,0.6)]"
+                />
+              </motion.div>
             </div>
           </AnimateOnScroll>
         </div>

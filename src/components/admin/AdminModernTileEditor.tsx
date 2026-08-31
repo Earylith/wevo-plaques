@@ -21,6 +21,7 @@ import VerrouConfort from "@/components/admin/editor/VerrouConfort";
 import EssentialTemplate from "@/components/templates/EssentialTemplate";
 import { ouvrirPaiement } from "@/app/paiement-actions";
 import StatsPanel from "@/components/admin/editor/StatsPanel";
+import ApercuPleinEcran from "@/components/admin/editor/ApercuPleinEcran";
 import LibraryPicker, { PickedEntry } from "@/components/admin/editor/LibraryPicker";
 import { createPlaqueOrder, getOrdersForAccommodation } from "@/app/admin/orders";
 import { PlaqueConfig, PlaqueOrder } from "@/lib/types/accommodation";
@@ -36,7 +37,7 @@ import {
   ArrowRight, Check, PencilSimple, Plus, ArrowSquareOut, Warning, CheckCircle,
   MapPin, Star, Trash, WifiHigh, Phone, DoorOpen, HandWaving,
   ArrowCounterClockwise, ArrowClockwise, CloudCheck, CloudSlash, EyeSlash,
-  BookOpen, Medal, Bus, ChatCircleDots, BookBookmark,
+  BookOpen, Medal, Bus, ChatCircleDots, BookBookmark, ArrowsOut,
 } from "@phosphor-icons/react";
 
 interface Props {
@@ -178,6 +179,12 @@ export default function AdminModernTileEditor({
   const [ordering, setOrdering] = useState(false);
   /** Redirection vers Stripe en cours. */
   const [paiement, setPaiement] = useState(false);
+  /*
+   * Aperçu plein écran. Sur téléphone, c'est le seul moyen de voir la page à
+   * sa vraie largeur : le cadre de l'éditeur est trop étroit pour que les
+   * gabarits s'y mettent en page comme ils le feront chez le voyageur.
+   */
+  const [pleinEcran, setPleinEcran] = useState(false);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [autosave, setAutosave] = useState(!demo);
@@ -1786,7 +1793,7 @@ export default function AdminModernTileEditor({
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#FBF5EC] text-[#2A2016] font-sans">
       {/* ────────── BARRE SUPÉRIEURE ────────── */}
-      <header className="h-16 bg-white border-b border-gray-200 px-4 sm:px-6 flex items-center justify-between gap-3 shrink-0 z-30">
+      <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-2.5 sm:py-0 sm:h-16 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 shrink-0 z-30">
         <div className="flex items-center gap-3 min-w-0">
           {demo ? null : (
           <Link
@@ -1804,9 +1811,9 @@ export default function AdminModernTileEditor({
           )}
           <div className="min-w-0">
             <h1 className="font-[family-name:var(--font-display)] font-bold text-[19px] truncate text-[#2A2016]">{data.property?.name || "Livret sans titre"}</h1>
-            <span className="flex items-center gap-1.5 flex-wrap">
+            <span className="flex items-center gap-1.5 min-w-0">
               <span
-                className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${
+                className={`shrink-0 text-[11px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${
                   estConfort
                     ? "bg-[#F7EBE4] text-[#A35A38] border-[#EDD9A3]"
                     : "bg-gray-100 text-[#6B5D4E] border-gray-200"
@@ -1815,11 +1822,11 @@ export default function AdminModernTileEditor({
                 {estConfort ? "Confort" : "Essentielle"}
               </span>
             {data.isActive ? (
-              <span className="text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
+              <span className="shrink-0 text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
                 <CheckCircle size={12} weight="fill" /> En ligne
               </span>
             ) : (
-              <span className="max-w-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
+              <span className="min-w-0 text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
                 {/* Le complément tombe sur les petits écrans : le mot
                     « Brouillon » suffit à comprendre, et la pastille cesse
@@ -1833,7 +1840,22 @@ export default function AdminModernTileEditor({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center justify-end gap-2 sm:gap-3 shrink-0">
+          {/*
+            Sur téléphone, l'aperçu latéral n'existe pas : sans ce raccourci,
+            il faudrait aller jusqu'à la dernière rubrique pour voir sa page.
+            Il reste accessible depuis n'importe quelle rubrique.
+          */}
+          <button
+            type="button"
+            onClick={() => setPleinEcran(true)}
+            title="Voir l’aperçu en plein écran"
+            aria-label="Voir l’aperçu en plein écran"
+            className="lg:hidden p-2 rounded-full border border-gray-200 text-[#6B5D4E] active:scale-95 transition-transform"
+          >
+            <ArrowsOut size={17} weight="bold" />
+          </button>
+
           {/* Annuler / rétablir — également accessibles par Ctrl+Z / Ctrl+Maj+Z */}
           <div className="hidden xl:flex bg-gray-100 p-1 rounded-full border border-gray-200">
             <button
@@ -1916,7 +1938,8 @@ export default function AdminModernTileEditor({
               rel="noopener noreferrer"
               className="px-4 sm:px-6 py-2.5 rounded-full bg-[#C4714A] hover:bg-[#A35A38] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#C4714A]/20 transition-all"
             >
-              Voir le livret <ArrowSquareOut size={13} weight="bold" />
+              Voir<span className="hidden sm:inline"> le livret</span>
+              <ArrowSquareOut size={13} weight="bold" />
             </a>
           ) : !estAdmin ? (
             <button
@@ -1925,7 +1948,14 @@ export default function AdminModernTileEditor({
               disabled={paiement || isLoading}
               className="px-4 sm:px-6 py-2.5 rounded-full bg-[#C4714A] hover:bg-[#A35A38] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#C4714A]/20 transition-all disabled:opacity-60"
             >
-              {paiement ? "Ouverture du paiement…" : "Publier et commander ma plaque"}
+              {paiement ? (
+                "Ouverture…"
+              ) : (
+                <>
+                  Publier
+                  <span className="hidden sm:inline"> et commander ma plaque</span>
+                </>
+              )}
             </button>
           ) : (
             <button
@@ -1934,7 +1964,11 @@ export default function AdminModernTileEditor({
               disabled={publishing}
               className="px-4 sm:px-6 py-2.5 rounded-full bg-[#C4714A] hover:bg-[#A35A38] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#C4714A]/20 transition-all disabled:opacity-60"
             >
-              {publishing ? "Publication…" : "Mettre en ligne"}
+              {publishing ? "Publication…" : (
+                <>
+                  Publier<span className="hidden sm:inline"> — mettre en ligne</span>
+                </>
+              )}
             </button>
           )}
         </div>
@@ -2318,6 +2352,20 @@ export default function AdminModernTileEditor({
                 */}
                 <div className="lg:hidden space-y-3">
                   <SectionTitle>Votre page, telle qu’elle sera vue</SectionTitle>
+                  {/*
+                    Le cadre ci-dessous reste une maquette : il est plus étroit
+                    qu'un vrai téléphone, et les gabarits s'y mettent en page en
+                    conséquence. Pour juger du rendu et le parcourir vraiment,
+                    l'aperçu doit prendre tout l'écran.
+                  */}
+                  <button
+                    type="button"
+                    onClick={() => setPleinEcran(true)}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-full bg-[#2A2016] text-white text-[13px] font-bold active:scale-[0.98] transition-transform"
+                  >
+                    <ArrowsOut size={15} weight="bold" />
+                    Afficher en plein écran
+                  </button>
                   <div className="mx-auto w-full max-w-[320px] rounded-[2rem] border-4 border-gray-800 bg-black p-2 shadow-xl">
                     <div className="h-[520px] rounded-[1.5rem] overflow-hidden bg-[#FBF5EC] relative grid">
                       <div className="overflow-y-auto min-h-0 hide-scrollbar overscroll-contain">
@@ -2563,6 +2611,18 @@ export default function AdminModernTileEditor({
           )}
         </main>
       </div>
+
+      {/*
+        Rendu en visiteur, sans accroche d'édition : on vient éprouver la
+        navigation, et une zone qui ouvrirait un formulaire l'empêcherait.
+      */}
+      <ApercuPleinEcran ouvert={pleinEcran} onFermer={() => setPleinEcran(false)}>
+        {estConfort ? (
+          <CleoTemplate data={data} inlineModal />
+        ) : (
+          <EssentialTemplate data={data} />
+        )}
+      </ApercuPleinEcran>
     </div>
   );
 }
