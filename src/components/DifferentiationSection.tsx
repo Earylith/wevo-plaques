@@ -162,17 +162,43 @@ export default function DifferentiationSection() {
 
                   {/* Phone Mockup */}
                   <div className="flex justify-center mt-auto">
-                    <div className="relative w-[260px]">
-                      <div className="bg-[#111] rounded-[2.5rem] p-3 shadow-2xl border border-white/10 relative transition-transform duration-700 group-hover:-translate-y-4">
-                        {/* Notch */}
-                        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-24 h-5 bg-[#111] rounded-b-2xl z-20" />
-                        {/* Screen */}
-                        <div className="bg-[#FDFBF7] rounded-[1.8rem] overflow-hidden h-[500px] relative">
-                          <img 
-                            src="/images/mockup/mockup_confort.png" 
-                            alt="Guidz Digitale - Démo Confort" 
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                          />
+                    <div className="relative w-[250px] sm:w-[270px]">
+                      {/* Ombre portée : le téléphone doit flotter au-dessus de la carte */}
+                      <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[75%] h-10 rounded-[50%] bg-black/40 blur-2xl pointer-events-none" />
+
+                      <div className="relative transition-transform duration-700 ease-out group-hover:-translate-y-4 group-hover:rotate-[-1deg]">
+                        {/* Boutons latéraux */}
+                        <div className="absolute -left-[3px] top-[104px] w-[3px] h-7 rounded-l bg-gradient-to-b from-[#6B6B70] to-[#2F2F33]" />
+                        <div className="absolute -left-[3px] top-[142px] w-[3px] h-12 rounded-l bg-gradient-to-b from-[#6B6B70] to-[#2F2F33]" />
+                        <div className="absolute -right-[3px] top-[150px] w-[3px] h-16 rounded-r bg-gradient-to-b from-[#6B6B70] to-[#2F2F33]" />
+
+                        {/* Châssis : un liseré clair autour du corps noir, pour l'effet métal */}
+                        <div className="rounded-[2.9rem] p-[2px] bg-gradient-to-b from-[#8D8D93] via-[#3A3A3C] to-[#8D8D93] shadow-[0_30px_60px_rgba(0,0,0,0.45)]">
+                          <div className="rounded-[2.8rem] p-[10px] bg-[#0B0B0D]">
+                            {/* Écran */}
+                            <div className="relative rounded-[2.15rem] overflow-hidden bg-[#FDFBF7] aspect-[277/595]">
+                              <img
+                                src="/images/mockup/guidz_digitale.webp"
+                                loading="lazy"
+                                decoding="async"
+                                width={554}
+                                height={1190}
+                                alt="Aperçu d'une page Guidz Digitale sur mobile"
+                                className="w-full h-full object-cover object-top"
+                              />
+
+                              {/* Dynamic island */}
+                              <div className="absolute top-[9px] left-1/2 -translate-x-1/2 w-[84px] h-[24px] rounded-full bg-black z-20">
+                                <div className="absolute right-[9px] top-1/2 -translate-y-1/2 w-[7px] h-[7px] rounded-full bg-[#1C2230]" />
+                              </div>
+
+                              {/* Reflet de la vitre */}
+                              <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-tr from-transparent via-white/10 to-transparent" />
+
+                              {/* Barre d'accueil */}
+                              <div className="absolute bottom-[7px] left-1/2 -translate-x-1/2 w-[100px] h-[4px] rounded-full bg-black/25 z-20" />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>

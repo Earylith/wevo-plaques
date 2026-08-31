@@ -130,17 +130,22 @@ export default function EssentialTemplate({
         Essentielle. En afficher une promettrait ce qui n'est pas vendu — le
         mot d'accueil ouvre donc directement la page.
       */}
+      {/*
+        Texte d'accueil STANDARD, et non modifiable.
+        
+        Le mot d'accueil personnalisé relève de la formule Confort : afficher
+        ici un champ que l'hôte ne peut pas remplir reviendrait à lui montrer
+        une promesse qu'il n'a pas achetée. Seul le nom du logement varie —
+        celui-là se saisit bien dans la rubrique Logement.
+      */}
       <div id="accueil" className="px-4 @2xl:px-6 pt-8 @2xl:pt-12">
-        <div
-          {...zone("bienvenue")}
-          className={`max-w-2xl mx-auto bg-white p-6 @2xl:p-10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] text-center ${zone("bienvenue").className || ""}`}
-        >
+        <div className="max-w-2xl mx-auto bg-white p-6 @2xl:p-10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] text-center">
           <h2 className="font-[family-name:var(--font-display)] text-2xl @2xl:text-4xl font-bold mb-3 @2xl:mb-4 leading-tight">
             Bienvenue à {data.property.name}
           </h2>
           <p className="text-[#6B5D4E] text-xs @2xl:text-[15px] leading-relaxed max-w-lg mx-auto">
-            {data.property.welcomeMessage?.trim() ||
-              "Nous sommes ravis de vous accueillir. Vous trouverez ici toutes les informations utiles pour votre séjour."}
+            Nous sommes ravis de vous accueillir. Vous trouverez ici toutes les
+            informations utiles pour votre séjour.
           </p>
           <p className="text-xs @2xl:text-sm font-medium text-[#C4714A] mt-4 @2xl:mt-6 italic">
             — L&apos;équipe {data.property.name}
