@@ -6,7 +6,7 @@ import Link from "next/link";
 import { CheckCircle, ExternalLink, Sparkles } from "lucide-react";
 
 const demosList = [
-  { name: "La Petite Boire (Villandry)", slug: "demo-essentielle", tag: "Essentielle" },
+  { name: "Le Clos des Oliviers (Lourmarin)", slug: "demo-essentielle", tag: "Essentielle" },
   { name: "Villa L'Écrin d'Or (Cannes)", slug: "demo-confort", tag: "Confort Classic" },
   { name: "Bienvenue à Marseille (Penthouse)", slug: "demo-confort2", tag: "Cléo" },
   { name: "Le Loft Haussmannien (Paris)", slug: "demo-paris", tag: "Ville — Cléo" },
