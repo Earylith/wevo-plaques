@@ -23,7 +23,7 @@ export interface WeatherSnapshot {
   /** Le relevé date-t-il du jour ou de la nuit ? */
   isDay: boolean;
   /** Prévisions des jours suivants. */
-  daily: { date: string; min: number; max: number; emoji: string; label: string }[];
+  daily: { date: string; min: number; max: number; emoji: string; label: string; code?: number }[];
 }
 
 /** Codes météo WMO renvoyés par Open-Meteo. */
@@ -125,13 +125,15 @@ export function fetchWeather(
       if (daily?.time) {
         // On saute le jour courant, déjà résumé par le relevé du moment.
         for (let i = 1; i < daily.time.length; i++) {
-          const day = describe(Number(daily.weather_code[i]));
+          const code = Number(daily.weather_code[i]);
+          const day = describe(code);
           forecast.push({
             date: daily.time[i],
             min: Math.round(daily.temperature_2m_min[i]),
             max: Math.round(daily.temperature_2m_max[i]),
             emoji: day.emoji,
             label: day.label,
+            code,
           });
         }
       }

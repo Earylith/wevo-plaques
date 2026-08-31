@@ -14,7 +14,8 @@ import {
   Key, WifiHigh, Phone, HandWaving, MapPin, BookOpen, Medal, Bus, FirstAid,
   ChatCircleDots, BookBookmark, ArrowLeft, Copy, Check, CaretRight, CaretDown,
   NavigationArrow, Star, PencilSimple, DoorOpen, ShoppingBag, GridFour,
-  ListChecks, ArrowSquareOut, Warning, Car, SquaresFour, List as ListIcon,
+  ListChecks, ArrowSquareOut, Warning, Car, SquaresFour, List as ListIcon, Clock,
+  Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake, CloudFog,
 } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
@@ -106,12 +107,10 @@ const GRID_SPAN: Record<ModuleId, string> = {
 /**
  * Coquille commune à toutes les cartes de la grille.
  *
- * En colonne flex avec un corps `flex-1` et un pied collé en bas : deux cartes
- * voisines de contenus inégaux se terminent à la même hauteur, sans laisser
- * de blanc au milieu.
+ * voisines de contenus inégaux s'égalisent proprement.
  */
 function GridCard({
-  span, Icon, tint, title, titleFont, onOpen, onSelect, extraClass, action, children,
+  span, Icon, tint, title, titleFont, onOpen, onSelect, extraClass, children,
 }: {
   id: ModuleId;
   span: string;
@@ -122,37 +121,33 @@ function GridCard({
   onOpen: () => void;
   onSelect: () => void;
   extraClass: string;
-  action: string | null;
+  action?: string | null;
   children: React.ReactNode;
 }) {
   return (
     <section
-      onClick={onSelect}
-      className={`${span} flex flex-col bg-white rounded-2xl border border-gray-100 shadow-[0_1px_3px_rgba(30,25,20,0.05)] overflow-hidden ${extraClass}`}
+      onClick={() => {
+        onSelect();
+        onOpen();
+      }}
+      className={`${span} min-h-[200px] flex flex-col justify-between bg-white/90 backdrop-blur-2xl rounded-[2rem] border border-white/90 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_35px_rgba(0,0,0,0.08)] hover:-translate-y-1 hover:border-white transition-all duration-300 cursor-pointer overflow-hidden group ${extraClass}`}
     >
-      <header className="flex items-center gap-2.5 px-4 pt-3.5 pb-2.5 shrink-0">
-        <span
-          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-          style={{ backgroundColor: tint.bg, color: tint.fg }}
-        >
-          <Icon size={16} weight="duotone" />
-        </span>
-        <h3 className={`text-[13px] font-bold text-[#2A2016] truncate ${titleFont}`}>{title}</h3>
+      <header className="flex items-center justify-between px-4.5 pt-4 pb-2 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 shadow-2xs transition-transform group-hover:scale-110 duration-300"
+            style={{ backgroundColor: tint.bg, color: tint.fg }}
+          >
+            <Icon size={16} weight="duotone" />
+          </span>
+          <h3 className={`text-[12px] xl:text-[13px] font-extrabold text-[#2A2016] truncate ${titleFont}`}>{title}</h3>
+        </div>
+        <div className="w-6 h-6 rounded-full bg-gray-100/90 group-hover:bg-[#2A2016] group-hover:text-white text-[#8A8078] flex items-center justify-center transition-all shrink-0">
+          <CaretRight size={11} weight="bold" />
+        </div>
       </header>
 
-      <div className="flex-1 px-4 pb-1 min-h-0">{children}</div>
-
-      {action && (
-        <button
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpen();
-          }}
-          className="shrink-0 mt-2 mx-4 mb-3.5 py-2 rounded-xl border border-gray-200 text-[11px] font-bold text-[#2A2016] hover:border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
-        >
-          {action} <CaretRight size={11} weight="bold" />
-        </button>
-      )}
+      <div className="flex-1 px-4.5 pb-3.5 min-h-0 text-[#4A3D30] flex flex-col justify-between">{children}</div>
     </section>
   );
 }
@@ -171,6 +166,41 @@ const MODULE_TINTS: Record<ModuleId, { bg: string; fg: string }> = {
   faq: { bg: "#EFF2FF", fg: "#4356C0" },
   livredor: { bg: "#F5EFFF", fg: "#7048B6" },
 };
+
+function WeatherIcon({ code, emoji, className = "w-5 h-5" }: { code?: number; emoji?: string; className?: string }) {
+  if (typeof code === "number") {
+    if (code === 0) {
+      return <Sun size={20} weight="duotone" className={`text-amber-500 shrink-0 ${className}`} />;
+    }
+    if (code === 1 || code === 2) {
+      return <CloudSun size={20} weight="duotone" className={`text-amber-400 shrink-0 ${className}`} />;
+    }
+    if (code === 3) {
+      return <Cloud size={20} weight="duotone" className={`text-slate-400 shrink-0 ${className}`} />;
+    }
+    if (code === 45 || code === 48) {
+      return <CloudFog size={20} weight="duotone" className={`text-slate-400 shrink-0 ${className}`} />;
+    }
+    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) {
+      return <CloudRain size={20} weight="duotone" className={`text-sky-500 shrink-0 ${className}`} />;
+    }
+    if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) {
+      return <Snowflake size={20} weight="duotone" className={`text-blue-400 shrink-0 ${className}`} />;
+    }
+    if (code >= 95) {
+      return <CloudLightning size={20} weight="duotone" className={`text-amber-500 shrink-0 ${className}`} />;
+    }
+  }
+
+  if (emoji?.includes("🌧") || emoji?.includes("☔")) return <CloudRain size={20} weight="duotone" className={`text-sky-500 shrink-0 ${className}`} />;
+  if (emoji?.includes("☀️")) return <Sun size={20} weight="duotone" className={`text-amber-500 shrink-0 ${className}`} />;
+  if (emoji?.includes("🌤") || emoji?.includes("⛅")) return <CloudSun size={20} weight="duotone" className={`text-amber-400 shrink-0 ${className}`} />;
+  if (emoji?.includes("☁")) return <Cloud size={20} weight="duotone" className={`text-slate-400 shrink-0 ${className}`} />;
+  if (emoji?.includes("❄")) return <Snowflake size={20} weight="duotone" className={`text-blue-400 shrink-0 ${className}`} />;
+  if (emoji?.includes("⚡") || emoji?.includes("🌩")) return <CloudLightning size={20} weight="duotone" className={`text-amber-500 shrink-0 ${className}`} />;
+
+  return <CloudSun size={20} weight="duotone" className={`text-amber-400 shrink-0 ${className}`} />;
+}
 
 export default function CleoTemplate({
   data: sourceData,
@@ -1078,33 +1108,35 @@ export default function CleoTemplate({
       /* ── Arrivée ── */
       case "arrivee":
         return (
-          <div className="space-y-2.5">
-            <BigValue label={t("checkinFrom")} value={data.practicalInfo?.checkin || ""} />
-            {data.practicalInfo?.arrivalNotes ? (
-              <p className="text-[11px] text-[#6B5D4E] leading-relaxed line-clamp-3">
-                {data.practicalInfo.arrivalNotes}
-              </p>
-            ) : (
-              <p className="text-[11px] text-[#B0A79E] italic">{t("emptyArrival")}</p>
-            )}
-            {data.practicalInfo?.parking && (
-              <p className="text-[11px] text-[#6B5D4E] flex items-start gap-1.5 line-clamp-2">
-                <Car size={12} weight="fill" className="shrink-0 mt-0.5" style={{ color: primaryColor }} />
-                {data.practicalInfo.parking}
-              </p>
-            )}
+          <div className="flex flex-col justify-between items-center text-center h-full space-y-2">
+            <div className="flex flex-col items-center justify-center flex-1 my-auto">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#9A9086]">
+                {t("checkinFrom")}
+              </span>
+              <span className={`text-3xl font-extrabold text-[#2A2016] mt-0.5 ${titleFont}`}>
+                {data.practicalInfo?.checkin || "15:00"}
+              </span>
+              {data.practicalInfo?.parking && (
+                <span className="text-[10px] font-semibold text-[#6B5D4E] mt-1">🚗 Parking disponible</span>
+              )}
+            </div>
+            <div className="pt-2 border-t border-gray-100/80 w-full flex justify-center shrink-0">
+              <span className="text-[10px] font-bold text-amber-900 bg-amber-50 group-hover:bg-amber-100/90 px-3 py-1.5 rounded-full border border-amber-200/60 shadow-2xs transition-colors flex items-center gap-1">
+                🔑 Voir les consignes <CaretRight size={10} weight="bold" />
+              </span>
+            </div>
           </div>
         );
 
       /* ── Codes & Wi-Fi ── */
       case "wifi":
         return (
-          <div className="space-y-2">
-            <div className="rounded-xl px-3 py-2.5" style={{ backgroundColor: `${primaryColor}0F` }}>
-              <span className="block text-[10px] font-extrabold uppercase tracking-wider text-[#9A9086]">
+          <div className="flex flex-col justify-between items-center text-center h-full space-y-2">
+            <div className="w-full rounded-2xl p-2.5 bg-rose-50/60 border border-rose-100/80 flex flex-col items-center my-auto">
+              <span className="block text-[9px] font-extrabold uppercase tracking-wider text-rose-800/80">
                 {t("wifiNetwork")}
               </span>
-              <span className="block text-sm font-bold text-[#2A2016] truncate mt-0.5">
+              <span className="block text-xs font-bold text-[#2A2016] truncate mt-0.5 max-w-full">
                 {data.wifi?.ssid || "—"}
               </span>
               {data.wifi?.password && (
@@ -1113,110 +1145,92 @@ export default function CleoTemplate({
                     event.stopPropagation();
                     copy(data.wifi.password!, "grid-wifi");
                   }}
-                  className="mt-1.5 w-full flex items-center justify-between gap-2 rounded-lg bg-white border border-gray-200 px-2.5 py-1.5 hover:border-gray-300 transition-colors"
+                  className="mt-1.5 w-full flex items-center justify-center gap-1.5 rounded-xl bg-white border border-rose-200/80 px-2 py-1 hover:border-rose-300 transition-colors shadow-2xs"
                 >
-                  <span className="font-mono text-[11px] font-bold text-[#2A2016] truncate">
+                  <span className="font-mono text-[10px] font-bold text-[#2A2016] truncate">
                     {data.wifi.password}
                   </span>
                   {copiedField === "grid-wifi"
-                    ? <Check size={12} weight="bold" className="text-emerald-600 shrink-0" />
-                    : <Copy size={12} className="text-[#B0A79E] shrink-0" />}
+                    ? <Check size={11} weight="bold" className="text-emerald-600 shrink-0" />
+                    : <Copy size={11} className="text-rose-400 shrink-0" />}
                 </button>
               )}
             </div>
-            {(data.codes || []).slice(0, 2).map((code, idx) => (
-              <div key={idx} className="flex items-center justify-between gap-2 text-[11px]">
-                <span className="text-[#6B5D4E] truncate">{code.label}</span>
-                <span className="font-mono font-bold shrink-0" style={{ color: primaryColor }}>{code.value}</span>
-              </div>
-            ))}
+            <div className="pt-2 border-t border-gray-100/80 w-full flex justify-center shrink-0">
+              <span className="text-[10px] font-bold text-rose-900 bg-rose-50 group-hover:bg-rose-100/90 px-3 py-1.5 rounded-full border border-rose-200/60 shadow-2xs transition-colors flex items-center gap-1">
+                📶 Réseau & codes <CaretRight size={10} weight="bold" />
+              </span>
+            </div>
           </div>
         );
 
       /* ── Départ ── */
       case "depart":
         return (
-          <div className="space-y-2.5">
-            <BigValue label={t("checkoutBefore")} value={data.practicalInfo?.checkout || ""} />
-            {departureSteps.length > 0 ? (
-              <ul className="space-y-1.5">
-                {departureSteps.slice(0, 3).map((step, idx) => (
-                  <li key={idx} className="flex items-start gap-1.5 text-[11px] text-[#6B5D4E]">
-                    <span className="w-3.5 h-3.5 rounded-full border border-gray-300 shrink-0 mt-0.5" />
-                    <span className="line-clamp-1">{step.text}</span>
-                  </li>
-                ))}
-                {departureSteps.length > 3 && (
-                  <li className="text-[11px] text-[#B0A79E] pl-5">
-                    + {departureSteps.length - 3}
-                  </li>
-                )}
-              </ul>
-            ) : data.practicalInfo?.departureNotes ? (
-              <p className="text-[11px] text-[#6B5D4E] leading-relaxed line-clamp-3">
-                {data.practicalInfo.departureNotes}
-              </p>
-            ) : (
-              <p className="text-[11px] text-[#B0A79E] italic">{t("emptyDeparture")}</p>
-            )}
+          <div className="flex flex-col justify-between items-center text-center h-full space-y-2">
+            <div className="flex flex-col items-center justify-center flex-1 my-auto">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#9A9086]">
+                {t("checkoutBefore")}
+              </span>
+              <span className={`text-3xl font-extrabold text-[#2A2016] mt-0.5 ${titleFont}`}>
+                {data.practicalInfo?.checkout || "11:00"}
+              </span>
+            </div>
+            <div className="pt-2 border-t border-gray-100/80 w-full flex justify-center shrink-0">
+              <span className="text-[10px] font-bold text-indigo-900 bg-indigo-50 group-hover:bg-indigo-100/90 px-3 py-1.5 rounded-full border border-indigo-200/60 shadow-2xs transition-colors flex items-center gap-1">
+                🚪 Voir la check-list <CaretRight size={10} weight="bold" />
+              </span>
+            </div>
           </div>
         );
 
       /* ── Bienvenue ── */
       case "bienvenue":
-        return data.property?.welcomeMessage ? (
-          <div className="flex items-start gap-3">
-            <span className="text-2xl leading-none shrink-0">👋</span>
-            <p className="text-[12px] text-[#4A3D30] leading-relaxed line-clamp-6 whitespace-pre-line">
-              {data.property.welcomeMessage}
-            </p>
+        return (
+          <div className="flex flex-col justify-between items-center text-center h-full space-y-2">
+            <div className="flex flex-col items-center justify-center flex-1 my-auto px-2">
+              <span className="text-2xl leading-none mb-1">👋</span>
+              <p className="text-[11px] text-[#4A3D30] leading-relaxed line-clamp-2 italic">
+                « {data.property?.welcomeMessage || t("emptyWelcome")} »
+              </p>
+            </div>
+            <div className="pt-2 border-t border-gray-100/80 w-full flex justify-center shrink-0">
+              <span className="text-[10px] font-bold text-amber-900 bg-amber-50 group-hover:bg-amber-100/90 px-3 py-1.5 rounded-full border border-amber-200/60 shadow-2xs transition-colors flex items-center gap-1">
+                👋 Lire le mot complet <CaretRight size={10} weight="bold" />
+              </span>
+            </div>
           </div>
-        ) : (
-          <p className="text-[11px] text-[#B0A79E] italic">{t("emptyWelcome")}</p>
         );
 
       /* ── Contacts ── */
       case "contacts":
         return (
-          <div className="space-y-2">
-            {data.owner?.phone && (
-              <a
-                href={`tel:${data.owner.phone.replace(/\s/g, "")}`}
-                onClick={(event) => event.stopPropagation()}
-                className="flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-white"
-                style={{ backgroundColor: primaryColor }}
-              >
-                <span className="min-w-0">
-                  <span className="block text-[10px] uppercase font-extrabold tracking-wider opacity-75">
-                    {t("yourHost")}
+          <div className="flex flex-col justify-between items-center text-center h-full space-y-2">
+            <div className="w-full flex flex-col items-center justify-center flex-1 my-auto">
+              {data.owner?.phone && (
+                <a
+                  href={`tel:${data.owner.phone.replace(/\s/g, "")}`}
+                  onClick={(event) => event.stopPropagation()}
+                  className="w-full flex items-center justify-between gap-2 rounded-2xl px-3 py-2 text-white shadow-xs hover:opacity-90 transition-opacity"
+                  style={{ backgroundColor: primaryColor }}
+                >
+                  <div className="text-left min-w-0">
+                    <span className="block text-[9px] uppercase font-extrabold tracking-wider opacity-75">
+                      {t("yourHost")}
+                    </span>
+                    <span className="block text-xs font-bold truncate">{data.owner.name || "—"}</span>
+                  </div>
+                  <span className="flex items-center gap-1 text-[10px] font-bold shrink-0 bg-white/20 px-2 py-0.5 rounded-full border border-white/30">
+                    <Phone size={11} weight="fill" /> {data.owner.phone}
                   </span>
-                  <span className="block text-[13px] font-bold truncate">{data.owner.name || "—"}</span>
-                </span>
-                <span className="flex items-center gap-1.5 text-xs font-bold shrink-0">
-                  <Phone size={13} weight="fill" /> {data.owner.phone}
-                </span>
-              </a>
-            )}
-            {usefulContacts.slice(0, 2).map((c, idx) => (
-              <div key={idx} className="flex items-center justify-between gap-2 text-[11px]">
-                <span className="text-[#6B5D4E] truncate">{c.label}</span>
-                <span className="font-bold text-[#2A2016] shrink-0">{c.phone}</span>
-              </div>
-            ))}
-            {emergencyContacts.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-0.5">
-                {emergencyContacts.slice(0, 4).map((c, idx) => (
-                  <a
-                    key={idx}
-                    href={`tel:${c.phone.replace(/\s/g, "")}`}
-                    onClick={(event) => event.stopPropagation()}
-                    className="px-2 py-1 rounded-lg bg-[#FFECEC] text-[#CE2B2B] text-[10px] font-extrabold"
-                  >
-                    {c.label} · {c.phone}
-                  </a>
-                ))}
-              </div>
-            )}
+                </a>
+              )}
+            </div>
+            <div className="pt-2 border-t border-gray-100/80 w-full flex justify-center shrink-0">
+              <span className="text-[10px] font-bold text-emerald-900 bg-emerald-50 group-hover:bg-emerald-100/90 px-3 py-1.5 rounded-full border border-emerald-200/60 shadow-2xs transition-colors flex items-center gap-1">
+                📞 Contacts & urgences <CaretRight size={10} weight="bold" />
+              </span>
+            </div>
           </div>
         );
 
@@ -1227,50 +1241,57 @@ export default function CleoTemplate({
           return <p className="text-[11px] text-[#B0A79E] italic">{t("emptyAddresses")}</p>;
         }
         return (
-          <div className="grid grid-cols-4 gap-3">
-            {shown.map((rec, idx) => (
-              <a
-                key={idx}
-                href={rec.mapsUrl || undefined}
-                target={rec.mapsUrl ? "_blank" : undefined}
-                rel="noopener noreferrer"
-                onClick={(event) => event.stopPropagation()}
-                className="group rounded-xl overflow-hidden border border-gray-100 bg-white hover:shadow-md transition-shadow flex flex-col"
-              >
-                <span className="block h-24 bg-gray-100 overflow-hidden relative">
-                  {rec.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={rec.imageUrl}
-                      alt=""
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <span className="w-full h-full flex items-center justify-center">
-                      <MapPin size={20} weight="duotone" className="text-[#C9C2BA]" />
-                    </span>
-                  )}
-                  <span className="absolute bottom-1.5 left-1.5 bg-black/65 backdrop-blur-sm text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
-                    {rec.category}
-                  </span>
-                </span>
-                <span className="p-2 flex-1 flex flex-col gap-0.5">
-                  <span className="text-[11px] font-bold text-[#2A2016] leading-tight line-clamp-2">
-                    {rec.title}
-                  </span>
-                  <span className="mt-auto flex items-center gap-1.5 text-[10px] text-[#8A8078]">
-                    {typeof rec.rating === "number" && (
-                      <span className="flex items-center gap-0.5 font-bold text-[#2A2016]">
-                        <Star size={9} weight="fill" className="text-amber-400" />
-                        {rec.rating.toFixed(1)}
+          <div className="flex flex-col justify-between h-full space-y-2">
+            <div className="grid grid-cols-4 gap-3 flex-1 items-stretch">
+              {shown.map((rec, idx) => (
+                <a
+                  key={idx}
+                  href={rec.mapsUrl || undefined}
+                  target={rec.mapsUrl ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  onClick={(event) => event.stopPropagation()}
+                  className="group/item rounded-2xl overflow-hidden border border-gray-200/70 bg-white hover:shadow-md transition-all flex flex-col justify-between text-left"
+                >
+                  <span className="block h-20 bg-gray-100 overflow-hidden relative">
+                    {rec.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={rec.imageUrl}
+                        alt=""
+                        className="w-full h-full object-cover group-hover/item:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span className="w-full h-full flex items-center justify-center">
+                        <MapPin size={20} weight="duotone" className="text-[#C9C2BA]" />
                       </span>
                     )}
-                    {rec.distance && <span className="truncate">{rec.distance.split("·")[0].trim()}</span>}
+                    <span className="absolute bottom-1 left-1 bg-black/65 backdrop-blur-sm text-white text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
+                      {rec.category}
+                    </span>
                   </span>
-                </span>
-              </a>
-            ))}
+                  <span className="p-2 flex-1 flex flex-col justify-between gap-0.5">
+                    <span className="text-[11px] font-bold text-[#2A2016] leading-tight line-clamp-1">
+                      {rec.title}
+                    </span>
+                    <span className="flex items-center justify-between text-[9px] text-[#8A8078]">
+                      {typeof rec.rating === "number" && (
+                        <span className="flex items-center gap-0.5 font-bold text-[#2A2016]">
+                          <Star size={9} weight="fill" className="text-amber-400" />
+                          {rec.rating.toFixed(1)}
+                        </span>
+                      )}
+                      {rec.distance && <span className="truncate">{rec.distance.split("·")[0].trim()}</span>}
+                    </span>
+                  </span>
+                </a>
+              ))}
+            </div>
+            <div className="pt-2 border-t border-gray-100/80 w-full flex justify-center shrink-0">
+              <span className="text-[10px] font-bold text-rose-900 bg-rose-50 group-hover:bg-rose-100/90 px-3 py-1.5 rounded-full border border-rose-200/60 shadow-2xs transition-colors flex items-center gap-1">
+                📍 Voir les {recommendations.length} adresses <CaretRight size={10} weight="bold" />
+              </span>
+            </div>
           </div>
         );
       }
@@ -1278,106 +1299,140 @@ export default function CleoTemplate({
       /* ── Équipements ── */
       case "equipements":
         return (
-          <div className="space-y-2">
-            {equipments.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5">
-                {equipments.slice(0, 8).map((eq, idx) => (
-                  <span
-                    key={idx}
-                    title={eq.title}
-                    className="flex items-center gap-1.5 rounded-lg bg-gray-50 border border-gray-100 px-2 py-1 text-[11px] text-[#4A3D30] max-w-full"
-                  >
-                    <span className="shrink-0">{eq.icon || "✨"}</span>
-                    <span className="truncate">{eq.title}</span>
-                  </span>
-                ))}
-                {equipments.length > 8 && (
-                  <span className="rounded-lg bg-gray-50 border border-gray-100 px-2 py-1 text-[11px] text-[#8A8078]">
-                    + {equipments.length - 8}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <p className="text-[11px] text-[#B0A79E] italic">{t("emptyEquipment")}</p>
-            )}
-            {upsells.length > 0 && (
-              <p className="text-[11px] text-[#6B5D4E] flex items-center gap-1.5 pt-0.5">
-                <ShoppingBag size={12} weight="duotone" style={{ color: primaryColor }} />
-                {upsells.length} · {t("extras")}
-              </p>
-            )}
+          <div className="flex flex-col justify-between items-center text-center h-full space-y-2">
+            <div className="flex flex-wrap items-center justify-center gap-1.5 my-auto">
+              {equipments.slice(0, 5).map((eq, idx) => (
+                <span
+                  key={idx}
+                  title={eq.title}
+                  className="flex items-center gap-1 rounded-full bg-gray-50 border border-gray-200/70 px-2.5 py-1 text-[10px] font-medium text-[#4A3D30]"
+                >
+                  <span className="shrink-0">{eq.icon || "✨"}</span>
+                  <span className="truncate max-w-[85px]">{eq.title}</span>
+                </span>
+              ))}
+              {equipments.length > 5 && (
+                <span className="rounded-full bg-gray-50 border border-gray-200/70 px-2 py-1 text-[10px] font-bold text-[#8A8078]">
+                  +{equipments.length - 5}
+                </span>
+              )}
+            </div>
+            <div className="pt-2 border-t border-gray-100/80 w-full flex justify-center shrink-0">
+              <span className="text-[10px] font-bold text-amber-900 bg-amber-50 group-hover:bg-amber-100/90 px-3 py-1.5 rounded-full border border-amber-200/60 shadow-2xs transition-colors flex items-center gap-1">
+                ✨ Voir les {equipments.length} équipements & notices <CaretRight size={10} weight="bold" />
+              </span>
+            </div>
           </div>
         );
 
       /* ── Transports ── */
       case "transports": {
         const lines = (data.transportLines || []).filter((l) => l.station || (l.lines || []).length);
-        if (lines.length === 0) {
-          return <p className="text-[11px] text-[#B0A79E] italic">{t("emptyTransport")}</p>;
-        }
         return (
-          <ul className="space-y-1.5">
-            {lines.slice(0, 4).map((line, idx) => (
-              <li key={idx} className="flex items-center gap-2 text-[11px]">
-                <span
-                  className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded shrink-0"
-                  style={{ backgroundColor: `${primaryColor}14`, color: primaryColor }}
-                >
-                  {line.type}
-                </span>
-                {(line.lines || []).filter(Boolean).slice(0, 3).map((l, i) => (
-                  <span key={i} className="bg-[#2A2016] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
-                    {l}
+          <div className="flex flex-col justify-between items-center text-center h-full space-y-2">
+            <div className="flex flex-col items-center justify-center flex-1 my-auto space-y-1 w-full">
+              {lines.slice(0, 2).map((line, idx) => (
+                <div key={idx} className="flex items-center justify-center gap-1 text-[10px] bg-sky-50/60 border border-sky-100 px-2.5 py-0.5 rounded-full w-fit max-w-full">
+                  <span
+                    className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full shrink-0 text-white"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    {line.type}
                   </span>
-                ))}
-                <span className="text-[#6B5D4E] truncate">{line.station}</span>
-              </li>
-            ))}
-          </ul>
+                  <span className="text-[#2A2016] font-bold truncate max-w-[110px]">{line.station}</span>
+                </div>
+              ))}
+            </div>
+            <div className="pt-2 border-t border-gray-100/80 w-full flex justify-center shrink-0">
+              <span className="text-[10px] font-bold text-sky-900 bg-sky-50 group-hover:bg-sky-100/90 px-3 py-1.5 rounded-full border border-sky-200/60 shadow-2xs transition-colors flex items-center gap-1">
+                🚌 Voir les transports <CaretRight size={10} weight="bold" />
+              </span>
+            </div>
+          </div>
         );
       }
 
       /* ── Règlement ── */
       case "reglement": {
         const rules = (data.rules || []).filter(Boolean);
-        if (rules.length === 0) {
-          return <p className="text-[11px] text-[#B0A79E] italic">{t("emptyRules")}</p>;
-        }
         return (
-          <ul className="space-y-1.5">
-            {rules.slice(0, 3).map((rule, idx) => (
-              <li key={idx} className="flex items-start gap-1.5 text-[11px] text-[#6B5D4E]">
-                <span className="w-1 h-1 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: primaryColor }} />
-                <span className="line-clamp-2">{rule}</span>
-              </li>
-            ))}
-          </ul>
+          <div className="flex flex-col justify-between h-full space-y-2.5">
+            <div className="flex flex-col justify-center flex-1 my-auto w-full space-y-2">
+              {rules.slice(0, 2).map((rule, idx) => (
+                <div
+                  key={idx}
+                  className="w-full text-left p-3 rounded-2xl bg-gradient-to-r from-amber-50/80 via-orange-50/40 to-amber-50/30 border border-orange-100/90 shadow-2xs flex items-start gap-2.5"
+                >
+                  <span className="w-5 h-5 rounded-full bg-orange-100/80 text-orange-700 font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                    {idx + 1}
+                  </span>
+                  <span className="text-xs font-semibold text-[#2A2016] leading-relaxed line-clamp-2 min-w-0 flex-1">
+                    {rule}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="pt-2 border-t border-gray-100/80 w-full flex justify-center shrink-0">
+              <span className="text-[10px] font-extrabold text-amber-900 bg-amber-50 group-hover:bg-amber-100/90 px-3.5 py-1.5 rounded-full border border-amber-200/70 shadow-2xs transition-colors flex items-center gap-1.5">
+                📜 {rules.length} consignes importantes <CaretRight size={10} weight="bold" />
+              </span>
+            </div>
+          </div>
         );
       }
 
       /* ── Questions fréquentes ── */
       case "faq": {
         const faq = (data.comfortOptions?.faq || []).filter((f) => f.question);
-        if (faq.length === 0) {
-          return <p className="text-[11px] text-[#B0A79E] italic">{t("emptyFaq")}</p>;
-        }
         return (
-          <ul className="space-y-1.5">
-            {faq.slice(0, 3).map((item, idx) => (
-              <li key={idx} className="text-[11px] text-[#6B5D4E] line-clamp-2">
-                {item.question}
-              </li>
-            ))}
-          </ul>
+          <div className="flex flex-col justify-between h-full space-y-2.5">
+            <div className="flex flex-col justify-center flex-1 my-auto w-full space-y-2">
+              {faq.slice(0, 2).map((item, idx) => (
+                <div
+                  key={idx}
+                  className="w-full text-left p-3 rounded-2xl bg-gradient-to-r from-purple-50/80 via-indigo-50/40 to-purple-50/30 border border-purple-100/90 shadow-2xs space-y-1"
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-purple-100 text-purple-700 font-extrabold text-[10px] flex items-center justify-center shrink-0 mt-0.5">
+                      ?
+                    </span>
+                    <span className="text-xs font-bold text-[#2A2016] leading-snug line-clamp-1 min-w-0 flex-1">
+                      {item.question}
+                    </span>
+                  </div>
+                  {item.answer && (
+                    <p className="text-[11px] text-[#7048B6] font-medium leading-tight line-clamp-1 pl-7">
+                      {item.answer}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="pt-2 border-t border-gray-100/80 w-full flex justify-center shrink-0">
+              <span className="text-[10px] font-extrabold text-purple-900 bg-purple-50 group-hover:bg-purple-100/90 px-3.5 py-1.5 rounded-full border border-purple-200/70 shadow-2xs transition-colors flex items-center gap-1.5">
+                💬 {faq.length} réponses instantanées <CaretRight size={10} weight="bold" />
+              </span>
+            </div>
+          </div>
         );
       }
 
       /* ── Livre d'or ── */
       case "livredor":
         return (
-          <p className="text-[11px] text-[#6B5D4E] leading-relaxed line-clamp-4">
-            {t("guestbookText")}
-          </p>
+          <div className="flex flex-col justify-between h-full space-y-2.5">
+            <div className="flex flex-col items-center justify-center flex-1 my-auto px-2 text-center space-y-1">
+              <span className="text-2xl mb-1">✍️</span>
+              <p className="text-xs font-semibold text-[#5C458A] italic leading-relaxed line-clamp-2">
+                « {t("guestbookText")} »
+              </p>
+            </div>
+            <div className="pt-2 border-t border-gray-100/80 w-full flex justify-center shrink-0">
+              <span className="text-[10px] font-extrabold text-violet-900 bg-violet-50 group-hover:bg-violet-100/90 px-3.5 py-1.5 rounded-full border border-violet-200/70 shadow-2xs transition-colors flex items-center gap-1.5">
+                💌 Laisser un mot d&apos;or <CaretRight size={10} weight="bold" />
+              </span>
+            </div>
+          </div>
         );
 
       default:
@@ -1464,7 +1519,7 @@ export default function CleoTemplate({
       {/* ── COUVERTURE ────────────────────────────────────────────────── */}
       <section
         onClick={() => activate("cover")}
-        className={`relative min-h-[16rem] w-full overflow-hidden flex flex-col justify-end px-6 pt-14 pb-10 ${hotClass("cover")}`}
+        className={`relative min-h-[18rem] sm:min-h-[22rem] w-full overflow-hidden flex flex-col justify-end px-6 pt-16 pb-12 ${hotClass("cover")}`}
       >
         {offered.length > 1 && (
           <div
@@ -1491,33 +1546,33 @@ export default function CleoTemplate({
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-[#2A2016] to-[#4A3D30]" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/35 to-black/80" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/30 to-black/75" />
         </div>
 
         <div
-          className={`relative z-10 text-center space-y-3 ${hotClass("identity")}`}
+          className={`relative z-10 text-center space-y-2 ${hotClass("identity")}`}
           onClick={(e) => {
             if (!editable) return;
             e.stopPropagation();
             activate("identity");
           }}
         >
-          <h1 className={`text-[26px] leading-tight font-extrabold text-white drop-shadow-md ${titleFont}`}>
+          <h1 className={`text-[24px] sm:text-[28px] leading-tight font-extrabold text-white drop-shadow-md ${titleFont}`}>
             {data.property?.name || t("footer")}
           </h1>
-          <p className="text-[13px] text-white/85 leading-relaxed max-w-sm mx-auto drop-shadow">
+          <p className="text-[12px] sm:text-[13px] text-white/90 leading-relaxed max-w-md mx-auto drop-shadow-sm">
             {data.property?.welcomeMessage || t("defaultSubtitle")}
           </p>
           {data.property?.city && (
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-white bg-white/15 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/25">
-              <MapPin size={12} weight="fill" /> {data.property.city}
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-white bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/30 shadow-xs">
+              <MapPin size={11} weight="fill" /> {data.property.city}
             </span>
           )}
         </div>
       </section>
 
       {/* ── CORPS ─────────────────────────────────────────────────────── */}
-      <main className="max-w-2xl mx-auto px-4 -mt-6 relative z-20 space-y-6">
+      <main className="max-w-2xl mx-auto px-4 -mt-5 relative z-20 space-y-5">
         {editable && (
           <div className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-gray-200 shadow-sm text-[11px] font-semibold text-[#2A2016] flex items-center gap-2">
             <PencilSimple size={14} weight="bold" className="text-[#FF385C] shrink-0" />
@@ -1525,112 +1580,87 @@ export default function CleoTemplate({
           </div>
         )}
 
-        {/* Carte « Heure sur place » */}
-        <div className="rounded-2xl overflow-hidden shadow-lg text-white relative isolate">
-          {/*
-            Le décor suit l'heure locale ET la météo : lune et étoiles la nuit,
-            soleil le jour, nuages, pluie, neige ou orage selon le relevé.
-          */}
-          <SkyBackdrop
-            phase={localTime?.phase ?? "night"}
-            condition={conditionFromCode(showWeather ? weather?.code : undefined)}
-          />
-
-          <div className="relative p-5">
-          <div className="flex items-start justify-between gap-3">
-            <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-white/55">
-              {t("localTime")}
-            </span>
-            <span className="flex items-center gap-1.5 text-[10px] font-bold bg-white/10 border border-white/20 px-2.5 py-1 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              {t("live")}
-            </span>
-          </div>
-
-          <div className="flex items-end justify-between gap-3 mt-2">
-            <div className="min-w-0">
-              <p
-                className={`text-[44px] leading-none font-extrabold tabular-nums ${titleFont}`}
-                aria-label={localTime ? `Il est ${localTime.time} à ${data.property?.city || "destination"}` : undefined}
-              >
+        {/* Module Heure & Météo — CAPSULE APPLE SINGLE-LINE SF STYLE */}
+        <div className="w-full bg-white border border-gray-200/80 shadow-[0_4px_25px_rgba(0,0,0,0.04)] text-[#2A2016] rounded-3xl p-2 transition-shadow">
+          <button
+            type="button"
+            onClick={() => setWeatherOpen((open) => !open)}
+            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl hover:bg-gray-50/80 transition-colors cursor-pointer group"
+          >
+            {/* Gauche : Horloge Apple & Ville */}
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="flex items-center gap-1.5 text-xs font-black text-[#2A2016] tabular-nums tracking-tight shrink-0">
+                <Clock size={15} weight="bold" className="text-[#8A8078]" />
                 {localTime ? localTime.time : "--:--"}
-              </p>
-              <p className="text-sm font-bold mt-2">{data.property?.city || "Votre destination"}</p>
-              <p className="text-[11px] text-white/55">{localTime ? localTime.dateLabel : " "}</p>
+              </span>
+              <span className="text-gray-300 font-light text-xs shrink-0">·</span>
+              <span className="text-xs font-bold text-[#2A2016] truncate">
+                {data.property?.city || "Destination"}
+              </span>
             </div>
 
-            {/* Météo sur place — repliée par défaut, dépliable d'un geste. */}
+            {/* Droite : Météo synthétique Apple avec Icône Duotone Vectorielle */}
             {showWeather && weather && (
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setWeatherOpen((open) => !open);
-                }}
-                aria-expanded={weatherOpen}
-                aria-label={`Météo à ${data.property?.city} : ${weather.label}, ${weather.temperature} degrés`}
-                className="shrink-0 text-right rounded-xl px-2.5 py-2 -mr-1 hover:bg-white/10 transition-colors"
-              >
-                <span className="block text-3xl leading-none">{weather.emoji}</span>
-                <span className={`block text-2xl font-extrabold tabular-nums mt-1 ${titleFont}`}>
+              <div className="flex items-center gap-2 shrink-0">
+                <WeatherIcon code={weather.code} emoji={weather.emoji} />
+                <span className={`text-xs font-black text-[#2A2016] tabular-nums ${titleFont}`}>
                   {weather.temperature}°
                 </span>
-                <span className="flex items-center justify-end gap-1 text-[10px] text-white/60 mt-0.5">
+                <span className="text-[10px] text-[#8A8078] font-medium hidden sm:inline">
                   {weather.label}
+                </span>
+                <span className="flex items-center gap-1 text-[10px] font-bold text-[#6B5D4E] group-hover:text-white group-hover:bg-[#2A2016] bg-gray-100 px-2.5 py-1 rounded-full transition-all ml-1">
+                  <span>{weatherOpen ? "Fermer" : "Prévisions"}</span>
                   <CaretDown
                     size={10}
                     weight="bold"
-                    className={`transition-transform ${weatherOpen ? "rotate-180" : ""}`}
+                    className={`transition-transform duration-300 ${weatherOpen ? "rotate-180" : ""}`}
                   />
                 </span>
-              </button>
+              </div>
             )}
-          </div>
+          </button>
 
-          {showWeather && weather && weatherOpen && (
-            <div className="mt-3 pt-3 border-t border-white/15 animate-fadeIn">
-              <p className="text-[11px] text-white/70">
-                {t("feelsLike")} {weather.feelsLike}° · {weather.label}
-              </p>
-              {weather.daily.length > 0 && (
-                <div className="mt-2.5 flex items-stretch gap-2">
-                  {weather.daily.map((day) => (
-                    <div
-                      key={day.date}
-                      className="flex-1 rounded-xl bg-white/10 border border-white/10 px-2 py-2 text-center"
-                      title={day.label}
-                    >
-                      <span className="block text-[10px] text-white/60">
-                        {formatForecastDay(day.date, locale)}
-                      </span>
-                      <span className="block text-base leading-tight mt-0.5">{day.emoji}</span>
-                      <span className="block text-[10px] font-bold tabular-nums mt-0.5">
-                        {day.max}° <span className="text-white/45">{day.min}°</span>
-                      </span>
+          {/* Tiroir Météo Dépliable (Animation Framer Motion Ultra-Fluide Apple) */}
+          <AnimatePresence initial={false}>
+            {showWeather && weather && weatherOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+                className="overflow-hidden"
+              >
+                <div className="px-4 pb-3 pt-3 border-t border-gray-100 mt-1 space-y-3">
+                  <div className="flex items-center justify-between text-[10px] text-[#8A8078] px-1 font-semibold">
+                    <span>Ressenti {weather.feelsLike}° · {weather.label}</span>
+                    <span>Prévisions 4 jours</span>
+                  </div>
+
+                  {weather.daily.length > 0 && (
+                    <div className="grid grid-cols-4 gap-2.5">
+                      {weather.daily.slice(0, 4).map((day) => (
+                        <div
+                          key={day.date}
+                          className="flex flex-col items-center justify-center p-3 rounded-2xl bg-gray-50/90 border border-gray-100 text-center shadow-2xs hover:bg-gray-100/90 transition-colors"
+                        >
+                          <span className="text-[9px] font-bold text-[#8A8078] uppercase tracking-wider">
+                            {formatForecastDay(day.date, locale)}
+                          </span>
+                          <div className="my-2">
+                            <WeatherIcon code={day.code} emoji={day.emoji} className="w-6 h-6" />
+                          </div>
+                          <span className="text-[10px] font-extrabold text-[#2A2016] tabular-nums">
+                            {day.max}° <span className="text-[#A0958B] font-medium">{day.min}°</span>
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-              <p className="mt-2 text-[9px] text-white/35">{t("weatherCredit")}</p>
-            </div>
-          )}
-
-          <div className="mt-4 relative h-1 rounded-full bg-white/15">
-            <span
-              className="absolute -top-[5px] w-3 h-3 rounded-full bg-white shadow-md transition-[left] duration-700"
-              style={{ left: `calc(${(localTime?.dayProgress ?? 0.5) * 100}% - 6px)` }}
-            />
-          </div>
-
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <span className="text-[11px] font-semibold text-white/85">
-              {localTime ? t(localTime.momentKey) : " "}
-            </span>
-            <span className="text-[10px] text-white/50 text-right">
-              {t("otherTimezoneHint")}
-            </span>
-          </div>
-          </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Bascule de disposition — ordinateur uniquement */}
@@ -1743,24 +1773,36 @@ export default function CleoTemplate({
             la grille — surtout pas d'items-start, qui creusait des vides), et
             `auto-rows-fr` égalise les rangées entre elles. */}
         {gridActive && (
-          <div className="hidden @4xl:grid grid-cols-6 gap-4 auto-rows-fr [grid-auto-flow:row_dense]">
-            {gridOrder.map((id) => (
-              <GridCard
-                key={id}
-                id={id}
-                span={GRID_SPAN[id]}
-                Icon={MODULE_ICONS[id]}
-                tint={MODULE_TINTS[id]}
-                title={moduleLabel(activeLang, id)}
-                titleFont={titleFont}
-                onOpen={() => openModuleAndEdit(id)}
-                onSelect={() => activate(id)}
-                extraClass={hotClass(id)}
-                action={gridAction(id)}
-              >
-                {renderGridCard(id)}
-              </GridCard>
-            ))}
+          <div className="hidden @4xl:block space-y-3">
+            <div className="flex items-center justify-center gap-2 py-2 px-4 rounded-2xl bg-white/75 backdrop-blur-md border border-white/90 shadow-2xs text-[11px] text-[#6B5D4E] font-semibold text-center">
+              <span className="text-amber-500 font-bold">💡 Astuce :</span>
+              <span>Cliquez sur n'importe quelle carte pour l'agrandir et consulter le guide complet.</span>
+            </div>
+            <div className="grid grid-cols-6 gap-4 auto-rows-fr [grid-auto-flow:row_dense]">
+              {gridOrder.map((id) => {
+                const isBottomPair =
+                  gridOrder.filter((m) => ["reglement", "faq", "livredor"].includes(m)).length === 2 &&
+                  (id === "reglement" || id === "faq");
+                const cardSpan = isBottomPair ? "col-span-3" : GRID_SPAN[id];
+                return (
+                  <GridCard
+                    key={id}
+                    id={id}
+                    span={cardSpan}
+                    Icon={MODULE_ICONS[id]}
+                    tint={MODULE_TINTS[id]}
+                    title={moduleLabel(activeLang, id)}
+                    titleFont={titleFont}
+                    onOpen={() => openModuleAndEdit(id)}
+                    onSelect={() => activate(id)}
+                    extraClass={hotClass(id)}
+                    action={gridAction(id)}
+                  >
+                    {renderGridCard(id)}
+                  </GridCard>
+                );
+              })}
+            </div>
           </div>
         )}
 

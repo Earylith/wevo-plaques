@@ -78,8 +78,8 @@ export default async function AccommodationPage({ params }: Props) {
   }
 
   // Le gabarit « Cléo » est le livret nouvelle génération : il est utilisé dès
-  // qu'un livret le demande explicitement, et pour la démo confort 2.
-  if (data.template === "cleo" || data.slug === "demo-confort2") {
+  // qu'un livret le demande explicitement, et pour toutes les démos Cléo.
+  if (data.template === "cleo" || data.slug.startsWith("demo-confort") || data.slug === "demo-paris" || data.slug === "demo-biarritz" || data.slug === "demo-chamonix") {
     return <CleoTemplate data={data} trackingId={data.id} />;
   }
 

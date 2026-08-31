@@ -2,7 +2,7 @@
 
 import { Accommodation } from "@/lib/types/accommodation";
 import React, { useState, useEffect } from "react";
-import { List, X, WifiHigh, Info, BookOpen, ForkKnife, MapPin, Phone, Bus, WarningCircle, Siren, PoliceCar, FirstAid, House, Camera, ShoppingBag } from "@phosphor-icons/react";
+import { List, X, WifiHigh, Info, BookOpen, ForkKnife, MapPin, Phone, Bus, WarningCircle, Siren, PoliceCar, FirstAid, House, Camera, ShoppingBag, CloudSun } from "@phosphor-icons/react";
 import Link from "next/link";
 import WifiCard from "../cards/WifiCard";
 import PracticalInfoCard from "../cards/PracticalInfoCard";
@@ -12,12 +12,16 @@ import RecommendationsCard from "../cards/RecommendationsCard";
 import UpsellCard from "../cards/UpsellCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { translateAccommodation } from "@/lib/utils/translate";
+import { fetchWeather, formatForecastDay, WeatherSnapshot } from "@/lib/weather";
 
 export default function ComfortTemplate({ data }: { data: Accommodation }) {
   // Translation State
   const [currentLang, setCurrentLang] = useState("fr");
   const [isTranslating, setIsTranslating] = useState(false);
   const [translatedData, setTranslatedData] = useState<Accommodation>(data);
+
+  // Weather State
+  const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
 
   useEffect(() => {
     if (currentLang === "fr") {
@@ -44,6 +48,11 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
     return () => { isMounted = false; };
   }, [currentLang, data]);
 
+  useEffect(() => {
+    if (!data.property?.city) return;
+    fetchWeather(data.property.city).then(setWeather);
+  }, [data.property?.city]);
+
   const displayData = translatedData;
 
   const primaryColor = displayData.comfortOptions?.theme?.primaryColor || "#C4714A";
@@ -62,6 +71,10 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
     { label: "Urgences", href: "#urgences", icon: <WarningCircle size={24} weight="duotone" /> },
     { label: "À découvrir", href: "#decouvrir", icon: <MapPin size={24} weight="duotone" /> },
   ];
+
+  if (weather) {
+    navLinks.splice(1, 0, { label: "Météo", href: "#meteo", icon: <CloudSun size={24} weight="duotone" /> });
+  }
 
   if (displayData.comfortOptions?.upsells && displayData.comfortOptions.upsells.length > 0) {
     navLinks.splice(3, 0, { label: "Services", href: "#boutique", icon: <ShoppingBag size={24} weight="duotone" /> });
@@ -126,7 +139,7 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
         </div>
 
         {/* Parallax Hero Section */}
-        <section className="relative h-[50vh] lg:h-[80vh] w-full overflow-hidden flex items-center justify-center px-6 lg:px-12">
+        <section className="relative min-h-[20rem] h-[38vh] lg:h-[48vh] w-full overflow-hidden flex items-center justify-center px-6 lg:px-12">
           <motion.div 
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 20, ease: "easeInOut", repeat: Infinity }}
@@ -202,8 +215,45 @@ export default function ComfortTemplate({ data }: { data: Accommodation }) {
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-12 py-12 lg:py-24">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             
-            {/* Colonne 1 : Wi-Fi, Contacts, Urgences */}
+            {/* Colonne 1 : Météo, Wi-Fi, Contacts, Urgences */}
             <div className="flex flex-col gap-8">
+              {weather && (
+                <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} id="meteo" whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
+                  <div className="bg-gradient-to-br from-[#1F2937] to-[#111827] text-white rounded-[2rem] p-6 shadow-xl border border-gray-800">
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest text-white/60">
+                        Météo à {displayData.property.city}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-[10px] font-bold bg-white/10 px-2.5 py-1 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        En direct
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3 mb-4">
+                      <div>
+                        <span className="text-4xl font-extrabold tabular-nums">{weather.temperature}°</span>
+                        <span className="block text-xs font-bold text-white/80 mt-1">{weather.label}</span>
+                        <span className="block text-[10px] text-white/60">Ressenti {weather.feelsLike}°</span>
+                      </div>
+                      <span className="text-5xl">{weather.emoji}</span>
+                    </div>
+
+                    {weather.daily.length > 0 && (
+                      <div className="pt-3 border-t border-white/10 grid grid-cols-3 gap-2">
+                        {weather.daily.slice(0, 3).map((day) => (
+                          <div key={day.date} className="bg-white/10 rounded-xl p-2 text-center">
+                            <span className="block text-[10px] text-white/70 font-semibold">{formatForecastDay(day.date, "fr-FR")}</span>
+                            <span className="block text-lg my-0.5">{day.emoji}</span>
+                            <span className="block text-[10px] font-bold">{day.max}° <span className="text-white/40">{day.min}°</span></span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
               <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeUp} id="wifi" whileHover={{ y: -5 }} transition={{ type: "spring", stiffness: 300 }}>
                 <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] p-6 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border border-white/60 hover:shadow-[0_8px_40px_rgba(212,163,74,0.12)] hover:border-[#D4A34A]/30 transition-all duration-500 group">
                   <WifiCard ssid={displayData.wifi.ssid} password={displayData.wifi.password} />

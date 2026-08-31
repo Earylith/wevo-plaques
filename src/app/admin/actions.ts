@@ -83,10 +83,10 @@ function revalidateAccommodation(id: string, slug?: string) {
     if (slug === "demo-confort2") revalidatePath("/demo-confort2");
     if (slug === "demo-confort") revalidatePath("/demo-confort");
     if (slug === "demo-essentielle") revalidatePath("/demo-essentielle");
+    if (slug === "demo-paris") revalidatePath("/demo-paris");
+    if (slug === "demo-biarritz") revalidatePath("/demo-biarritz");
+    if (slug === "demo-chamonix") revalidatePath("/demo-chamonix");
   }
-  // Pas de revalidatePath("/", "layout") ici : l'enregistrement automatique
-  // se déclenche toutes les quelques secondes, purger tout le cache de
-  // l'application à chaque frappe serait hors de proportion.
 }
 
 export async function getAdminAccommodations(): Promise<Accommodation[]> {
@@ -98,17 +98,23 @@ export async function getAdminAccommodations(): Promise<Accommodation[]> {
       id: doc.id,
     })) as Accommodation[];
 
-    const hasDemoConfort2 = items.some(item => item.id === "demo-confort2" || item.slug === "demo-confort2");
-    if (!hasDemoConfort2) {
-      const { demoConfortMarseille } = await import("@/lib/demoData");
-      items.push(demoConfortMarseille);
+    const { demoConfortMarseille, demoParis, demoBiarritz, demoChamonix } = await import("@/lib/demoData");
+    const demosToCheck = [
+      { slug: "demo-confort2", data: demoConfortMarseille },
+      { slug: "demo-paris", data: demoParis },
+      { slug: "demo-biarritz", data: demoBiarritz },
+      { slug: "demo-chamonix", data: demoChamonix },
+    ];
+
+    for (const demoItem of demosToCheck) {
+      const exists = items.some(item => item.id === demoItem.slug || item.slug === demoItem.slug);
+      if (!exists) {
+        items.push(demoItem.data);
+      }
     }
     return items;
   } catch (error) {
     console.error("Error fetching admin accommodations", error);
-    // Surtout pas de repli sur la démo ici : afficher du contenu de démo à la
-    // place du vrai catalogue conduirait l'admin à l'écraser au prochain
-    // enregistrement. On laisse l'erreur remonter.
     throw new Error(
       error instanceof Error
         ? error.message
@@ -250,38 +256,35 @@ type DemoSeed = Omit<Accommodation, "createdAt" | "updatedAt"> &
   Partial<Pick<Accommodation, "createdAt" | "updatedAt">>;
 
 export async function seedDemos(
-  demoEssentielle: DemoSeed,
-  demoConfort: DemoSeed,
-  demoConfort2?: DemoSeed
+  demoEssentielle?: DemoSeed,
+  demoConfort?: DemoSeed,
+  demoConfort2?: DemoSeed,
+  demoParisSeed?: DemoSeed,
+  demoBiarritzSeed?: DemoSeed,
+  demoChamonixSeed?: DemoSeed
 ) {
   await requireAdminAuth();
   try {
     const timestamp = Date.now();
+    const demosModule = await import("@/lib/demoData");
     
-    // Check if demo-essentielle exists, update or create
-    const essSnapshot = await adminDb.collection(COLLECTION_NAME).where("slug", "==", "demo-essentielle").get();
-    if (!essSnapshot.empty) {
-      await adminDb.collection(COLLECTION_NAME).doc(essSnapshot.docs[0].id).update(sanitizeForFirestore({ ...demoEssentielle, updatedAt: timestamp }) as Record<string, unknown>);
-    } else {
-      await adminDb.collection(COLLECTION_NAME).doc("demo-essentielle").set(sanitizeForFirestore({ ...demoEssentielle, createdAt: timestamp, updatedAt: timestamp }) as Record<string, unknown>);
-    }
+    const seedList: { slug: string; defaultData: DemoSeed; providedData?: DemoSeed }[] = [
+      { slug: "demo-essentielle", defaultData: demosModule.demoEssentielle, providedData: demoEssentielle },
+      { slug: "demo-confort", defaultData: demosModule.demoConfort, providedData: demoConfort },
+      { slug: "demo-confort2", defaultData: demosModule.demoConfortMarseille, providedData: demoConfort2 },
+      { slug: "demo-paris", defaultData: demosModule.demoParis, providedData: demoParisSeed },
+      { slug: "demo-biarritz", defaultData: demosModule.demoBiarritz, providedData: demoBiarritzSeed },
+      { slug: "demo-chamonix", defaultData: demosModule.demoChamonix, providedData: demoChamonixSeed },
+    ];
 
-    // Check if demo-confort exists, update or create
-    const confSnapshot = await adminDb.collection(COLLECTION_NAME).where("slug", "==", "demo-confort").get();
-    if (!confSnapshot.empty) {
-      await adminDb.collection(COLLECTION_NAME).doc(confSnapshot.docs[0].id).update(sanitizeForFirestore({ ...demoConfort, updatedAt: timestamp }) as Record<string, unknown>);
-    } else {
-      await adminDb.collection(COLLECTION_NAME).doc("demo-confort").set(sanitizeForFirestore({ ...demoConfort, createdAt: timestamp, updatedAt: timestamp }) as Record<string, unknown>);
-    }
-
-    // Check if demo-confort2 exists, update or create
-    const { demoConfortMarseille } = await import("@/lib/demoData");
-    const demo2Data = demoConfort2 || demoConfortMarseille;
-    const conf2Snapshot = await adminDb.collection(COLLECTION_NAME).where("slug", "==", "demo-confort2").get();
-    if (!conf2Snapshot.empty) {
-      await adminDb.collection(COLLECTION_NAME).doc(conf2Snapshot.docs[0].id).update(sanitizeForFirestore({ ...demo2Data, updatedAt: timestamp }) as Record<string, unknown>);
-    } else {
-      await adminDb.collection(COLLECTION_NAME).doc("demo-confort2").set(sanitizeForFirestore({ ...demo2Data, createdAt: timestamp, updatedAt: timestamp }) as Record<string, unknown>);
+    for (const item of seedList) {
+      const payload = item.providedData || item.defaultData;
+      const snapshot = await adminDb.collection(COLLECTION_NAME).where("slug", "==", item.slug).get();
+      if (!snapshot.empty) {
+        await adminDb.collection(COLLECTION_NAME).doc(snapshot.docs[0].id).update(sanitizeForFirestore({ ...payload, updatedAt: timestamp }) as Record<string, unknown>);
+      } else {
+        await adminDb.collection(COLLECTION_NAME).doc(item.slug).set(sanitizeForFirestore({ ...payload, createdAt: timestamp, updatedAt: timestamp }) as Record<string, unknown>);
+      }
     }
   } catch (error) {
     console.error("Error seeding demos", error);
@@ -294,17 +297,18 @@ export async function getAdminAccommodationById(id: string): Promise<Accommodati
   try {
     const doc = await withTimeout(adminDb.collection(COLLECTION_NAME).doc(id).get(), `livret ${id}`);
     if (!doc.exists) {
-      if (id === "demo-confort2") {
-        const { demoConfortMarseille } = await import("@/lib/demoData");
-        return demoConfortMarseille;
-      }
+      const demosModule = await import("@/lib/demoData");
+      if (id === "demo-confort2") return demosModule.demoConfortMarseille;
+      if (id === "demo-paris") return demosModule.demoParis;
+      if (id === "demo-biarritz") return demosModule.demoBiarritz;
+      if (id === "demo-chamonix") return demosModule.demoChamonix;
+      if (id === "demo-essentielle") return demosModule.demoEssentielle;
+      if (id === "demo-confort") return demosModule.demoConfort;
       return null;
     }
     return { ...doc.data(), id: doc.id } as Accommodation;
   } catch (error) {
     console.error("Error fetching accommodation", error);
-    // Pas de repli démo sur erreur : un incident Firestore transitoire ferait
-    // afficher la démo, et le prochain enregistrement écraserait le vrai livret.
     throw new Error(
       error instanceof Error
         ? error.message
