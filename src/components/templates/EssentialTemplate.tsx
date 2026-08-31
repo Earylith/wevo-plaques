@@ -1,6 +1,6 @@
 "use client";
 
-import { Accommodation } from "@/lib/types/accommodation";
+import { Accommodation, ModuleId } from "@/lib/types/accommodation";
 import React, { useState, useEffect } from "react";
 import { List, X, WifiHigh, Info, BookOpen, MapPin, Phone, WarningCircle, House, ForkKnife, Camera, Bus } from "@phosphor-icons/react";
 import WifiCard from "../cards/WifiCard";
@@ -11,8 +11,56 @@ import RecommendationsCard from "../cards/RecommendationsCard";
 
 import MobileAccordion from "../ui/MobileAccordion";
 
-export default function EssentialTemplate({ data }: { data: Accommodation }) {
+interface EssentialTemplateProps {
+  data: Accommodation;
+  /**
+   * Ouvre la rubrique correspondante dans l'éditeur.
+   *
+   * Absent sur la page publiée : le voyageur n'a rien à éditer, et sans ce
+   * rappel aucune zone ne devient cliquable.
+   */
+  onModuleClick?: (id: ModuleId) => void;
+  /** Rubrique en cours d'édition, mise en évidence dans l'aperçu. */
+  activeModule?: ModuleId;
+}
+
+export default function EssentialTemplate({
+  data,
+  onModuleClick,
+  activeModule,
+}: EssentialTemplateProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  /**
+   * Habille une zone pour la rendre cliquable côté éditeur.
+   *
+   * On renvoie des propriétés plutôt qu'un composant : envelopper les
+   * sections dans un bouton casserait leur mise en page, et un simple
+   * gestionnaire de clic suffit ici.
+   */
+  const zone = (id: ModuleId) =>
+    onModuleClick
+      ? {
+          onClick: (e: React.MouseEvent) => {
+            e.stopPropagation();
+            onModuleClick(id);
+          },
+          role: "button" as const,
+          tabIndex: 0,
+          onKeyDown: (e: React.KeyboardEvent) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onModuleClick(id);
+            }
+          },
+          className: `cursor-pointer rounded-2xl transition-all outline-none ${
+            activeModule === id
+              ? "ring-2 ring-[#C4714A] ring-offset-2"
+              : "hover:ring-2 hover:ring-[#C4714A]/40 hover:ring-offset-2"
+          }`,
+          title: "Cliquez pour modifier cette rubrique",
+        }
+      : {};
 
   const navLinks = [
     { label: "Bienvenue", href: "#accueil", icon: <Info size={18} /> },
@@ -86,7 +134,10 @@ export default function EssentialTemplate({ data }: { data: Accommodation }) {
         mot d'accueil ouvre donc directement la page.
       */}
       <div id="accueil" className="px-4 @2xl:px-6 pt-8 @2xl:pt-12">
-        <div className="max-w-2xl mx-auto bg-white p-6 @2xl:p-10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] text-center">
+        <div
+          {...zone("bienvenue")}
+          className={`max-w-2xl mx-auto bg-white p-6 @2xl:p-10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] text-center ${zone("bienvenue").className || ""}`}
+        >
           <h2 className="font-[family-name:var(--font-display)] text-2xl @2xl:text-4xl font-bold mb-3 @2xl:mb-4 leading-tight">
             Bienvenue à {data.property.name}
           </h2>
@@ -125,8 +176,8 @@ export default function EssentialTemplate({ data }: { data: Accommodation }) {
         {/* Content Grids */}
         <div className="space-y-6 @2xl:space-y-10">
           <div className="grid @2xl:grid-cols-2 gap-6 @2xl:gap-8">
-            <div id="wifi"><WifiCard ssid={data.wifi.ssid} password={data.wifi.password} /></div>
-            <div id="infos">
+            <div id="wifi" {...zone("wifi")}><WifiCard ssid={data.wifi.ssid} password={data.wifi.password} /></div>
+            <div id="infos" {...zone("arrivee")}>
               <PracticalInfoCard 
                 checkin={data.practicalInfo.checkin} 
                 checkout={data.practicalInfo.checkout} 
@@ -137,7 +188,11 @@ export default function EssentialTemplate({ data }: { data: Accommodation }) {
             </div>
           </div>
 
-          <div id="urgences" className="bg-white rounded-3xl p-6 @2xl:p-8 shadow-sm border border-red-100">
+          <div
+            id="urgences"
+            {...zone("contacts")}
+            className={`bg-white rounded-3xl p-6 @2xl:p-8 shadow-sm border border-red-100 ${zone("contacts").className || ""}`}
+          >
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center shrink-0">
                 <WarningCircle size={24} weight="duotone" color="#EF4444" />
@@ -195,13 +250,21 @@ export default function EssentialTemplate({ data }: { data: Accommodation }) {
 
           <div className="grid @5xl:grid-cols-2 gap-0 @2xl:gap-8">
             <MobileAccordion title="Règles de la maison" icon={<BookOpen size={24} weight="duotone" color="#5A7A4E" />}>
-              <div id="regles" className="@5xl:bg-white @5xl:rounded-3xl @5xl:p-6 @5xl:shadow-sm @5xl:border @5xl:border-[#EDD9A3]/30">
+              <div
+                id="regles"
+                {...zone("reglement")}
+                className={`@5xl:bg-white @5xl:rounded-3xl @5xl:p-6 @5xl:shadow-sm @5xl:border @5xl:border-[#EDD9A3]/30 ${zone("reglement").className || ""}`}
+              >
                 <RulesCard rules={data.rules} />
               </div>
             </MobileAccordion>
             
             <MobileAccordion title="Contacts utiles" icon={<Phone size={24} weight="duotone" color="#C4714A" />}>
-              <div id="contacts" className="@5xl:bg-white @5xl:rounded-3xl @5xl:p-6 @5xl:shadow-sm @5xl:border @5xl:border-[#EDD9A3]/30">
+              <div
+                id="contacts"
+                {...zone("contacts")}
+                className={`@5xl:bg-white @5xl:rounded-3xl @5xl:p-6 @5xl:shadow-sm @5xl:border @5xl:border-[#EDD9A3]/30 ${zone("contacts").className || ""}`}
+              >
                 <ContactsCard contacts={data.contacts} />
               </div>
             </MobileAccordion>

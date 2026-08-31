@@ -946,30 +946,37 @@ export default function AdminModernTileEditor({
           const isOpen = openModule === id;
           const showTodo = ESSENTIAL_MODULES.includes(id) && !status.complete;
 
-          // Hors formule : la rubrique se montre, mais ne se remplit pas.
+          /*
+           * Hors formule : on affiche la rubrique telle qu'elle serait, sous
+           * un voile. C'est ce qu'on ne peut pas encore toucher qui donne
+           * envie de changer de formule — pas une case grisée sans contenu.
+           */
           const horsFormule = !estConfort && !MODULES_ESSENTIELLE.includes(id);
           if (horsFormule) {
             return (
               <VerrouConfort
                 key={id}
                 verrouille
-                argument={`« ${definition.label} » enrichit la page de vos voyageurs.`}
+                variante="ligne"
+                argument={`« ${definition?.label} » enrichit la page de vos voyageurs.`}
               >
-                <div className="rounded-2xl border border-gray-200 bg-white p-4 flex items-center gap-3">
-                  <span
-                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: tint.bg, color: tint.fg }}
-                  >
-                    <Icon size={17} weight="duotone" />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block text-sm font-bold text-[#2A2016] truncate">
-                      {definition.label}
-                    </span>
-                    <span className="block text-[11px] text-[#6B5D4E] truncate">
-                      Disponible dans la formule Confort
-                    </span>
-                  </span>
+                <div className="rounded-2xl border border-[#EDD9A3]/60 bg-white">
+                  <div className="p-3.5 flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <span
+                        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: tint.bg, color: tint.fg }}
+                      >
+                        <Icon size={19} weight="duotone" />
+                      </span>
+                      <div className="min-w-0">
+                        <h4 className="font-bold text-sm text-[#2A2016]">{definition?.label}</h4>
+                        <p className="text-[11px] text-[#6B5D4E] truncate">
+                          {definition?.hint || status.summary}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </VerrouConfort>
             );
@@ -2120,6 +2127,7 @@ export default function AdminModernTileEditor({
 
                 <VerrouConfort
                   verrouille={!estConfort}
+                  variante="bloc"
                   argument="Vos propres photos donnent à la page l’allure de votre logement."
                 >
                 <div className="space-y-3" data-field="property.gallery">
@@ -2180,7 +2188,8 @@ export default function AdminModernTileEditor({
 
                 <VerrouConfort
                   verrouille={!estConfort}
-                  argument="Météo, carte et typographie affinent la page ; l’Essentielle garde la mise en page standard."
+                  variante="bloc"
+                  argument="Météo, carte et typographie affinent la page."
                 >
                 <div className="pt-4 border-t border-gray-100 space-y-3">
                   <SectionTitle>Blocs du livret</SectionTitle>
@@ -2278,7 +2287,8 @@ export default function AdminModernTileEditor({
             {editorSection === "diffusion" && (
               <VerrouConfort
                 verrouille={!estConfort}
-                argument="Vos voyageurs étrangers lisent le livret dans leur langue, traduit automatiquement."
+                variante="bloc"
+                argument="Vos voyageurs étrangers lisent le livret dans leur langue."
               >
               <TranslationsTab
                 data={data}
@@ -2311,7 +2321,11 @@ export default function AdminModernTileEditor({
                         {estConfort ? (
                           <CleoTemplate data={data} inlineModal />
                         ) : (
-                          <EssentialTemplate data={data} />
+                          <EssentialTemplate
+                      data={data}
+                      onModuleClick={previewAsGuest ? undefined : handlePreviewModuleChange}
+                      activeModule={previewAsGuest ? undefined : openModule ?? undefined}
+                    />
                         )}
                       </div>
                     </div>
@@ -2493,13 +2507,17 @@ export default function AdminModernTileEditor({
                       data={data}
                       inlineModal
                       editable={!previewAsGuest}
-                      activeModule={previewAsGuest ? undefined : openModule}
+                      activeModule={previewAsGuest ? undefined : openModule ?? undefined}
                       onActiveModuleChange={previewAsGuest ? undefined : handlePreviewModuleChange}
                       onSelect={handlePreviewSelect}
                       selected={selected}
                     />
                   ) : (
-                    <EssentialTemplate data={data} />
+                    <EssentialTemplate
+                      data={data}
+                      onModuleClick={previewAsGuest ? undefined : handlePreviewModuleChange}
+                      activeModule={previewAsGuest ? undefined : openModule ?? undefined}
+                    />
                   )}
                 </div>
               </div>
@@ -2523,13 +2541,17 @@ export default function AdminModernTileEditor({
                       data={data}
                       inlineModal
                       editable={!previewAsGuest}
-                      activeModule={previewAsGuest ? undefined : openModule}
+                      activeModule={previewAsGuest ? undefined : openModule ?? undefined}
                       onActiveModuleChange={previewAsGuest ? undefined : handlePreviewModuleChange}
                       onSelect={handlePreviewSelect}
                       selected={selected}
                     />
                   ) : (
-                    <EssentialTemplate data={data} />
+                    <EssentialTemplate
+                      data={data}
+                      onModuleClick={previewAsGuest ? undefined : handlePreviewModuleChange}
+                      activeModule={previewAsGuest ? undefined : openModule ?? undefined}
+                    />
                   )}
                 </div>
               </div>
