@@ -1,21 +1,162 @@
 "use client";
 
-import { Accommodation, ModuleId } from "@/lib/types/accommodation";
 import React, { useState } from "react";
-import { List, X, WifiHigh, Info, BookOpen, MapPin, Phone, WarningCircle, House, Bus } from "@phosphor-icons/react";
-import WifiCard from "../cards/WifiCard";
-import PracticalInfoCard from "../cards/PracticalInfoCard";
-import RulesCard from "../cards/RulesCard";
-import ContactsCard from "../cards/ContactsCard";
+import {
+  List, X, WifiHigh, Key, DoorOpen, BookOpen, Phone, WarningCircle,
+  MapPin, Car, Coffee, Clock, Copy, Check, CaretDown, House, ChatCircleDots,
+} from "@phosphor-icons/react";
+import { Accommodation, ModuleId, isModuleVisible } from "@/lib/types/accommodation";
 
-import MobileAccordion from "../ui/MobileAccordion";
+/**
+ * Gabarit de la formule Essentielle.
+ *
+ * Règle unique, et c'est tout l'objet de ce fichier : **on n'affiche que ce
+ * que l'hôte peut modifier, et on affiche tout ce qu'il peut modifier.** Un
+ * bloc figé qu'il subit et un champ qu'il remplit sans le voir sont deux
+ * versions du même défaut.
+ *
+ * Les cinq rubriques et leurs intitulés reprennent ceux de la formule
+ * Confort — Arrivée, Codes & Wi-Fi, Départ, Règlement, Contacts — pour qu'un
+ * hôte qui change de formule retrouve ses repères.
+ *
+ * La mise en page suit la largeur du CONTENEUR (`@container`) et non celle de
+ * la fenêtre : le même composant sert la page publiée et l'aperçu de
+ * l'éditeur, qui ne fait que 350 px dans une fenêtre de 1500.
+ */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PIÈCES COMMUNES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+interface SectionProps {
+  id: ModuleId;
+  ancre: string;
+  titre: string;
+  sousTitre: string;
+  Icone: React.ComponentType<{ size?: number; weight?: "regular" | "bold" | "fill" | "duotone"; className?: string }>;
+  couleur: string;
+  zone: Record<string, unknown>;
+  children: React.ReactNode;
+}
+
+/**
+ * Cartouche d'une rubrique.
+ *
+ * Repliable tant que le conteneur est étroit, toujours ouvert au-delà : la
+ * bascule est en CSS, jamais en JavaScript sur la largeur de la fenêtre.
+ */
+function Rubrique({ ancre, titre, sousTitre, Icone, couleur, zone, children }: SectionProps) {
+  const [ouvert, setOuvert] = useState(true);
+
+  return (
+    <section
+      id={ancre}
+      {...zone}
+      className={`bg-white rounded-3xl p-5 @2xl:p-7 shadow-sm border border-[#EDD9A3]/40 ${
+        (zone.className as string) || ""
+      }`}
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          // Le repli ne doit pas déclencher l'ouverture du formulaire.
+          e.stopPropagation();
+          setOuvert((v) => !v);
+        }}
+        aria-expanded={ouvert}
+        className="w-full flex items-center justify-between gap-3 text-left"
+      >
+        <span className="flex items-center gap-3 min-w-0">
+          <span
+            className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
+            style={{ backgroundColor: `${couleur}18`, color: couleur }}
+          >
+            <Icone size={22} weight="duotone" />
+          </span>
+          <span className="min-w-0">
+            <span
+              className="block font-[family-name:var(--font-display)] font-bold text-[17px] @2xl:text-xl truncate"
+              style={{ color: couleur }}
+            >
+              {titre}
+            </span>
+            <span className="block text-[11px] @2xl:text-xs text-[#6B5D4E] truncate">{sousTitre}</span>
+          </span>
+        </span>
+        <CaretDown
+          size={18}
+          className={`shrink-0 text-[#A8998A] transition-transform @5xl:hidden ${ouvert ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      <div className={`mt-5 pt-5 border-t border-[#EDD9A3]/40 @5xl:block ${ouvert ? "block" : "hidden"}`}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+/** Ligne « intitulé → valeur », le motif de base de toutes les rubriques. */
+function Ligne({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-2.5 border-b border-[#EDD9A3]/30 last:border-0">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B5D4E] shrink-0">
+        {label}
+      </span>
+      <span className="text-sm text-[#2A2016] text-right min-w-0">{children}</span>
+    </div>
+  );
+}
+
+/** Paragraphe libre, qui respecte les retours à la ligne saisis par l'hôte. */
+function Texte({ label, valeur }: { label: string; valeur: string }) {
+  return (
+    <div className="py-2.5 border-b border-[#EDD9A3]/30 last:border-0">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B5D4E] mb-1.5">{label}</p>
+      <p className="text-sm text-[#2A2016] leading-relaxed whitespace-pre-line">{valeur}</p>
+    </div>
+  );
+}
+
+/** Valeur à recopier — mot de passe, digicode : elle mérite un bouton. */
+function ValeurCopiable({ label, valeur }: { label: string; valeur: string }) {
+  const [copie, setCopie] = useState(false);
+
+  return (
+    <div className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-[#FDFBF7] border border-[#EDD9A3]/40">
+      <span className="text-xs text-[#6B5D4E] min-w-0 truncate">{label}</span>
+      <span className="flex items-center gap-2 shrink-0">
+        <span className="font-mono text-sm font-bold text-[#2A2016]">{valeur}</span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            navigator.clipboard?.writeText(valeur);
+            setCopie(true);
+            setTimeout(() => setCopie(false), 1800);
+          }}
+          aria-label={`Copier ${label}`}
+          className="w-7 h-7 rounded-lg bg-white border border-[#EDD9A3] flex items-center justify-center text-[#6B5D4E] hover:text-[#C4714A] transition-colors"
+        >
+          {copie ? <Check size={13} weight="bold" className="text-emerald-600" /> : <Copy size={13} />}
+        </button>
+      </span>
+    </div>
+  );
+}
+
+const rempli = (v?: string) => Boolean(v && v.trim());
+
+/* ══════════════════════════════════════════════════════════════════════════
+   GABARIT
+   ══════════════════════════════════════════════════════════════════════════ */
 
 interface EssentialTemplateProps {
   data: Accommodation;
   /**
    * Ouvre la rubrique correspondante dans l'éditeur.
    *
-   * Absent sur la page publiée : le voyageur n'a rien à éditer, et sans ce
+   * Absent sur la page publiée : le voyageur n'a rien à modifier, et sans ce
    * rappel aucune zone ne devient cliquable.
    */
   onModuleClick?: (id: ModuleId) => void;
@@ -28,23 +169,16 @@ export default function EssentialTemplate({
   onModuleClick,
   activeModule,
 }: EssentialTemplateProps) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [menuOuvert, setMenuOuvert] = useState(false);
 
-  /**
-   * Habille une zone pour la rendre cliquable côté éditeur.
-   *
-   * On renvoie des propriétés plutôt qu'un composant : envelopper les
-   * sections dans un bouton casserait leur mise en page, et un simple
-   * gestionnaire de clic suffit ici.
-   */
-  const zone = (id: ModuleId) =>
+  const couleur = data.comfortOptions?.theme?.primaryColor || "#C4714A";
+
+  /** Rend une zone cliquable côté éditeur, inerte côté voyageur. */
+  const zone = (id: ModuleId): Record<string, unknown> =>
     onModuleClick
       ? {
-          onClick: (e: React.MouseEvent) => {
-            e.stopPropagation();
-            onModuleClick(id);
-          },
-          role: "button" as const,
+          onClick: () => onModuleClick(id),
+          role: "button",
           tabIndex: 0,
           onKeyDown: (e: React.KeyboardEvent) => {
             if (e.key === "Enter" || e.key === " ") {
@@ -52,308 +186,403 @@ export default function EssentialTemplate({
               onModuleClick(id);
             }
           },
-          className: `cursor-pointer rounded-2xl transition-all outline-none ${
-            activeModule === id
-              ? "ring-2 ring-[#C4714A] ring-offset-2"
-              : "hover:ring-2 hover:ring-[#C4714A]/40 hover:ring-offset-2"
-          }`,
           title: "Cliquez pour modifier cette rubrique",
+          className: `cursor-pointer transition-shadow outline-none ${
+            activeModule === id
+              ? "ring-2 ring-offset-2 ring-[#C4714A]"
+              : "hover:ring-2 hover:ring-offset-2 hover:ring-[#C4714A]/40"
+          }`,
         }
       : {};
 
-  const navLinks = [
-    { label: "Bienvenue", href: "#accueil", icon: <Info size={18} /> },
-    { label: "Règles", href: "#regles", icon: <BookOpen size={18} /> },
-    { label: "Contacts", href: "#contacts", icon: <Phone size={18} /> },
-    { label: "Urgences", href: "#urgences", icon: <WarningCircle size={18} className="text-red-500" /> },
-  ];
+  const codes = (data.codes || []).filter((c) => rempli(c.label) || rempli(c.value));
+  const regles = (data.rules || []).filter(rempli);
+  const consignes = (data.practicalInfo?.departureInstructions || []).filter((i) => rempli(i.text));
+  const contactsHote = (data.contacts || []).filter((c) => c.type !== "emergency" && rempli(c.phone));
+  const urgences = (data.contacts || []).filter((c) => c.type === "emergency" && rempli(c.phone));
 
-  const quickLinks = [
-    { label: "Wi-Fi", icon: <WifiHigh size={24} />, href: "#wifi" },
-    { label: "Arrivée / départ", icon: <Bus size={24} />, href: "#infos" },
-    { label: "Règles", icon: <BookOpen size={24} />, href: "#regles" },
-    { label: "Contacts", icon: <Phone size={24} />, href: "#contacts" },
-    { label: "Urgences", icon: <WarningCircle size={24} />, href: "#urgences" },
-  ];
+  /* Une rubrique masquée par l'hôte, ou entièrement vide, ne s'affiche pas. */
+  const visible = (id: ModuleId, aDuContenu: boolean) => isModuleVisible(data, id) && aDuContenu;
+
+  const montreArrivee = visible(
+    "arrivee",
+    rempli(data.practicalInfo?.checkin) ||
+      rempli(data.practicalInfo?.arrivalNotes) ||
+      rempli(data.property?.address) ||
+      rempli(data.practicalInfo?.parking) ||
+      rempli(data.practicalInfo?.breakfast)
+  );
+  const montreWifi = visible("wifi", rempli(data.wifi?.ssid) || rempli(data.wifi?.password) || codes.length > 0);
+  const montreDepart = visible(
+    "depart",
+    rempli(data.practicalInfo?.checkout) || rempli(data.practicalInfo?.departureNotes) || consignes.length > 0
+  );
+  const montreReglement = visible("reglement", regles.length > 0);
+  const montreContacts = visible(
+    "contacts",
+    rempli(data.owner?.phone) || contactsHote.length > 0 || urgences.length > 0
+  );
+
+  const raccourcis = [
+    { actif: montreArrivee, label: "Arrivée", href: "#arrivee", Icone: Key },
+    { actif: montreWifi, label: "Wi-Fi", href: "#wifi", Icone: WifiHigh },
+    { actif: montreDepart, label: "Départ", href: "#depart", Icone: DoorOpen },
+    { actif: montreReglement, label: "Règlement", href: "#reglement", Icone: BookOpen },
+    { actif: montreContacts, label: "Contacts", href: "#contacts", Icone: Phone },
+  ].filter((r) => r.actif);
 
   return (
     <div className="@container min-h-screen bg-[#FDFBF7] font-[family-name:var(--font-sans)] text-[#2A2016] overflow-x-hidden">
-      {/* Top Navigation */}
-      <header className="sticky top-0 z-50 bg-white border-b border-[#EDD9A3]/30 px-4 @2xl:px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#E8BE72]/20 rounded-full flex items-center justify-center text-[#C4714A]">
-            <MapPin size={24} weight="duotone" />
+      {/* ── En-tête ── */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-[#EDD9A3]/40">
+        <div className="max-w-4xl mx-auto px-4 @2xl:px-6 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <span
+              className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+              style={{ backgroundColor: `${couleur}18`, color: couleur }}
+            >
+              <House size={20} weight="duotone" />
+            </span>
+            <div className="min-w-0">
+              <h1 className="font-[family-name:var(--font-display)] font-bold text-sm @2xl:text-base leading-tight uppercase tracking-widest truncate">
+                {data.property?.name}
+              </h1>
+              <p className="text-[9px] @2xl:text-[10px] text-[#6B5D4E] uppercase tracking-wider truncate">
+                {[data.property?.type, data.property?.city].filter(Boolean).join(" · ")}
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="font-[family-name:var(--font-display)] font-bold text-base @2xl:text-lg leading-tight uppercase tracking-widest">
-              {data.property.name}
-            </h1>
-            <p className="text-[9px] @2xl:text-[10px] text-[#6B5D4E] uppercase tracking-wider">{data.property.type}</p>
-          </div>
+
+          {raccourcis.length > 0 && (
+            <>
+              <nav className="hidden @5xl:flex items-center gap-5">
+                {raccourcis.map((r) => (
+                  <a
+                    key={r.href}
+                    href={r.href}
+                    className="text-xs font-semibold text-[#6B5D4E] hover:text-[#C4714A] transition-colors"
+                  >
+                    {r.label}
+                  </a>
+                ))}
+              </nav>
+              <button
+                type="button"
+                onClick={() => setMenuOuvert((v) => !v)}
+                aria-label="Ouvrir le sommaire"
+                className="@5xl:hidden p-2 text-[#6B5D4E]"
+              >
+                {menuOuvert ? <X size={20} /> : <List size={20} />}
+              </button>
+            </>
+          )}
         </div>
 
-        {/* Desktop Nav */}
-        <nav className="hidden @5xl:flex items-center gap-6">
-          {navLinks.map((link) => (
-            <a key={link.label} href={link.href} className="flex items-center gap-2 text-sm font-medium text-[#6B5D4E] hover:text-[#C4714A] transition-colors">
-              {link.icon}
-              {link.label}
-            </a>
-          ))}
-        </nav>
-
-        {/* Mobile Nav Toggle */}
-        <button className="@5xl:hidden p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-          {isMenuOpen ? <X size={24} /> : <List size={24} />}
-        </button>
+        {menuOuvert && (
+          <div className="@5xl:hidden border-t border-[#EDD9A3]/40 bg-white px-4 py-2">
+            {raccourcis.map((r) => (
+              <a
+                key={r.href}
+                href={r.href}
+                onClick={() => setMenuOuvert(false)}
+                className="flex items-center gap-3 py-3 border-b border-[#EDD9A3]/30 last:border-0 text-sm font-medium"
+              >
+                <r.Icone size={18} weight="duotone" style={{ color: couleur }} />
+                {r.label}
+              </a>
+            ))}
+          </div>
+        )}
       </header>
 
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="fixed inset-0 top-[73px] bg-white z-40 p-6 flex flex-col gap-4 overflow-y-auto">
-          {navLinks.map((link) => (
-            <a 
-              key={link.label} 
-              href={link.href} 
-              onClick={() => setIsMenuOpen(false)}
-              className="flex items-center gap-3 py-3 border-b border-gray-100 text-lg font-medium text-[#2A2016]"
-            >
-              {link.icon}
-              {link.label}
-            </a>
-          ))}
-        </div>
-      )}
-
+      {/* ── Accueil ── */}
       {/*
-        Pas de photo de couverture : elle n'est pas comprise dans la formule
-        Essentielle. En afficher une promettrait ce qui n'est pas vendu — le
-        mot d'accueil ouvre donc directement la page.
+        Texte STANDARD, non modifiable : le mot d'accueil personnalisé relève
+        de la formule Confort. Seul le nom du logement varie, et celui-là se
+        saisit bien dans la rubrique Logement.
       */}
-      {/*
-        Texte d'accueil STANDARD, et non modifiable.
-        
-        Le mot d'accueil personnalisé relève de la formule Confort : afficher
-        ici un champ que l'hôte ne peut pas remplir reviendrait à lui montrer
-        une promesse qu'il n'a pas achetée. Seul le nom du logement varie —
-        celui-là se saisit bien dans la rubrique Logement.
-      */}
-      <div id="accueil" className="px-4 @2xl:px-6 pt-8 @2xl:pt-12">
-        <div className="max-w-2xl mx-auto bg-white p-6 @2xl:p-10 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] text-center">
-          <h2 className="font-[family-name:var(--font-display)] text-2xl @2xl:text-4xl font-bold mb-3 @2xl:mb-4 leading-tight">
-            Bienvenue à {data.property.name}
+      <div className="px-4 @2xl:px-6 pt-8 @2xl:pt-12">
+        <div className="max-w-2xl mx-auto text-center">
+          <h2 className="font-[family-name:var(--font-display)] text-2xl @2xl:text-4xl font-bold leading-tight">
+            Bienvenue à {data.property?.name}
           </h2>
-          <p className="text-[#6B5D4E] text-xs @2xl:text-[15px] leading-relaxed max-w-lg mx-auto">
-            Nous sommes ravis de vous accueillir. Vous trouverez ici toutes les
-            informations utiles pour votre séjour.
-          </p>
-          <p className="text-xs @2xl:text-sm font-medium text-[#C4714A] mt-4 @2xl:mt-6 italic">
-            — L&apos;équipe {data.property.name}
+          <p className="text-[#6B5D4E] text-sm @2xl:text-[15px] leading-relaxed mt-3 max-w-lg mx-auto">
+            Vous trouverez ici toutes les informations utiles pour votre séjour.
           </p>
         </div>
       </div>
 
-      <div className="h-10 @2xl:h-14" />
-
-      <main className="max-w-4xl mx-auto px-4 @2xl:px-6 pb-24">
-        {/* Accès rapides */}
-        <div className="mb-12 @2xl:mb-16">
-          <h3 className="font-semibold text-lg mb-4 @2xl:mb-6 px-2">Accès rapides</h3>
-          <div className="grid grid-cols-3 @5xl:grid-cols-6 gap-2 @2xl:gap-4">
-            {quickLinks.map((link) => (
-              <a 
-                key={link.label}
-                href={link.href}
-                className="flex flex-col items-center justify-center py-4 px-2 bg-white border border-[#EDD9A3]/30 rounded-2xl hover:border-[#C4714A]/50 hover:shadow-md transition-all text-center gap-2 group"
+      {/* ── Accès rapides ── */}
+      {raccourcis.length > 0 && (
+        <div className="max-w-4xl mx-auto px-4 @2xl:px-6 mt-8 @2xl:mt-12">
+          <div className="grid grid-cols-3 @2xl:grid-cols-5 gap-2 @2xl:gap-3">
+            {raccourcis.map((r) => (
+              <a
+                key={r.href}
+                href={r.href}
+                className="flex flex-col items-center justify-center gap-2 py-4 px-2 bg-white border border-[#EDD9A3]/40 rounded-2xl hover:border-[#C4714A]/50 hover:shadow-md transition-all text-center"
               >
-                <div className="text-[#6B5D4E] group-hover:text-[#C4714A] transition-colors">
-                  {link.icon}
-                </div>
-                <span className="text-[10px] @2xl:text-xs font-semibold">{link.label}</span>
+                <r.Icone size={22} weight="duotone" style={{ color: couleur }} />
+                <span className="text-[10px] @2xl:text-xs font-semibold">{r.label}</span>
               </a>
             ))}
           </div>
         </div>
+      )}
 
-        {/* Content Grids */}
-        <div className="space-y-6 @2xl:space-y-10">
-          <div className="grid @2xl:grid-cols-2 gap-6 @2xl:gap-8">
-            <div id="wifi" {...zone("wifi")}>
-              <WifiCard ssid={data.wifi.ssid} password={data.wifi.password} />
-              {/* Les digicodes se saisissent dans la même rubrique que le
-                  Wi-Fi : ils doivent s'afficher au même endroit. */}
-              {(data.codes || []).filter((c) => c.label || c.value).length > 0 && (
-                <div className="mt-4 bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/30">
-                  <h3 className="font-semibold text-[#2A2016] mb-3">Digicodes &amp; clés</h3>
-                  <div className="space-y-2">
-                    {(data.codes || [])
-                      .filter((c) => c.label || c.value)
-                      .map((code, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-[#FDFBF7] border border-[#EDD9A3]/30"
+      {/* ── Rubriques ── */}
+      <main className="max-w-4xl mx-auto px-4 @2xl:px-6 py-8 @2xl:py-12 space-y-5 @2xl:space-y-6">
+        {montreArrivee && (
+          <Rubrique
+            id="arrivee"
+            ancre="arrivee"
+            titre="Arrivée"
+            sousTitre="Horaire, accès et consignes d’arrivée"
+            Icone={Key}
+            couleur={couleur}
+            zone={zone("arrivee")}
+          >
+            <div className="space-y-1">
+              {rempli(data.practicalInfo?.checkin) && (
+                <Ligne label="Arrivée">
+                  <span className="font-bold">{data.practicalInfo.checkin}</span>
+                </Ligne>
+              )}
+              {rempli(data.property?.address) && (
+                <Ligne label="Adresse">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.property.address || "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1.5 hover:underline"
+                    style={{ color: couleur }}
+                  >
+                    <MapPin size={14} weight="fill" className="shrink-0" />
+                    {data.property.address}
+                  </a>
+                </Ligne>
+              )}
+              {rempli(data.practicalInfo?.parking) && (
+                <Ligne label="Stationnement">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Car size={14} weight="duotone" className="shrink-0 text-[#6B5D4E]" />
+                    {data.practicalInfo.parking}
+                  </span>
+                </Ligne>
+              )}
+              {rempli(data.practicalInfo?.breakfast) && (
+                <Ligne label="Petit-déjeuner">
+                  <span className="inline-flex items-center gap-1.5">
+                    <Coffee size={14} weight="duotone" className="shrink-0 text-[#6B5D4E]" />
+                    {data.practicalInfo.breakfast}
+                  </span>
+                </Ligne>
+              )}
+              {rempli(data.practicalInfo?.arrivalNotes) && (
+                <Texte label="Consignes d’arrivée" valeur={data.practicalInfo.arrivalNotes!} />
+              )}
+            </div>
+          </Rubrique>
+        )}
+
+        {montreWifi && (
+          <Rubrique
+            id="wifi"
+            ancre="wifi"
+            titre="Codes & Wi-Fi"
+            sousTitre="Réseau, mot de passe et digicodes"
+            Icone={WifiHigh}
+            couleur={couleur}
+            zone={zone("wifi")}
+          >
+            <div className="space-y-2.5">
+              {rempli(data.wifi?.ssid) && <ValeurCopiable label="Réseau" valeur={data.wifi.ssid || ""} />}
+              {rempli(data.wifi?.password) && (
+                <ValeurCopiable label="Mot de passe" valeur={data.wifi.password || ""} />
+              )}
+              {codes.map((code, idx) => (
+                <ValeurCopiable key={idx} label={code.label || "Code"} valeur={code.value || ""} />
+              ))}
+            </div>
+          </Rubrique>
+        )}
+
+        {montreDepart && (
+          <Rubrique
+            id="depart"
+            ancre="depart"
+            titre="Départ"
+            sousTitre="Horaire et check-list de fin de séjour"
+            Icone={DoorOpen}
+            couleur={couleur}
+            zone={zone("depart")}
+          >
+            <div className="space-y-1">
+              {rempli(data.practicalInfo?.checkout) && (
+                <Ligne label="Départ">
+                  <span className="font-bold">{data.practicalInfo.checkout}</span>
+                </Ligne>
+              )}
+              {consignes.length > 0 && (
+                <div className="py-2.5 border-b border-[#EDD9A3]/30 last:border-0">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B5D4E] mb-2">
+                    Avant de partir
+                  </p>
+                  <ul className="space-y-2">
+                    {consignes.map((etape, idx) => (
+                      <li key={idx} className="flex items-start gap-2.5 text-sm">
+                        <span
+                          className="mt-0.5 w-4 h-4 rounded-md border-2 shrink-0"
+                          style={{ borderColor: couleur }}
+                        />
+                        <span>
+                          {etape.text}
+                          {etape.required && (
+                            <span className="ml-1.5 text-[9px] font-bold uppercase tracking-wider text-[#A35A38]">
+                              obligatoire
+                            </span>
+                          )}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {rempli(data.practicalInfo?.departureNotes) && (
+                <Texte label="Note complémentaire" valeur={data.practicalInfo.departureNotes!} />
+              )}
+            </div>
+          </Rubrique>
+        )}
+
+        {montreReglement && (
+          <Rubrique
+            id="reglement"
+            ancre="reglement"
+            titre="Règlement"
+            sousTitre="Les règles de la maison"
+            Icone={BookOpen}
+            couleur={couleur}
+            zone={zone("reglement")}
+          >
+            <ul className="space-y-2.5">
+              {regles.map((regle, idx) => (
+                <li key={idx} className="flex items-start gap-2.5 text-sm">
+                  <Check size={15} weight="bold" className="mt-0.5 shrink-0" style={{ color: couleur }} />
+                  <span>{regle}</span>
+                </li>
+              ))}
+            </ul>
+          </Rubrique>
+        )}
+
+        {montreContacts && (
+          <Rubrique
+            id="contacts"
+            ancre="contacts"
+            titre="Contacts"
+            sousTitre="Vos numéros, les secours et les urgences"
+            Icone={Phone}
+            couleur={couleur}
+            zone={zone("contacts")}
+          >
+            <div className="space-y-4">
+              {rempli(data.owner?.phone) && (
+                <a
+                  href={`tel:${data.owner.phone.replace(/\s+/g, "")}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="flex items-center justify-between gap-3 p-3.5 rounded-2xl border transition-colors"
+                  style={{ backgroundColor: `${couleur}10`, borderColor: `${couleur}40` }}
+                >
+                  <span className="flex items-center gap-3 min-w-0">
+                    <House size={20} weight="duotone" style={{ color: couleur }} className="shrink-0" />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-bold truncate">
+                        {data.owner?.name || "Votre hôte"}
+                      </span>
+                      <span className="block text-[11px] text-[#6B5D4E]">{data.owner.phone}</span>
+                    </span>
+                  </span>
+                  <span
+                    className="px-3.5 py-2 rounded-full text-white text-xs font-bold shrink-0"
+                    style={{ backgroundColor: couleur }}
+                  >
+                    Appeler
+                  </span>
+                </a>
+              )}
+
+              {contactsHote.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B5D4E]">
+                    Autres contacts utiles
+                  </p>
+                  {contactsHote.map((contact, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-[#FDFBF7] border border-[#EDD9A3]/40"
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold truncate">{contact.label}</span>
+                        <span className="block text-[11px] text-[#6B5D4E]">{contact.phone}</span>
+                      </span>
+                      <span className="flex items-center gap-1.5 shrink-0">
+                        <a
+                          href={`tel:${contact.phone.replace(/\s+/g, "")}`}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Appeler ${contact.label}`}
+                          className="w-8 h-8 rounded-lg bg-white border border-[#EDD9A3] flex items-center justify-center text-[#6B5D4E] hover:text-[#C4714A] transition-colors"
                         >
-                          <span className="text-sm text-[#6B5D4E] min-w-0 truncate">{code.label}</span>
-                          <span className="font-mono text-sm font-bold text-[#2A2016] shrink-0">
-                            {code.value}
-                          </span>
-                        </div>
-                      ))}
+                          <Phone size={14} weight="bold" />
+                        </a>
+                        <a
+                          href={`sms:${contact.phone.replace(/\s+/g, "")}`}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Écrire à ${contact.label}`}
+                          className="w-8 h-8 rounded-lg bg-white border border-[#EDD9A3] flex items-center justify-center text-[#6B5D4E] hover:text-[#C4714A] transition-colors"
+                        >
+                          <ChatCircleDots size={14} weight="bold" />
+                        </a>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {urgences.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-red-700 flex items-center gap-1.5">
+                    <WarningCircle size={13} weight="fill" />
+                    Urgences & santé
+                  </p>
+                  <div className="grid grid-cols-2 @2xl:grid-cols-4 gap-2">
+                    {urgences.map((secours, idx) => (
+                      <a
+                        key={idx}
+                        href={`tel:${secours.phone.replace(/\s+/g, "")}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100 text-center"
+                      >
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-red-700 mb-1 truncate max-w-full">
+                          {secours.label}
+                        </span>
+                        <span className="text-base font-bold text-red-600">{secours.phone}</span>
+                      </a>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
-            <div id="infos" {...zone("arrivee")}>
-              <PracticalInfoCard 
-                checkin={data.practicalInfo.checkin} 
-                checkout={data.practicalInfo.checkout} 
-                parking={data.practicalInfo.parking} 
-                breakfast={data.practicalInfo.breakfast}
-                address={data.property.address}
-              />
-              {/*
-                Consignes d'arrivée, note de départ et check-list : saisies
-                dans l'éditeur, elles n'apparaissaient nulle part.
-              */}
-              {(data.practicalInfo?.arrivalNotes?.trim() ||
-                data.practicalInfo?.departureNotes?.trim() ||
-                (data.practicalInfo?.departureInstructions || []).some((i) => i.text?.trim())) && (
-                <div className="mt-6 bg-white rounded-3xl p-6 shadow-sm border border-[#EDD9A3]/30 space-y-4">
-                  {data.practicalInfo?.arrivalNotes?.trim() && (
-                    <div>
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-[#6B5D4E] mb-1.5">
-                        À l&apos;arrivée
-                      </h4>
-                      <p className="text-sm text-[#2A2016] leading-relaxed whitespace-pre-line">
-                        {data.practicalInfo.arrivalNotes}
-                      </p>
-                    </div>
-                  )}
-                  {data.practicalInfo?.departureNotes?.trim() && (
-                    <div>
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-[#6B5D4E] mb-1.5">
-                        Au départ
-                      </h4>
-                      <p className="text-sm text-[#2A2016] leading-relaxed whitespace-pre-line">
-                        {data.practicalInfo.departureNotes}
-                      </p>
-                    </div>
-                  )}
-                  {(data.practicalInfo?.departureInstructions || []).some((i) => i.text?.trim()) && (
-                    <div>
-                      <h4 className="text-[10px] font-bold uppercase tracking-wider text-[#6B5D4E] mb-2">
-                        Avant de partir
-                      </h4>
-                      <ul className="space-y-1.5">
-                        {(data.practicalInfo?.departureInstructions || [])
-                          .filter((i) => i.text?.trim())
-                          .map((etape, idx) => (
-                            <li key={idx} className="flex items-start gap-2 text-sm text-[#2A2016]">
-                              <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-[#C4714A] shrink-0" />
-                              <span>{etape.text}</span>
-                            </li>
-                          ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div
-            id="urgences"
-            {...zone("contacts")}
-            className={`bg-white rounded-3xl p-6 @2xl:p-8 shadow-sm border border-red-100 ${zone("contacts").className || ""}`}
-          >
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center shrink-0">
-                <WarningCircle size={24} weight="duotone" color="#EF4444" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-[#2A2016]">Urgences</h3>
-                <p className="text-xs text-[#6B5D4E]">Numéros utiles et assistance</p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 @2xl:grid-cols-4 gap-3 mb-8">
-              <a href={`tel:${data.standardEmergencies?.samu || "15"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
-                <span className="text-[10px] font-bold text-red-700 mb-1">SAMU</span>
-                <span className="text-base font-bold text-red-600">{data.standardEmergencies?.samu || "15"}</span>
-              </a>
-              <a href={`tel:${data.standardEmergencies?.pompiers || "18"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
-                <span className="text-[10px] font-bold text-red-700 mb-1">POMPIERS</span>
-                <span className="text-base font-bold text-red-600">{data.standardEmergencies?.pompiers || "18"}</span>
-              </a>
-              <a href={`tel:${data.standardEmergencies?.police || "17"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-50 border border-red-100">
-                <span className="text-[10px] font-bold text-red-700 mb-1">POLICE</span>
-                <span className="text-base font-bold text-red-600">{data.standardEmergencies?.police || "17"}</span>
-              </a>
-              <a href={`tel:${data.standardEmergencies?.europe || "112"}`} className="flex flex-col items-center p-3 rounded-2xl bg-red-600 text-white">
-                <span className="text-[10px] font-bold text-white/80 mb-1">EUROPE</span>
-                <span className="text-base font-bold text-white">{data.standardEmergencies?.europe || "112"}</span>
-              </a>
-            </div>
-
-            {data.contacts?.filter(c => c.type === 'owner').map((ownerContact, idx) => (
-              <div key={`owner-${idx}`} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100 mb-4 last:mb-0">
-                <div className="flex items-center gap-3">
-                  <House size={20} className="text-[#C4714A]" />
-                  <span className="text-sm font-semibold">{ownerContact.label || "Contact Hôte"}</span>
-                </div>
-                <a href={`tel:${ownerContact.phone.replace(/\s+/g, '')}`} className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#C4714A] text-white text-xs font-bold">
-                  <Phone size={14} weight="bold" />
-                  Appeler
-                </a>
-              </div>
-            ))}
-            {(!data.contacts || !data.contacts.some(c => c.type === 'owner')) && data.owner.phone && (
-              <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 border border-gray-100">
-                <div className="flex items-center gap-3">
-                  <House size={20} className="text-[#C4714A]" />
-                  <span className="text-sm font-semibold">Contact Hôte</span>
-                </div>
-                <a href={`tel:${data.owner.phone}`} className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#C4714A] text-white text-xs font-bold">
-                  <Phone size={14} weight="bold" />
-                  Appeler
-                </a>
-              </div>
-            )}
-          </div>
-
-          <div className="grid @5xl:grid-cols-2 gap-0 @2xl:gap-8">
-            <MobileAccordion title="Règles de la maison" icon={<BookOpen size={24} weight="duotone" color="#5A7A4E" />}>
-              <div
-                id="regles"
-                {...zone("reglement")}
-                className={`@5xl:bg-white @5xl:rounded-3xl @5xl:p-6 @5xl:shadow-sm @5xl:border @5xl:border-[#EDD9A3]/30 ${zone("reglement").className || ""}`}
-              >
-                <RulesCard rules={data.rules} />
-              </div>
-            </MobileAccordion>
-            
-            <MobileAccordion title="Contacts utiles" icon={<Phone size={24} weight="duotone" color="#C4714A" />}>
-              <div
-                id="contacts"
-                {...zone("contacts")}
-                className={`@5xl:bg-white @5xl:rounded-3xl @5xl:p-6 @5xl:shadow-sm @5xl:border @5xl:border-[#EDD9A3]/30 ${zone("contacts").className || ""}`}
-              >
-                <ContactsCard contacts={data.contacts} />
-              </div>
-            </MobileAccordion>
-          </div>
-
-          {/*
-            Pas de bonnes adresses : la rubrique n'est pas comprise dans la
-            formule Essentielle, et elle est verrouillée dans l'éditeur.
-            L'afficher promettait ce que l'hôte ne peut pas remplir.
-          */}
-        </div>
+          </Rubrique>
+        )}
       </main>
 
-      <footer className="bg-[#2A2016] text-white py-10 text-center">
-        <p className="text-sm font-medium opacity-80 mb-2">Bon séjour à {data.property.name} !</p>
-
+      <footer className="border-t border-[#EDD9A3]/40 py-8 text-center">
+        <p className="text-sm font-medium text-[#6B5D4E] flex items-center justify-center gap-1.5">
+          <Clock size={14} weight="duotone" />
+          Bon séjour à {data.property?.name} !
+        </p>
       </footer>
     </div>
   );

@@ -31,20 +31,21 @@ export default function Hero() {
       {/* Background image with overlay */}
       <div className="absolute inset-0">
         {/*
-          WebP d'abord, PNG en repli. Le fond pesait 7,5 Mo : c'est lui qui
-          dictait le temps d'affichage du premier écran. Il reste chargé en
-          priorité — c'est l'image que le visiteur attend.
+          WebP d'abord, JPEG en repli. Le fond reste chargé en priorité :
+          c'est l'image que le visiteur attend. Sur mobile, un recadrage
+          carré de la photo — elle est large, object-cover n'y montrerait
+          qu'un morceau de mur.
         */}
         <picture>
-          <source media="(max-width: 768px)" type="image/webp" srcSet="/images/mobile-hero-bg.webp" />
-          <source media="(max-width: 768px)" srcSet="/images/mobile-hero-bg.png" />
-          <source type="image/webp" srcSet="/images/hero-finalec.webp" />
+          <source media="(max-width: 768px)" type="image/webp" srcSet="/images/newhero-mobile.webp" />
+          <source media="(max-width: 768px)" srcSet="/images/newhero-mobile.jpg" />
+          <source type="image/webp" srcSet="/images/newhero.webp" />
           <img
-            src="/images/hero-finalec.png"
+            src="/images/newhero.jpg"
             alt=""
             fetchPriority="high"
             decoding="async"
-            className="w-full h-full object-cover object-center"
+            className="w-full h-full object-cover object-top"
           />
         </picture>
         {/* Multi-layer overlay for readability + warmth */}
