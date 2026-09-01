@@ -149,9 +149,20 @@ export default function AdminModernTileEditor({
    * proposer ici demanderait le jeton du propriétaire, que l'administration
    * n'a pas.
    */
-  const peutChangerDeFormule = !estAdmin && !initialData.isActive;
-
   const [data, setData] = useState<Accommodation>(initialData);
+
+  /*
+   * Qui peut basculer de formule depuis l'éditeur.
+   *
+   * L'hôte, tant que son livret n'est pas payé : il essaie, revient, et ne
+   * règle que la formule où il se trouve en publiant. Guidz, en toutes
+   * circonstances : c'est son outil, et il doit pouvoir corriger une formule
+   * après coup sans passer par la base.
+   *
+   * L'administration en était exclue, et le voile retombait alors sur un lien
+   * vers la grille tarifaire — un cul-de-sac au milieu d'une composition.
+   */
+  const peutChangerDeFormule = estAdmin || !data.isActive;
 
   /*
    * L'adresse publique se fige dès qu'elle circule : une plaque commandée la
@@ -358,9 +369,8 @@ export default function AdminModernTileEditor({
     setBasculeErreur(null);
     try {
       if (dirty) await handleSave();
-      const { auth } = await import("@/lib/firebase/config");
-      const jeton = await auth.currentUser?.getIdToken();
-      await changerFormuleBrouillon(docId, basculeVers, jeton);
+      // Absent côté Guidz, où c'est le cookie d'administration qui fait foi.
+      await changerFormuleBrouillon(docId, basculeVers, await jetonHote());
       // Rechargement plutôt que mise à jour en mémoire : le gabarit, les
       // rubriques disponibles et l'aperçu dépendent tous de la formule.
       window.location.reload();

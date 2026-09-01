@@ -145,16 +145,26 @@ export async function changerFormuleBrouillon(
   const livret = doc.data() as Accommodation;
 
   /*
-   * L'appelant doit être le propriétaire. Sans cette vérification, un
-   * identifiant deviné suffirait à changer la formule du livret d'un autre.
+   * L'appelant doit être le propriétaire, ou Guidz. Sans cette vérification,
+   * un identifiant deviné suffirait à changer la formule du livret d'un autre.
    */
-  if (!jetonHote) throw new Error("Connectez-vous pour changer de formule.");
-  const jeton = await adminAuth.verifyIdToken(jetonHote);
-  if (!livret.ownerUid || livret.ownerUid !== jeton.uid) {
-    throw new Error("Ce livret n’est pas rattaché à votre compte.");
+  const cookieStore = await cookies();
+  const estGuidz = cookieStore.get("admin_auth")?.value === "true";
+
+  if (!estGuidz) {
+    if (!jetonHote) throw new Error("Connectez-vous pour changer de formule.");
+    const jeton = await adminAuth.verifyIdToken(jetonHote);
+    if (!livret.ownerUid || livret.ownerUid !== jeton.uid) {
+      throw new Error("Ce livret n’est pas rattaché à votre compte.");
+    }
   }
 
-  if (livret.isActive) {
+  /*
+   * Une fois le livret payé, la bascule devient un achat : elle passe par
+   * l'espace client et le règlement de l'écart. Guidz, lui, garde la main —
+   * il doit pouvoir corriger une formule mal choisie sans facturer deux fois.
+   */
+  if (livret.isActive && !estGuidz) {
     throw new Error(
       "Votre livret est déjà publié : le passage au Confort se fait depuis votre espace client."
     );
