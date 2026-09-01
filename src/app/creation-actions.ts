@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { Accommodation, OfferType } from "@/lib/types/accommodation";
 import { createEmptyAccommodation } from "@/lib/livret";
@@ -168,4 +169,62 @@ export async function changerFormuleBrouillon(
   });
 
   return { formule: offre };
+}
+
+/**
+ * Aligne l'adresse publique sur le nom du logement.
+ *
+ * L'adresse était dérivée de l'e-mail, faute de mieux : au moment où le compte
+ * se crée, le logement n'a pas encore de nom. Le résultat était une adresse
+ * comme `/h/emmabertuletti0506` — l'identité de l'hôte exposée à ses
+ * voyageurs, là où on attend le nom de la maison.
+ *
+ * On la recalcule donc à chaque enregistrement, tant que le livret n'est pas
+ * payé. Après paiement elle est VERROUILLÉE : c'est elle que le QR gravé
+ * atteint, via l'adresse permanente, et la changer romprait le lien qu'un
+ * voyageur a peut-être déjà mis en favori.
+ *
+ * Renvoie l'adresse en vigueur, qu'elle ait changé ou non.
+ */
+export async function alignerAdresseSurLeNom(
+  accommodationId: string,
+  jetonHote?: string
+): Promise<{ slug: string; verrouille: boolean; change: boolean }> {
+  const ref = adminDb.collection(ACCOMMODATIONS).doc(accommodationId);
+  const doc = await ref.get();
+  if (!doc.exists) throw new Error("Livret introuvable.");
+  const livret = doc.data() as Accommodation;
+
+  // L'appelant doit être le propriétaire, ou l'administration Guidz.
+  const cookieStore = await cookies();
+  if (cookieStore.get("admin_auth")?.value !== "true") {
+    if (!jetonHote) throw new Error("Connectez-vous pour modifier votre livret.");
+    const jeton = await adminAuth.verifyIdToken(jetonHote);
+    if (!livret.ownerUid || livret.ownerUid !== jeton.uid) {
+      throw new Error("Ce livret n’est pas rattaché à votre compte.");
+    }
+  }
+
+  /*
+   * Verrouillée dès qu'une plaque est partie en gravure, ou dès la
+   * publication : dans les deux cas, l'adresse circule déjà.
+   */
+  const verrouille = Boolean(livret.slugLocked || livret.isActive);
+  if (verrouille) return { slug: livret.slug, verrouille: true, change: false };
+
+  const nom = livret.property?.name?.trim();
+  if (!nom) return { slug: livret.slug, verrouille: false, change: false };
+
+  const souhaite = slugify(nom);
+  if (!souhaite) return { slug: livret.slug, verrouille: false, change: false };
+
+  // Déjà bon, à un suffixe de désambiguïsation près : on n'y touche pas, sinon
+  // l'adresse changerait de suffixe à chaque enregistrement.
+  if (livret.slug === souhaite || new RegExp(`^${souhaite}-\d+$`).test(livret.slug || "")) {
+    return { slug: livret.slug, verrouille: false, change: false };
+  }
+
+  const slug = await slugDisponible(nom);
+  await ref.update({ slug, updatedAt: Date.now() });
+  return { slug, verrouille: false, change: true };
 }

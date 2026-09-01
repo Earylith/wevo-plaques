@@ -23,7 +23,7 @@ import { ouvrirPaiement } from "@/app/paiement-actions";
 import StatsPanel from "@/components/admin/editor/StatsPanel";
 import ApercuPleinEcran from "@/components/admin/editor/ApercuPleinEcran";
 import ChoixFormule from "@/components/admin/editor/ChoixFormule";
-import { changerFormuleBrouillon } from "@/app/creation-actions";
+import { changerFormuleBrouillon, alignerAdresseSurLeNom } from "@/app/creation-actions";
 import LibraryPicker, { PickedEntry } from "@/components/admin/editor/LibraryPicker";
 import { createPlaqueOrder, getOrdersForAccommodation } from "@/app/admin/orders";
 import { OfferType, PlaqueConfig, PlaqueOrder } from "@/lib/types/accommodation";
@@ -39,7 +39,7 @@ import {
   ArrowRight, Check, PencilSimple, Plus, ArrowSquareOut, Warning, CheckCircle,
   MapPin, Star, Trash, WifiHigh, Phone, DoorOpen, HandWaving,
   ArrowCounterClockwise, ArrowClockwise, CloudCheck, CloudSlash, EyeSlash,
-  BookOpen, Medal, Bus, ChatCircleDots, BookBookmark, ArrowsOut,
+  BookOpen, Medal, Bus, ChatCircleDots, BookBookmark, ArrowsOut, Lock,
 } from "@phosphor-icons/react";
 
 interface Props {
@@ -150,7 +150,14 @@ export default function AdminModernTileEditor({
    * n'a pas.
    */
   const peutChangerDeFormule = !estAdmin && !initialData.isActive;
+
   const [data, setData] = useState<Accommodation>(initialData);
+
+  /*
+   * L'adresse publique se fige dès qu'elle circule : une plaque commandée la
+   * porte gravée, et une page publiée a pu être mise en favori.
+   */
+  const adresseFigee = Boolean(data.slugLocked || data.isActive);
   /**
    * La formule décide de ce qui est ouvert et de l'allure de l'aperçu.
    *
@@ -774,6 +781,13 @@ export default function AdminModernTileEditor({
    * « Publier » pendant un enregistrement automatique) lancent deux créations
    * et laissent un livret en double dans la base.
    */
+  /** Jeton Firebase de l'hôte, absent côté administration. */
+  const jetonHote = async (): Promise<string | undefined> => {
+    if (estAdmin) return undefined;
+    const { auth } = await import("@/lib/firebase/config");
+    return auth.currentUser?.getIdToken();
+  };
+
   const handleSave = async (): Promise<string | null> => {
     if (demo) {
       setMessage("Démo libre — rien n’est enregistré. Tout repart à zéro au rechargement.");
@@ -801,7 +815,27 @@ export default function AdminModernTileEditor({
       const returnedId = await onSubmit(data);
       const savedId = typeof returnedId === "string" && returnedId ? returnedId : docId;
       if (savedId !== docId) setDocId(savedId);
-      setSavedSlug(data.slug);
+
+      /*
+       * L'adresse publique suit le nom du logement, tant que rien n'est payé.
+       * Elle ne peut être calculée qu'ici : au moment où le compte se crée, le
+       * logement n'a pas encore de nom, et l'adresse partait de l'e-mail —
+       * l'identité de l'hôte se retrouvait exposée à ses voyageurs.
+       *
+       * Un échec ne fait pas échouer l'enregistrement : le contenu est bien
+       * sauvegardé, et l'adresse se réalignera au prochain passage.
+       */
+      let slugCourant = data.slug;
+      try {
+        const adresse = await alignerAdresseSurLeNom(savedId, await jetonHote());
+        if (adresse.change) {
+          slugCourant = adresse.slug;
+          setData((d) => ({ ...d, slug: adresse.slug }));
+        }
+      } catch (e) {
+        console.error("[adresse]", e);
+      }
+      setSavedSlug(slugCourant);
 
       setLastSavedAt(Date.now());
       if (revisionRef.current === revisionSent) {
@@ -2130,6 +2164,45 @@ export default function AdminModernTileEditor({
                     field="property.name"
                     highlighted={highlight === "property.name"}
                   />
+
+                  {/*
+                    L'adresse publique découle du titre. L'hôte doit la voir —
+                    c'est ce que liront ses voyageurs — et savoir qu'elle se
+                    fige au paiement, puisque c'est elle que le QR gravé
+                    atteindra pour toujours.
+                  */}
+                  {!demo && (
+                    <div className="rounded-xl border border-[#EDD9A3] bg-[#FDF9F2] px-3.5 py-3">
+                      <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#A8998A]">
+                        {adresseFigee && <Lock size={11} weight="fill" className="text-[#C4714A]" />}
+                        Adresse de votre livret
+                      </p>
+                      <p className="mt-1.5 font-mono text-[12px] break-all text-[#5C3D2E]">
+                        {(process.env.NEXT_PUBLIC_SITE_URL || "https://www.guidzme.fr").replace(
+                          /^https?:\/\//,
+                          ""
+                        )}
+                        /h/{data.slug || "…"}
+                      </p>
+                      <p className="mt-2 text-[10px] leading-relaxed text-[#6B5D4E]">
+                        {adresseFigee ? (
+                          <>
+                            Elle est <strong>définitive</strong> : c’est elle que
+                            le QR code de votre plaque atteint. Le titre reste
+                            modifiable, l’adresse non.
+                          </>
+                        ) : (
+                          <>
+                            Elle suit le titre ci-dessus et se met à jour à
+                            chaque enregistrement. Elle deviendra{" "}
+                            <strong>définitive au paiement</strong> — le QR de
+                            votre plaque y renverra pour toujours.
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  )}
+
                   <TextField
                     label="Type de logement"
                     value={data.property?.type || ""}
