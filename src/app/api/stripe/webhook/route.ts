@@ -4,6 +4,7 @@ import { stripe } from "@/lib/stripe";
 import { adminDb } from "@/lib/firebase/admin";
 import { Accommodation, PlaqueConfig } from "@/lib/types/accommodation";
 import { creerCommandeInterne, commandeDejaPassee } from "@/lib/server/plaqueOrders";
+import { configPlaqueComplete } from "@/lib/plaque";
 
 /**
  * Réception des événements Stripe.
@@ -125,10 +126,18 @@ async function traiterPaiement(session: Stripe.Checkout.Session, origin: string)
     return;
   }
 
-  const plaque: PlaqueConfig = {
-    wood: (session.metadata?.plaqueWood as PlaqueConfig["wood"]) || livret.plaque?.wood || "noyer",
-    engravedTagline: session.metadata?.plaqueTagline || livret.plaque?.engravedTagline,
-  };
+  /*
+   * Ce que le client a validé en payant fait foi ; l'état du livret complète ;
+   * le défaut ferme la marche. Aucun champ ne peut valoir `undefined` —
+   * Firestore le refuse, et l'écriture échouerait APRÈS l'encaissement.
+   */
+  const plaque: PlaqueConfig = configPlaqueComplete(
+    {
+      wood: session.metadata?.plaqueWood as PlaqueConfig["wood"] | undefined,
+      engravedTagline: session.metadata?.plaqueTagline,
+    },
+    livret.plaque
+  );
 
   const commande = await creerCommandeInterne(accommodationId, plaque, origin);
 

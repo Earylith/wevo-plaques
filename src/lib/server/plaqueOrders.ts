@@ -3,6 +3,7 @@ import "server-only";
 import { adminDb } from "@/lib/firebase/admin";
 import { Accommodation, PlaqueOrder, PlaqueConfig } from "@/lib/types/accommodation";
 import { generatePermanentId, permanentUrl } from "@/lib/permanentId";
+import { configPlaqueComplete, sansUndefined } from "@/lib/plaque";
 
 /**
  * Cœur de la commande de plaque, SANS contrôle d'accès.
@@ -93,6 +94,10 @@ export async function creerCommandeInterne(
     .get();
 
   const maintenant = Date.now();
+  // Une plaque doit toujours pouvoir être gravée : on complète ce qui manque
+  // plutôt que de laisser un champ vide faire échouer l'écriture.
+  const configuration = configPlaqueComplete(plaque, livret.plaque);
+
   const commande: Omit<PlaqueOrder, "id"> = {
     reference: await prochaineReference(),
     accommodationId,
@@ -102,17 +107,21 @@ export async function creerCommandeInterne(
     ownerEmail: livret.owner?.email || "",
     offerType: livret.offerType,
     permanentUrl: permanentUrl(origin, identifiant),
-    plaque,
+    plaque: configuration,
     status: "en_attente_paiement",
     version: precedentes.size + 1,
     createdAt: maintenant,
     updatedAt: maintenant,
   };
 
-  const creee = await adminDb.collection(ORDERS).add(commande);
+  /*
+   * Dernier filet avant l'écriture. Perdre un champ facultatif est ennuyeux ;
+   * perdre une commande déjà encaissée ne l'est pas au même titre.
+   */
+  const creee = await adminDb.collection(ORDERS).add(sansUndefined(commande));
 
   // L'adresse publique devient définitive : elle est gravée.
-  await docRef.update({ slugLocked: true, plaque, updatedAt: maintenant });
+  await docRef.update({ slugLocked: true, plaque: configuration, updatedAt: maintenant });
 
   return { ...commande, id: creee.id };
 }

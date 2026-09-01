@@ -27,7 +27,8 @@ interface WoodOption {
 }
 
 /** Phrase gravée au bas de la plaque, telle qu'elle figure sur le gabarit. */
-export const TAGLINE_PAR_DEFAUT = "Profitez pleinement de votre séjour !";
+export { TAGLINE_PAR_DEFAUT } from "@/lib/plaque";
+import { TAGLINE_PAR_DEFAUT } from "@/lib/plaque";
 
 /**
  * Longueur maximale de la phrase gravée.
