@@ -19,9 +19,11 @@ import { ORDER_STATUS_LABELS } from "@/lib/types/accommodation";
  * main sur son contenu, et ce que ses voyageurs consultent vraiment. La page
  * suit cet ordre-là plutôt que celui de nos tables.
  *
- * L'édition n'apparaît que pour la formule Confort. L'Essentielle est une
- * page composée une fois : on le dit franchement, plutôt que d'offrir un
- * bouton qui refuserait de fonctionner.
+ * Le Confort ouvre l'édition sans limite. L'Essentielle est une page composée
+ * UNE FOIS : l'hôte l'écrit lui-même tant qu'elle est en brouillon, puis
+ * l'édition se ferme à la publication et les retouches passent par Guidz. On
+ * le dit franchement à ce moment-là, plutôt que d'offrir un bouton qui
+ * refuserait de fonctionner.
  */
 
 /* ─────────────────────────── Éléments de surface ─────────────────────────── */
@@ -205,6 +207,16 @@ export default function EspaceClientPage() {
 
   const { livret, stats, commande, abonnement } = espace;
   const estConfort = livret.formule === "comfort";
+  /*
+   * Qui peut modifier, et quand.
+   *
+   * Le Confort ouvre l'édition sans limite. L'Essentielle est une page
+   * composée UNE FOIS : l'hôte l'écrit lui-même tant qu'elle est en
+   * brouillon, et ce sont les retouches d'après publication qui passent par
+   * Guidz. Verrouiller dès le départ reviendrait à lui vendre une page qu'il
+   * n'aurait jamais eu le droit d'écrire.
+   */
+  const peutEditer = estConfort || !livret.enLigne;
   const origine = typeof window !== "undefined" ? window.location.origin : "";
   const lienPartage = `${origine}/h/${livret.slug}`;
 
@@ -301,23 +313,25 @@ export default function EspaceClientPage() {
       </Surface>
 
       {/* ── Reprendre la main, ou passer au Confort ───────────────────────── */}
-      {estConfort ? (
+      {peutEditer ? (
         <Surface className="mb-4 overflow-hidden" delai={80}>
           <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
             <div className="min-w-0">
               <h2 className="font-[family-name:var(--font-display)] text-[24px] font-bold tracking-[-0.015em] text-[#2A2016]">
-                Votre livret
+                {estConfort ? "Votre livret" : "Composez votre page"}
               </h2>
               <p className="mt-1.5 max-w-md text-[14.5px] leading-relaxed text-[#6B5D4E]">
-                Modifiez votre contenu autant de fois que vous le souhaitez. Les
-                changements sont visibles immédiatement.
+                {estConfort
+                  ? "Modifiez votre contenu autant de fois que vous le souhaitez. Les changements sont visibles immédiatement."
+                  : "Renseignez votre livret, puis publiez-le avec votre plaque. Votre formule Essentielle comprend une page composée une fois : après publication, les retouches passeront par nous."}
               </p>
             </div>
             <Link
               href={`/proprietaire/dashboard/${livret.id}/edit`}
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#2A2016] px-6 py-3.5 text-[14px] font-semibold text-white transition-all hover:bg-[#C4714A] active:scale-[0.98]"
             >
-              <PencilSimple size={15} weight="bold" /> Modifier
+              <PencilSimple size={15} weight="bold" />
+              {estConfort ? "Modifier" : "Composer mon livret"}
             </Link>
           </div>
         </Surface>

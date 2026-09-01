@@ -27,12 +27,13 @@ export default function EditAccommodationPage({ params }: { params: Promise<{ id
             return;
           }
           /*
-           * L'Essentielle ne se modifie pas en autonomie : c'est ce que la
-           * formule vend, et l'espace client l'annonce. Sans ce renvoi, un
-           * hôte arrivé ici par l'adresse directe éditerait des champs que
-           * son offre ne couvre pas.
+           * L'Essentielle est une page composée UNE FOIS : l'hôte la compose
+           * lui-même avant de payer, et ce sont les retouches ultérieures qui
+           * passent par Guidz. Le renvoi ne vaut donc qu'une fois le livret
+           * publié — auparavant, l'interdire reviendrait à vendre une page
+           * que le client n'aurait jamais eu le droit d'écrire.
            */
-          if (acc.offerType !== "comfort") {
+          if (acc.offerType !== "comfort" && acc.isActive) {
             router.replace("/proprietaire/dashboard");
             return;
           }
