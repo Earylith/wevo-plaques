@@ -78,15 +78,18 @@ export async function ouvrirLivret(
     const livretExistant = doc.data() as Accommodation;
 
     /*
-     * Passage à la formule supérieure.
+     * Passage à la formule supérieure, RÉSERVÉ AUX BROUILLONS.
      *
-     * Sans cela, cliquer « Passer à la formule Confort » ramenait l'hôte sur
-     * son livret Essentiel inchangé : l'invitation ne menait nulle part. On
-     * ne redescend JAMAIS automatiquement — un retour à l'Essentielle
-     * masquerait du contenu déjà saisi, et cela doit rester une décision
-     * explicite.
+     * Un brouillon n'a rien payé : il change de formule librement et réglera
+     * le Confort au moment de publier. Une Essentielle DÉJÀ PUBLIÉE, elle, a
+     * été encaissée — la faire basculer ici offrirait le Confort à qui
+     * reviendrait sur la page de tarifs. Sa bascule passe par le paiement de
+     * l'écart, dans l'espace client.
+     *
+     * On ne redescend jamais automatiquement : un retour à l'Essentielle
+     * masquerait du contenu déjà saisi, et cela reste une décision explicite.
      */
-    if (offre === "comfort" && livretExistant.offerType !== "comfort") {
+    if (offre === "comfort" && livretExistant.offerType !== "comfort" && !livretExistant.isActive) {
       await doc.ref.update({
         offerType: "comfort",
         template: "cleo",
@@ -116,4 +119,53 @@ export async function ouvrirLivret(
 
   const cree = await adminDb.collection(ACCOMMODATIONS).add(nettoyer(livret));
   return { id: cree.id, slug, existant: false };
+}
+
+/**
+ * Change la formule d'un livret NON PUBLIÉ.
+ *
+ * Tant que rien n'est payé, l'hôte compose dans la formule qu'il veut et peut
+ * revenir en arrière autant de fois qu'il le souhaite : ce qu'il paiera à la
+ * publication, c'est la formule dans laquelle il se trouve à ce moment-là.
+ *
+ * Le contenu déjà saisi n'est JAMAIS effacé. Repasser à l'Essentielle masque
+ * les rubriques qu'elle ne couvre pas ; elles réapparaissent intactes si
+ * l'hôte revient au Confort. Supprimer serait irréversible pour un geste que
+ * l'on présente comme un simple essayage.
+ */
+export async function changerFormuleBrouillon(
+  accommodationId: string,
+  offre: OfferType,
+  jetonHote?: string
+): Promise<{ formule: OfferType }> {
+  const ref = adminDb.collection(ACCOMMODATIONS).doc(accommodationId);
+  const doc = await ref.get();
+  if (!doc.exists) throw new Error("Livret introuvable.");
+  const livret = doc.data() as Accommodation;
+
+  /*
+   * L'appelant doit être le propriétaire. Sans cette vérification, un
+   * identifiant deviné suffirait à changer la formule du livret d'un autre.
+   */
+  if (!jetonHote) throw new Error("Connectez-vous pour changer de formule.");
+  const jeton = await adminAuth.verifyIdToken(jetonHote);
+  if (!livret.ownerUid || livret.ownerUid !== jeton.uid) {
+    throw new Error("Ce livret n’est pas rattaché à votre compte.");
+  }
+
+  if (livret.isActive) {
+    throw new Error(
+      "Votre livret est déjà publié : le passage au Confort se fait depuis votre espace client."
+    );
+  }
+
+  if (livret.offerType === offre) return { formule: offre };
+
+  await ref.update({
+    offerType: offre,
+    template: offre === "comfort" ? "cleo" : "essential",
+    updatedAt: Date.now(),
+  });
+
+  return { formule: offre };
 }

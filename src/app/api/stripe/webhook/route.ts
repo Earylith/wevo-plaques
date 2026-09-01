@@ -50,6 +50,41 @@ async function reserverEvenement(evenement: Stripe.Event): Promise<boolean> {
 }
 
 /**
+ * Bascule vers le Confort, pour une Essentielle déjà publiée.
+ *
+ * Rien à publier — la page est en ligne — et rien à graver : l'hôte a déjà sa
+ * plaque, et son QR pointe sur une adresse permanente que le changement de
+ * formule ne touche pas. Seuls la formule, le gabarit et l'abonnement
+ * changent.
+ */
+async function traiterBascule(session: Stripe.Checkout.Session) {
+  const accommodationId = session.client_reference_id || session.metadata?.accommodationId;
+  if (!accommodationId) {
+    console.error("[stripe] bascule sans identifiant de livret", session.id);
+    return;
+  }
+
+  const docRef = adminDb.collection(ACCOMMODATIONS).doc(accommodationId);
+  const doc = await docRef.get();
+  if (!doc.exists) {
+    console.error("[stripe] livret introuvable pour la bascule", accommodationId);
+    return;
+  }
+
+  await docRef.update({
+    offerType: "comfort",
+    template: "cleo",
+    stripeCustomerId: typeof session.customer === "string" ? session.customer : null,
+    stripeSubscriptionId:
+      typeof session.subscription === "string" ? session.subscription : null,
+    upgradedAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+
+  console.info("[stripe] livret", accommodationId, "basculé en formule Confort");
+}
+
+/**
  * Encaissement confirmé : le livret passe en ligne et la plaque part en
  * production.
  */
@@ -141,9 +176,18 @@ export async function POST(request: NextRequest) {
     if (evenement.type === "checkout.session.completed") {
       const session = evenement.data.object as Stripe.Checkout.Session;
       if (session.payment_status === "paid" || session.status === "complete") {
-        const origin =
-          process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
-        await traiterPaiement(session, origin);
+        /*
+         * Deux natures d'encaissement passent par ici. Les confondre ferait
+         * graver une seconde plaque à un hôte qui en a déjà une : la session
+         * porte donc son intention, posée à sa création.
+         */
+        if (session.metadata?.type === "bascule-confort") {
+          await traiterBascule(session);
+        } else {
+          const origin =
+            process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
+          await traiterPaiement(session, origin);
+        }
       }
     }
 

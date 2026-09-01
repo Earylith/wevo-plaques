@@ -22,9 +22,11 @@ import EssentialTemplate from "@/components/templates/EssentialTemplate";
 import { ouvrirPaiement } from "@/app/paiement-actions";
 import StatsPanel from "@/components/admin/editor/StatsPanel";
 import ApercuPleinEcran from "@/components/admin/editor/ApercuPleinEcran";
+import ChoixFormule from "@/components/admin/editor/ChoixFormule";
+import { changerFormuleBrouillon } from "@/app/creation-actions";
 import LibraryPicker, { PickedEntry } from "@/components/admin/editor/LibraryPicker";
 import { createPlaqueOrder, getOrdersForAccommodation } from "@/app/admin/orders";
-import { PlaqueConfig, PlaqueOrder } from "@/lib/types/accommodation";
+import { OfferType, PlaqueConfig, PlaqueOrder } from "@/lib/types/accommodation";
 import { TranslatableLang, TranslationLayer, Translations } from "@/lib/i18n";
 import { PlaceResult, LatLon, describeDistance, mapsUrlFor } from "@/lib/geo";
 import {
@@ -140,6 +142,14 @@ export default function AdminModernTileEditor({
   demo = false,
 }: Props) {
   const estAdmin = role === "admin";
+  /*
+   * Le changement de formule n'est offert qu'à l'hôte, et seulement tant que
+   * son livret n'est pas payé. Publié, la bascule devient un achat et se fait
+   * depuis l'espace client. Côté Guidz, la formule se change en base : la
+   * proposer ici demanderait le jeton du propriétaire, que l'administration
+   * n'a pas.
+   */
+  const peutChangerDeFormule = !estAdmin && !initialData.isActive;
   const [data, setData] = useState<Accommodation>(initialData);
   /**
    * La formule décide de ce qui est ouvert et de l'allure de l'aperçu.
@@ -185,6 +195,17 @@ export default function AdminModernTileEditor({
    * gabarits s'y mettent en page comme ils le feront chez le voyageur.
    */
   const [pleinEcran, setPleinEcran] = useState(false);
+  /*
+   * Changement de formule, tant que rien n'est payé.
+   *
+   * L'hôte essaie le Confort, revient à l'Essentielle, et ne règle que la
+   * formule dans laquelle il se trouve au moment de publier. Une fois le
+   * livret en ligne, la bascule devient un achat et se fait depuis l'espace
+   * client : ce contrôle disparaît alors.
+   */
+  const [basculeVers, setBasculeVers] = useState<OfferType | null>(null);
+  const [basculeEnCours, setBasculeEnCours] = useState(false);
+  const [basculeErreur, setBasculeErreur] = useState<string | null>(null);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [autosave, setAutosave] = useState(!demo);
@@ -313,6 +334,35 @@ export default function AdminModernTileEditor({
       console.error(err);
       setOrderError(err instanceof Error ? err.message : "Le paiement n’a pas pu être ouvert.");
       setPaiement(false);
+    }
+  };
+
+  /**
+   * Applique le changement de formule demandé.
+   *
+   * On enregistre d'abord ce qui est en cours de saisie : la bascule recharge
+   * l'éditeur dans l'autre gabarit, et des modifications non enregistrées y
+   * seraient perdues. Le serveur refuse la bascule sur un livret publié — la
+   * vérification n'est pas ici, où le navigateur pourrait la contourner.
+   */
+  const handleBascule = async () => {
+    if (!basculeVers) return;
+    setBasculeEnCours(true);
+    setBasculeErreur(null);
+    try {
+      if (dirty) await handleSave();
+      const { auth } = await import("@/lib/firebase/config");
+      const jeton = await auth.currentUser?.getIdToken();
+      await changerFormuleBrouillon(docId, basculeVers, jeton);
+      // Rechargement plutôt que mise à jour en mémoire : le gabarit, les
+      // rubriques disponibles et l'aperçu dépendent tous de la formule.
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      setBasculeErreur(
+        err instanceof Error ? err.message : "Le changement de formule a échoué."
+      );
+      setBasculeEnCours(false);
     }
   };
 
@@ -958,7 +1008,7 @@ export default function AdminModernTileEditor({
           const horsFormule = !estConfort && !MODULES_ESSENTIELLE.includes(id);
           if (horsFormule) {
             return (
-              <VerrouConfort
+              <VerrouConfort onDebloquer={peutChangerDeFormule ? () => { setBasculeErreur(null); setBasculeVers("comfort"); } : undefined}
                 key={id}
                 verrouille
                 variante="ligne"
@@ -1812,15 +1862,42 @@ export default function AdminModernTileEditor({
           <div className="min-w-0">
             <h1 className="font-[family-name:var(--font-display)] font-bold text-[19px] truncate text-[#2A2016]">{data.property?.name || "Livret sans titre"}</h1>
             <span className="flex items-center gap-1.5 min-w-0">
-              <span
-                className={`shrink-0 text-[11px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${
-                  estConfort
-                    ? "bg-[#F7EBE4] text-[#A35A38] border-[#EDD9A3]"
-                    : "bg-gray-100 text-[#6B5D4E] border-gray-200"
-                }`}
-              >
-                {estConfort ? "Confort" : "Essentielle"}
-              </span>
+              {/*
+                La pastille devient le contrôle de bascule : c'est là que
+                l'hôte lit sa formule, donc là qu'il cherchera à en changer.
+              */}
+              {peutChangerDeFormule ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBasculeErreur(null);
+                    setBasculeVers(estConfort ? "essential" : "comfort");
+                  }}
+                  title={
+                    estConfort
+                      ? "Revenir à la formule Essentielle"
+                      : "Passer à la formule Confort"
+                  }
+                  className={`shrink-0 flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap transition-colors ${
+                    estConfort
+                      ? "bg-[#F7EBE4] text-[#A35A38] border-[#EDD9A3] hover:border-[#C4714A]"
+                      : "bg-gray-100 text-[#6B5D4E] border-gray-200 hover:border-[#C4714A]"
+                  }`}
+                >
+                  {estConfort ? "Confort" : "Essentielle"}
+                  <CaretDown size={10} weight="bold" className="opacity-60" />
+                </button>
+              ) : (
+                <span
+                  className={`shrink-0 text-[11px] font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${
+                    estConfort
+                      ? "bg-[#F7EBE4] text-[#A35A38] border-[#EDD9A3]"
+                      : "bg-gray-100 text-[#6B5D4E] border-gray-200"
+                  }`}
+                >
+                  {estConfort ? "Confort" : "Essentielle"}
+                </span>
+              )}
             {data.isActive ? (
               <span className="shrink-0 text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
                 <CheckCircle size={12} weight="fill" /> En ligne
@@ -2162,7 +2239,7 @@ export default function AdminModernTileEditor({
               <>
                 {renderSectionIntro("apparence")}
 
-                <VerrouConfort
+                <VerrouConfort onDebloquer={peutChangerDeFormule ? () => { setBasculeErreur(null); setBasculeVers("comfort"); } : undefined}
                   verrouille={!estConfort}
                   variante="bloc"
                   argument="Vos propres photos donnent à la page l’allure de votre logement."
@@ -2223,7 +2300,7 @@ export default function AdminModernTileEditor({
                   </div>
                 </div>
 
-                <VerrouConfort
+                <VerrouConfort onDebloquer={peutChangerDeFormule ? () => { setBasculeErreur(null); setBasculeVers("comfort"); } : undefined}
                   verrouille={!estConfort}
                   variante="bloc"
                   argument="Météo, carte et typographie affinent la page."
@@ -2322,7 +2399,7 @@ export default function AdminModernTileEditor({
             {editorSection === "diffusion" && renderSectionIntro("diffusion")}
 
             {editorSection === "diffusion" && (
-              <VerrouConfort
+              <VerrouConfort onDebloquer={peutChangerDeFormule ? () => { setBasculeErreur(null); setBasculeVers("comfort"); } : undefined}
                 verrouille={!estConfort}
                 variante="bloc"
                 argument="Vos voyageurs étrangers lisent le livret dans leur langue."
@@ -2616,6 +2693,17 @@ export default function AdminModernTileEditor({
         Rendu en visiteur, sans accroche d'édition : on vient éprouver la
         navigation, et une zone qui ouvrirait un formulaire l'empêcherait.
       */}
+      <ChoixFormule
+        vers={basculeVers}
+        enCours={basculeEnCours}
+        erreur={basculeErreur}
+        onConfirmer={() => void handleBascule()}
+        onAnnuler={() => {
+          setBasculeVers(null);
+          setBasculeErreur(null);
+        }}
+      />
+
       <ApercuPleinEcran ouvert={pleinEcran} onFermer={() => setPleinEcran(false)}>
         {estConfort ? (
           <CleoTemplate data={data} inlineModal />

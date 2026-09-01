@@ -9,6 +9,7 @@ import {
 } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { chargerEspaceClient, EspaceClient } from "@/app/espace-actions";
+import { ouvrirBasculeConfort } from "@/app/paiement-actions";
 import { rankedModules, buildInsights, HOUR_LABELS } from "@/lib/stats";
 import { ORDER_STATUS_LABELS } from "@/lib/types/accommodation";
 
@@ -136,6 +137,8 @@ export default function EspaceClientPage() {
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
   const [copie, setCopie] = useState(false);
+  const [bascule, setBascule] = useState(false);
+  const [erreurBascule, setErreurBascule] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading) return;
@@ -233,6 +236,29 @@ export default function EspaceClientPage() {
     .filter(([, v]) => (v || 0) > 0)
     .sort((a, b) => (b[1] || 0) - (a[1] || 0));
   const totalHeures = heures.reduce((a, [, v]) => a + (v || 0), 0);
+
+  /*
+   * Bascule vers le Confort, pour une Essentielle déjà payée.
+   *
+   * On n'écrit rien ici : la formule ne change qu'une fois l'encaissement
+   * confirmé par Stripe, dans le webhook. Un client qui abandonnerait le
+   * paiement ne doit pas se retrouver avec un Confort qu'il n'a pas réglé.
+   */
+  const basculer = async () => {
+    setBascule(true);
+    setErreurBascule(null);
+    try {
+      const jeton = await user?.getIdToken();
+      const { url } = await ouvrirBasculeConfort(livret.id, window.location.origin, jeton);
+      window.location.assign(url);
+    } catch (e) {
+      console.error(e);
+      setErreurBascule(
+        e instanceof Error ? e.message : "Le paiement n’a pas pu être ouvert."
+      );
+      setBascule(false);
+    }
+  };
 
   const copierLien = () => {
     navigator.clipboard?.writeText(lienPartage);
@@ -373,12 +399,37 @@ export default function EspaceClientPage() {
                 </li>
               ))}
             </ul>
-            <Link
-              href="/commencer?offre=confort"
-              className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#C4714A] px-6 py-3.5 text-[14px] font-semibold text-white transition-all hover:bg-[#A35A38] active:scale-[0.98]"
+            {/*
+              Le prix est annoncé AVANT le clic. Envoyer vers Stripe sans
+              l'avoir dit ferait découvrir le montant sur la page de paiement,
+              c'est-à-dire trop tard.
+            */}
+            <p className="mt-5 text-[14px] text-[#5C3D2E]">
+              <span className="font-semibold text-[#2A2016]">20 € une fois</span>
+              {" "}+ 1,99 €/mois. Votre page et votre plaque sont déjà payées :
+              vous ne réglez que l’écart entre les deux formules.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => void basculer()}
+              disabled={bascule}
+              className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#C4714A] px-6 py-3.5 text-[14px] font-semibold text-white transition-all hover:bg-[#A35A38] active:scale-[0.98] disabled:opacity-60"
             >
-              Passer au Confort <ArrowRight size={15} weight="bold" />
-            </Link>
+              {bascule ? (
+                "Ouverture du paiement…"
+              ) : (
+                <>
+                  Passer au Confort <ArrowRight size={15} weight="bold" />
+                </>
+              )}
+            </button>
+
+            {erreurBascule && (
+              <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-[13.5px] leading-relaxed text-red-700">
+                {erreurBascule}
+              </p>
+            )}
           </div>
         </Surface>
       )}

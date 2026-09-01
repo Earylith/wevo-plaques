@@ -24,9 +24,53 @@ import { Lock, ArrowRight } from "@phosphor-icons/react";
  * remonterait à chaque frappe.
  */
 
+/**
+ * Ce sur quoi on appuie pour déverrouiller.
+ *
+ * Même apparence, deux natures : un bouton quand le déverrouillage se joue
+ * sur place — l'hôte compose, l'envoyer ailleurs lui ferait perdre son
+ * travail des yeux — et un lien vers les formules quand il faut sortir. On ne
+ * rend jamais un lien qui n'irait nulle part.
+ *
+ * Au niveau du module, et non dans le corps du composant : React le
+ * remonterait sinon à chaque rendu, et le voile clignoterait.
+ */
+function Declencheur({
+  onDebloquer,
+  className,
+  titre,
+  children,
+}: {
+  onDebloquer?: () => void;
+  className: string;
+  titre?: string;
+  children: React.ReactNode;
+}) {
+  if (onDebloquer) {
+    return (
+      <button type="button" onClick={onDebloquer} title={titre} className={className}>
+        {children}
+      </button>
+    );
+  }
+  return (
+    <Link href="/#offres" title={titre} className={className}>
+      {children}
+    </Link>
+  );
+}
+
 interface Props {
   /** L'option est-elle verrouillée ? */
   verrouille: boolean;
+  /**
+   * Ce que fait le déverrouillage.
+   *
+   * Fourni, il ouvre la confirmation de changement de formule. Absent, on
+   * retombe sur le lien vers les formules — seule issue sensée pour un livret
+   * déjà publié, dont la bascule est devenue un achat.
+   */
+  onDebloquer?: () => void;
   /** Ce que l'hôte gagnerait, formulé côté bénéfice. */
   argument?: string;
   /** `ligne` pour une rubrique, `bloc` pour un ensemble de réglages. */
@@ -38,6 +82,7 @@ export default function VerrouConfort({
   verrouille,
   argument,
   variante = "bloc",
+  onDebloquer,
   children,
 }: Props) {
   if (!verrouille) return <>{children}</>;
@@ -64,22 +109,22 @@ export default function VerrouConfort({
 
       {variante === "ligne" ? (
         /* Rubrique : une pastille dans le coin, tout le bloc reste cliquable. */
-        <Link
-          href="/#offres"
-          title={argument}
-          className="absolute inset-0 flex items-center justify-end px-3 group"
+        <Declencheur
+          onDebloquer={onDebloquer}
+          titre={argument}
+          className="absolute inset-0 flex w-full items-center justify-end px-3 group"
         >
           <span className="flex items-center gap-1.5 rounded-full bg-white/95 border border-[#EDD9A3] shadow-sm px-2.5 py-1.5 text-[10px] font-extrabold text-[#A35A38] group-hover:border-[#C4714A] transition-colors">
             <Lock size={11} weight="fill" />
             Formule Confort
           </span>
-        </Link>
+        </Declencheur>
       ) : (
         /* Bloc : un bandeau bas, qui n'occulte pas ce qu'il surmonte. */
         <div className="absolute inset-x-0 bottom-0 p-3">
-          <Link
-            href="/#offres"
-            className="block rounded-xl bg-white/90 backdrop-blur-[2px] border border-[#EDD9A3] shadow-sm px-3.5 py-2.5 group hover:border-[#C4714A] transition-colors"
+          <Declencheur
+            onDebloquer={onDebloquer}
+            className="block w-full text-left rounded-xl bg-white/90 backdrop-blur-[2px] border border-[#EDD9A3] shadow-sm px-3.5 py-2.5 group hover:border-[#C4714A] transition-colors"
           >
             <span className="flex items-center gap-2">
               <span className="w-7 h-7 rounded-full bg-[#F7EBE4] text-[#C4714A] flex items-center justify-center shrink-0">
@@ -101,7 +146,7 @@ export default function VerrouConfort({
                 className="shrink-0 text-[#C4714A] group-hover:translate-x-0.5 transition-transform"
               />
             </span>
-          </Link>
+          </Declencheur>
         </div>
       )}
     </div>

@@ -73,3 +73,22 @@ export function tarifsFormule(offre: OfferType): {
     abonnement: process.env.STRIPE_PRICE_ABONNEMENT || null,
   };
 }
+
+/**
+ * Tarifs de la bascule vers le Confort, APRÈS une Essentielle déjà payée.
+ *
+ * L'hôte a déjà réglé sa page et sa plaque : on ne lui refacture pas les
+ * frais de mise en service. Il paie l'écart entre les deux formules, une
+ * fois, et démarre l'abonnement qui maintient ses modifications ouvertes.
+ *
+ * Cette fonction ne concerne QUE les livrets publiés. Un brouillon Essentiel
+ * change de formule sans rien payer : il réglera simplement le Confort au
+ * moment de publier.
+ */
+export function tarifsBascule(): { ponctuel: string; abonnement: string | null } {
+  const ponctuel = process.env.STRIPE_PRICE_UPGRADE_CONFORT;
+  if (!ponctuel) {
+    throw new Error("STRIPE_PRICE_UPGRADE_CONFORT absente. Ajoutez-la dans .env.local.");
+  }
+  return { ponctuel, abonnement: process.env.STRIPE_PRICE_ABONNEMENT || null };
+}

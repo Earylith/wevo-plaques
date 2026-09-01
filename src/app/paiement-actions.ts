@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { Accommodation } from "@/lib/types/accommodation";
-import { stripe, tarifsFormule, paiementConfigure } from "@/lib/stripe";
+import { stripe, tarifsFormule, tarifsBascule, paiementConfigure } from "@/lib/stripe";
 
 /**
  * Ouverture du paiement, quelle que soit la formule.
@@ -88,6 +88,72 @@ export async function ouvrirPaiement(
     },
     success_url: `${origin}/commande/merci?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/admin/hebergements/${accommodationId}`,
+    locale: "fr",
+    allow_promotion_codes: true,
+  });
+
+  if (!session.url) throw new Error("Stripe n’a pas renvoyé d’adresse de paiement.");
+  return { url: session.url, reference: session.id };
+}
+
+/**
+ * Paiement de la bascule vers le Confort, pour une Essentielle DÉJÀ publiée.
+ *
+ * L'hôte a payé sa page et sa plaque : il règle l'écart entre les formules,
+ * une fois, et démarre l'abonnement. Rien n'est modifié ici — c'est le
+ * webhook qui fait basculer la formule, une fois l'encaissement confirmé.
+ *
+ * Un brouillon n'a rien à payer : il change de formule librement et réglera
+ * le Confort au moment de publier. Le refuser ici évite qu'un hôte paie deux
+ * fois la même chose.
+ */
+export async function ouvrirBasculeConfort(
+  accommodationId: string,
+  origin: string,
+  jetonHote?: string
+): Promise<OuvertureSession> {
+  if (!paiementConfigure()) {
+    throw new Error(
+      "Le paiement n’est pas encore configuré. Ajoutez STRIPE_SECRET_KEY et les identifiants de tarif dans .env.local."
+    );
+  }
+
+  const doc = await adminDb.collection(ACCOMMODATIONS).doc(accommodationId).get();
+  if (!doc.exists) throw new Error("Livret introuvable.");
+  const livret = { ...(doc.data() as Accommodation), id: doc.id };
+
+  await verifierAcces(livret, jetonHote);
+
+  if (livret.offerType === "comfort") {
+    throw new Error("Votre livret est déjà en formule Confort.");
+  }
+  if (!livret.isActive) {
+    throw new Error(
+      "Votre livret n’est pas encore publié : vous pouvez changer de formule sans payer, depuis l’éditeur."
+    );
+  }
+
+  const { ponctuel, abonnement } = tarifsBascule();
+  const lignes = [{ price: ponctuel, quantity: 1 }];
+  if (abonnement) lignes.push({ price: abonnement, quantity: 1 });
+
+  const session = await stripe().checkout.sessions.create({
+    mode: abonnement ? "subscription" : "payment",
+    line_items: lignes,
+    client_reference_id: accommodationId,
+    customer_email: livret.owner?.email || undefined,
+    /*
+     * `type` distingue cette session d'un premier achat. Sans lui, le webhook
+     * la traiterait comme une publication et lancerait une SECONDE plaque
+     * pour un hôte qui en a déjà une.
+     */
+    metadata: {
+      accommodationId,
+      type: "bascule-confort",
+      slug: livret.slug || "",
+    },
+    success_url: `${origin}/proprietaire/dashboard?bascule=ok`,
+    cancel_url: `${origin}/proprietaire/dashboard`,
     locale: "fr",
     allow_promotion_codes: true,
   });

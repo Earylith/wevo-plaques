@@ -22,6 +22,13 @@ export default function ProprietaireLayout({ children }: { children: React.React
   const router = useRouter();
 
   const pagePublique = pathname === "/proprietaire/login";
+  /*
+   * L'éditeur occupe l'écran entier et porte déjà sa propre barre — titre,
+   * formule, enregistrement, publication. Lui superposer celle du châssis
+   * empilerait deux en-têtes et lui volerait, sur téléphone, une hauteur
+   * qu'il n'a pas de trop. Il garde la protection d'accès, pas le décor.
+   */
+  const pleinePage = pathname?.endsWith("/edit") ?? false;
 
   useEffect(() => {
     if (!loading && !user && !pagePublique) {
@@ -46,6 +53,9 @@ export default function ProprietaireLayout({ children }: { children: React.React
 
   // Non connecté : la redirection est en cours, on n'affiche rien entre-temps.
   if (!user) return null;
+
+  // Protégé, mais sans décor : l'éditeur se suffit à lui-même.
+  if (pleinePage) return <>{children}</>;
 
   return (
     <div className="min-h-screen bg-[#F6F3ED] text-[#2A2016]">
