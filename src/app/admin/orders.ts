@@ -228,3 +228,67 @@ export async function getLivretStats(accommodationId: string): Promise<Record<st
     return {};
   }
 }
+
+/** Ce que Guidz renseigne sur l'acheminement d'une plaque. */
+export interface Expedition {
+  carrier?: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  estimatedDelivery?: number | null;
+  clientNote?: string;
+}
+
+/**
+ * Enregistre le suivi d'expédition d'une commande.
+ *
+ * Ces informations sont reprises telles quelles dans l'espace du client :
+ * c'est la seule chose qu'il attend une fois qu'il a payé. Un client sans
+ * nouvelles écrit ; un client qui suit son colis attend.
+ *
+ * Renseigner un suivi marque aussi la commande comme expédiée et date
+ * l'envoi : demander à l'équipe de faire les deux gestes séparément, c'est
+ * garantir qu'un des deux sera oublié.
+ */
+export async function updateOrderShipping(orderId: string, expedition: Expedition) {
+  await requireAdminAuth();
+
+  const orderRef = adminDb.collection(ORDERS).doc(orderId);
+  const snap = await withTimeout(orderRef.get(), `commande ${orderId}`);
+  if (!snap.exists) throw new Error("Commande introuvable.");
+  const order = snap.data() as PlaqueOrder;
+
+  const url = (expedition.trackingUrl || "").trim();
+  if (url && !/^https?:\/\//i.test(url)) {
+    throw new Error("Le lien de suivi doit commencer par http:// ou https://");
+  }
+
+  const maintenant = Date.now();
+  const aUnSuivi = Boolean(url || (expedition.trackingNumber || "").trim());
+
+  /*
+   * Firestore refuse `undefined` : les champs vidés par l'équipe sont donc
+   * effacés explicitement, et non laissés en suspens.
+   */
+  const champs: Record<string, unknown> = {
+    carrier: (expedition.carrier || "").trim() || FieldValue.delete(),
+    trackingNumber: (expedition.trackingNumber || "").trim() || FieldValue.delete(),
+    trackingUrl: url || FieldValue.delete(),
+    clientNote: (expedition.clientNote || "").trim() || FieldValue.delete(),
+    estimatedDelivery: expedition.estimatedDelivery || FieldValue.delete(),
+    updatedAt: maintenant,
+  };
+
+  // Un suivi renseigné vaut expédition : on date l'envoi et on avance l'état,
+  // sauf si la commande est plus avancée ou annulée.
+  if (aUnSuivi) {
+    if (!order.shippedAt) champs.shippedAt = maintenant;
+    if (order.status !== "annulee" && order.status !== "expediee") {
+      champs.status = "expediee";
+    }
+  }
+
+  await withTimeout(orderRef.update(champs), "mise à jour du suivi");
+  revalidatePath("/admin/commandes");
+
+  return { expediee: aUnSuivi };
+}

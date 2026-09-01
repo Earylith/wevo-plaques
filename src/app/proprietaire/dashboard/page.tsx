@@ -570,8 +570,53 @@ export default function EspaceClientPage() {
                 Commandée le {dateLongue(commande.date)}
               </p>
               <div className="mt-3.5">
-                <Pastille ton="accent">{ORDER_STATUS_LABELS[commande.statut]}</Pastille>
+                <Pastille ton={commande.statut === "expediee" ? "vert" : "accent"}>
+                  {ORDER_STATUS_LABELS[commande.statut]}
+                </Pastille>
               </div>
+
+              {/*
+                L'acheminement, dès que Guidz l'a renseigné. C'est la seule
+                chose que l'hôte vient chercher une fois qu'il a payé : sans
+                nouvelles, il écrit ; avec un suivi, il attend.
+              */}
+              {(commande.lienSuivi || commande.transporteur || commande.motDeGuidz) && (
+                <div className="mt-4 rounded-2xl bg-[#F6F3ED] p-4">
+                  {commande.expedieeLe && (
+                    <p className="text-[13.5px] font-semibold text-[#2A2016]">
+                      Expédiée le {dateLongue(commande.expedieeLe)}
+                    </p>
+                  )}
+                  {commande.transporteur && (
+                    <p className="mt-0.5 text-[13px] text-[#6B5D4E]">
+                      {commande.transporteur}
+                      {commande.numeroSuivi && (
+                        <span className="font-mono text-[12px]"> · {commande.numeroSuivi}</span>
+                      )}
+                    </p>
+                  )}
+                  {commande.livraisonPrevue && (
+                    <p className="mt-0.5 text-[13px] text-[#6B5D4E]">
+                      Livraison prévue le {dateLongue(commande.livraisonPrevue)}
+                    </p>
+                  )}
+                  {commande.motDeGuidz && (
+                    <p className="mt-2 text-[13px] leading-relaxed text-[#5C3D2E]">
+                      {commande.motDeGuidz}
+                    </p>
+                  )}
+                  {commande.lienSuivi && (
+                    <a
+                      href={commande.lienSuivi}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#2A2016] px-4 py-2.5 text-[13px] font-semibold text-white transition-all hover:bg-[#C4714A] active:scale-[0.98]"
+                    >
+                      Suivre mon colis <ArrowSquareOut size={13} weight="bold" />
+                    </a>
+                  )}
+                </div>
+              )}
             </Surface>
           )}
 

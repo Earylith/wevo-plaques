@@ -54,14 +54,22 @@ export async function GET(
         hauteurMm: resultat.hauteurMm,
         compte: resultat.compte,
         phraseReduite: resultat.phraseReduite,
-        octets: Buffer.byteLength(resultat.dxf, "utf8"),
+        octetsDxf: Buffer.byteLength(resultat.dxf, "utf8"),
+        octetsSvg: Buffer.byteLength(resultat.svg, "utf8"),
       });
     }
 
-    return new NextResponse(resultat.dxf, {
+    /*
+     * Les deux formats sortent des mêmes polylignes. Le SVG sert aux ateliers
+     * qui le préfèrent et se regarde d'un clic ; le DXF reste le format de
+     * référence des machines de découpe.
+     */
+    const svg = request.nextUrl.searchParams.get("format") === "svg";
+
+    return new NextResponse(svg ? resultat.svg : resultat.dxf, {
       headers: {
-        "Content-Type": "application/dxf",
-        "Content-Disposition": `attachment; filename="${commande.reference}-gravure.dxf"`,
+        "Content-Type": svg ? "image/svg+xml" : "application/dxf",
+        "Content-Disposition": `attachment; filename="${commande.reference}-gravure.${svg ? "svg" : "dxf"}"`,
         "Cache-Control": "no-store",
       },
     });

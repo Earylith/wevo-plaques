@@ -39,7 +39,22 @@ export interface EspaceClient {
     permanentId: string | null;
   } | null;
   stats: LivretStats;
-  commande: { reference: string; statut: OrderStatus; date: number } | null;
+  commande: {
+    reference: string;
+    statut: OrderStatus;
+    date: number;
+    /*
+     * Acheminement, renseigné par Guidz. C'est ce que l'hôte vient chercher
+     * une fois qu'il a payé : sans nouvelles, il écrit ; avec un suivi, il
+     * attend.
+     */
+    transporteur: string | null;
+    numeroSuivi: string | null;
+    lienSuivi: string | null;
+    expedieeLe: number | null;
+    livraisonPrevue: number | null;
+    motDeGuidz: string | null;
+  } | null;
   abonnement: Abonnement | null;
 }
 
@@ -126,7 +141,17 @@ export async function chargerEspaceClient(jetonHote: string): Promise<EspaceClie
     },
     stats: (statsSnap?.exists ? statsSnap.data() : {}) as LivretStats,
     commande: commandes[0]
-      ? { reference: commandes[0].reference, statut: commandes[0].status, date: commandes[0].createdAt }
+      ? {
+          reference: commandes[0].reference,
+          statut: commandes[0].status,
+          date: commandes[0].createdAt,
+          transporteur: commandes[0].carrier || null,
+          numeroSuivi: commandes[0].trackingNumber || null,
+          lienSuivi: commandes[0].trackingUrl || null,
+          expedieeLe: commandes[0].shippedAt || null,
+          livraisonPrevue: commandes[0].estimatedDelivery || null,
+          motDeGuidz: commandes[0].clientNote || null,
+        }
       : null,
     abonnement,
   };

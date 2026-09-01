@@ -118,3 +118,69 @@ export function rectangle(x: number, y: number, largeur: number, hauteur: number
     ],
   };
 }
+
+/**
+ * Les mêmes tracés, en SVG.
+ *
+ * Certains ateliers travaillent en SVG plutôt qu'en DXF, et un aperçu se
+ * regarde plus vite qu'il ne s'ouvre dans un logiciel de découpe. Le fichier
+ * est produit à partir des MÊMES polylignes que le DXF : les deux ne peuvent
+ * donc pas diverger, ce qui arriverait fatalement avec deux chaînes séparées.
+ *
+ * Les unités sont des millimètres, déclarés comme tels sur la racine : sans
+ * cela, un logiciel de dessin suppose des pixels et la plaque arrive au tiers
+ * de sa taille.
+ */
+export function ecrireSvg(traces: Trace[], largeurMm: number, hauteurMm: number): string {
+  const utiles = traces.filter((t) => t.points.length >= 2);
+
+  /* Couleurs d'écran, choisies pour distinguer les calques d'un coup d'œil. */
+  const TEINTES: Record<string, string> = {
+    [CALQUES.DECOUPE.nom]: "#c0392b",
+    [CALQUES.GRAVURE.nom]: "#2A2016",
+    [CALQUES.QR.nom]: "#111111",
+    [CALQUES.PHRASE.nom]: "#2A2016",
+  };
+
+  const groupes = Object.values(CALQUES)
+    .map((calque) => {
+      const duCalque = utiles.filter((t) => t.calque === calque.nom);
+      if (duCalque.length === 0) return "";
+
+      // Le QR se grave plein : il est rempli, jamais détouré. Le reste est en
+      // trait, comme le lira une machine.
+      const plein = calque.nom === CALQUES.QR.nom;
+      const chemins = duCalque
+        .map((t) => {
+          const d =
+            t.points
+              .map(
+                (p, i) =>
+                  `${i === 0 ? "M" : "L"}${mm(p.x)},${mm(hauteurMm - p.y)}`
+              )
+              .join(" ") + (t.ferme ? " Z" : "");
+          return `    <path d="${d}"/>`;
+        })
+        .join("\n");
+
+      return [
+        `  <g id="${calque.nom}" inkscape:groupmode="layer" inkscape:label="${calque.nom}"`,
+        `     fill="${plein ? TEINTES[calque.nom] : "none"}"`,
+        `     stroke="${plein ? "none" : TEINTES[calque.nom]}" stroke-width="0.2">`,
+        chemins,
+        `  </g>`,
+      ].join("\n");
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  return [
+    `<?xml version="1.0" encoding="UTF-8"?>`,
+    `<svg xmlns="http://www.w3.org/2000/svg"`,
+    `     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"`,
+    `     width="${mm(largeurMm)}mm" height="${mm(hauteurMm)}mm"`,
+    `     viewBox="0 0 ${mm(largeurMm)} ${mm(hauteurMm)}">`,
+    groupes,
+    `</svg>`,
+  ].join("\n");
+}

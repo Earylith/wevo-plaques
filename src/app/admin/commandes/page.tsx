@@ -6,6 +6,7 @@ import {
   Package, Warning, ArrowSquareOut, Copy, Check, PencilSimple, Download,
 } from "@phosphor-icons/react";
 import { getPlaqueOrders, updateOrderStatus } from "../orders";
+import PanneauExpedition, { Champ, dateCourte } from "@/components/admin/PanneauExpedition";
 import { PlaqueOrder, OrderStatus, ORDER_STATUS_LABELS } from "@/lib/types/accommodation";
 
 /**
@@ -214,6 +215,52 @@ export default function OrdersPage() {
                 </div>
               </div>
 
+              {/*
+                Ce que l'équipe doit avoir sous les yeux pour traiter une
+                commande sans ouvrir trois autres écrans : ce qui part en
+                gravure, où le client sera livré, et où en est le paiement.
+              */}
+              <div className="grid gap-x-8 gap-y-2 px-6 py-4 border-t border-[#EDD9A3]/40 sm:grid-cols-2 lg:grid-cols-3">
+                <Champ intitule="Phrase gravée">
+                  {order.plaque?.engravedTagline || <span className="text-[#A8998A]">—</span>}
+                </Champ>
+                <Champ intitule="Essence">{WOOD_LABEL[order.plaque?.wood] || "—"}</Champ>
+                <Champ intitule="Adresse publique">
+                  <a
+                    href={`/h/${order.accommodationSlug}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-mono underline decoration-[#EDD9A3] underline-offset-2 hover:text-[#C4714A]"
+                  >
+                    /h/{order.accommodationSlug}
+                  </a>
+                </Champ>
+                <Champ intitule="Contact">
+                  {order.ownerEmail ? (
+                    <a href={`mailto:${order.ownerEmail}`} className="underline decoration-[#EDD9A3] underline-offset-2 hover:text-[#C4714A]">
+                      {order.ownerEmail}
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </Champ>
+                <Champ intitule="Paiement">
+                  {order.stripeSessionId ? (
+                    <span className="font-mono text-[10px]">{order.stripeSessionId.slice(0, 24)}…</span>
+                  ) : (
+                    <span className="text-[#A8998A]">aucune session</span>
+                  )}
+                </Champ>
+                <Champ intitule="Dernière mise à jour">{dateCourte(order.updatedAt)}</Champ>
+              </div>
+
+              <PanneauExpedition
+                order={order}
+                onEnregistre={(maj) =>
+                  setOrders((current) => current.map((o) => (o.id === order.id ? { ...o, ...maj } : o)))
+                }
+              />
+
               <div className="px-6 py-3 bg-[#FBF5EC] border-t border-[#EDD9A3]/40 flex flex-wrap items-center gap-x-6 gap-y-1">
                 <span className="text-[11px] text-[#6B5D4E]">
                   <span className="font-semibold text-[#5C3D2E]">URL gravée :</span>{" "}
@@ -230,7 +277,14 @@ export default function OrdersPage() {
                   className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#A35A38] underline decoration-[#EDD9A3] underline-offset-2 hover:text-[#C4714A]"
                 >
                   <Download size={12} weight="bold" />
-                  Fichier de gravure (DXF)
+                  Gravure DXF
+                </a>
+                <a
+                  href={`/api/admin/gravure/${order.id}?format=svg`}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#A35A38] underline decoration-[#EDD9A3] underline-offset-2 hover:text-[#C4714A]"
+                >
+                  <Download size={12} weight="bold" />
+                  Gravure SVG
                 </a>
               </div>
             </div>

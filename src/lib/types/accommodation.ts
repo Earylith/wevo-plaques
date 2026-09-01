@@ -159,6 +159,27 @@ export interface PlaqueOrder {
   engravingFile?: string;
   /** Session de paiement qui a déclenché la commande. */
   stripeSessionId?: string;
+
+  /*
+   * Expédition.
+   *
+   * Renseignée par Guidz, et reprise telle quelle dans l'espace du client :
+   * c'est la seule information qu'il attend vraiment une fois qu'il a payé.
+   * Un client sans nouvelles écrit ; un client qui suit son colis attend.
+   */
+  /** Transporteur, en clair : « Colissimo », « Mondial Relay »… */
+  carrier?: string;
+  /** Numéro de suivi communiqué par le transporteur. */
+  trackingNumber?: string;
+  /** Lien de suivi, ouvert tel quel par le client. */
+  trackingUrl?: string;
+  /** Date d'expédition réelle. */
+  shippedAt?: number;
+  /** Date de livraison annoncée, si le transporteur en donne une. */
+  estimatedDelivery?: number;
+  /** Mot de Guidz au client, affiché dans son espace. */
+  clientNote?: string;
+
   createdAt: number;
   updatedAt: number;
 }

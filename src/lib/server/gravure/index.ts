@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import QRCode from "qrcode";
 
-import { CALQUES, Point, Trace, ecrireDxf, rectangle } from "./dxf";
+import { CALQUES, Point, Trace, ecrireDxf, ecrireSvg, rectangle } from "./dxf";
 import { appliquer, lireTrace, parcourirSvg, SousTrace } from "./svg";
 import { contoursTexte } from "./police";
 
@@ -171,6 +171,8 @@ export interface OptionsGravure {
 
 export interface ResultatGravure {
   dxf: string;
+  /** Le même dessin en SVG, pour les ateliers qui le préfèrent. */
+  svg: string;
   /** Dimensions réelles de la plaque produite, en millimètres. */
   largeurMm: number;
   hauteurMm: number;
@@ -298,10 +300,15 @@ export async function fabriquerGravure(options: OptionsGravure): Promise<Resulta
     }
   }
 
+  const hauteurMm = Number((hauteurSvg * echelle).toFixed(1));
+
   return {
+    // Les deux formats sortent des MÊMES polylignes : ils ne peuvent pas
+    // diverger, ce qui arriverait fatalement avec deux chaînes séparées.
     dxf: ecrireDxf(traces),
+    svg: ecrireSvg(traces, LARGEUR_PLAQUE_MM, hauteurMm),
     largeurMm: LARGEUR_PLAQUE_MM,
-    hauteurMm: Number((hauteurSvg * echelle).toFixed(1)),
+    hauteurMm,
     compte: {
       gravure: traces.filter((t) => t.calque === CALQUES.GRAVURE.nom).length,
       decoupe: traces.filter((t) => t.calque === CALQUES.DECOUPE.nom).length,
