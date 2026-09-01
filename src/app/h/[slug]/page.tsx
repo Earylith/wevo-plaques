@@ -22,13 +22,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: "Hébergement introuvable" };
   }
 
+  /*
+   * L'image de partage suit la FORMULE, pas ce qui traîne en base.
+   *
+   * La photo de couverture appartient au Confort. Un hôte qui essaie le
+   * Confort, choisit une photo, puis revient à l'Essentielle garde cette photo
+   * enregistrée — c'est voulu, rien n'est jamais effacé, et elle réapparaît
+   * intacte s'il repasse au Confort. Mais elle ne doit pas s'afficher dans
+   * l'aperçu de partage d'une page Essentielle : il montrerait une image que
+   * la page elle-même n'affiche pas, et que l'hôte n'a pas payée.
+   */
+  const estConfort = data.offerType === "comfort";
+  const imagePartage = estConfort && data.property.mainImageUrl
+    ? [data.property.mainImageUrl]
+    : undefined;
+
   return {
     title: `Bienvenue à ${data.property.name}`,
     description: data.property.welcomeMessage,
     openGraph: {
       title: data.property.name,
       description: data.property.welcomeMessage,
-      images: data.property.mainImageUrl ? [data.property.mainImageUrl] : undefined,
+      images: imagePartage,
     },
   };
 }

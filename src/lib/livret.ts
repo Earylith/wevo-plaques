@@ -278,7 +278,7 @@ export const ADMIN_SECTIONS: SectionDefinition[] = [
     id: "plaque",
     label: "Votre plaque",
     short: "Plaque",
-    hint: "La teinte du bois, l’aperçu, et la commande.",
+    hint: "L’essence du bois, l’aperçu, et la commande.",
     emoji: "🪵",
     modules: [],
   },
@@ -326,7 +326,7 @@ export const ADMIN_SECTIONS: SectionDefinition[] = [
     id: "diffusion",
     label: "Diffusion",
     short: "Diffusion",
-    hint: "Langues, lien, QR code et mise en ligne.",
+    hint: "Votre page telle qu’elle sera vue, et sa mise en ligne.",
     emoji: "🌍",
     modules: [],
   },
@@ -349,6 +349,14 @@ export interface EssentialItem {
 }
 
 export function getEssentials(data: Accommodation): EssentialItem[] {
+  /*
+   * La photo de couverture appartient au Confort. La réclamer à un hôte
+   * Essentiel, c'est lui reprocher de ne pas avoir rempli un champ que sa
+   * formule ne comprend pas — et lui laisser une liste éternellement
+   * incomplète.
+   */
+  const estConfort = data.offerType === "comfort";
+
   return [
     {
       key: "name",
@@ -364,13 +372,17 @@ export function getEssentials(data: Accommodation): EssentialItem[] {
       tab: "logement",
       field: "property.address",
     },
-    {
-      key: "cover",
-      label: "Choisir une photo de couverture",
-      filled: Boolean(data.property?.mainImageUrl || data.property?.gallery?.length),
-      tab: "apparence",
-      field: "property.gallery",
-    },
+    ...(estConfort
+      ? [
+          {
+            key: "cover",
+            label: "Choisir une photo de couverture",
+            filled: Boolean(data.property?.mainImageUrl || data.property?.gallery?.length),
+            tab: "apparence" as const,
+            field: "property.gallery",
+          },
+        ]
+      : []),
     {
       key: "wifi",
       label: "Indiquer le Wi-Fi",

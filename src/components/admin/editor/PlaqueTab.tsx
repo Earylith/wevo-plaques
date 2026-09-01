@@ -56,7 +56,6 @@ const WOODS: WoodOption[] = [
 
 /** Ce que reçoit l'hôte, tel qu'il faut le lui annoncer. */
 const CARACTERISTIQUES = [
-  "Essence de bois",
   "Dimensions 25 × 22 cm",
   "Système de fixation murale inclus",
 ];
@@ -108,11 +107,11 @@ export default function PlaqueTab({
 
   return (
     <div className="space-y-5">
-      {/* ── Teinte du bois ── */}
+      {/* ── Essence de bois ── */}
       <div className="space-y-3">
         <div>
           <h3 className="font-[family-name:var(--font-display)] text-[15px] font-bold text-[#5C3D2E]">
-            Teinte du bois
+            Essence de bois
           </h3>
           <p className="text-[11px] text-[#6B5D4E] mt-0.5">
             Une essence unique, choisie pour la netteté de la gravure.

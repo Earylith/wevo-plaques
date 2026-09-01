@@ -15,16 +15,16 @@ export default function PricingSection() {
       badge: "Simple et efficace",
       desc: "Une solution simple en paiement unique, avec page fixe et modifications à la demande.",
       features: [
-        "1 support Guidz standard",
-        "Choix parmi 4 couleurs",
-        "QR code unique",
+        "Plaque en bois gravée, avec son QR",
+        "Thème de la page : 3 couleurs au choix",
+        "QR code unique et permanent",
         "Page mobile dédiée",
         "Wi‑Fi",
         "Arrivée / départ",
         "Règles du logement",
         "Contacts & urgences",
         "Page hébergée en ligne",
-        "Modifications possibles à la demande (25€/modification de page)",
+        "Modifications à la demande (5 € la session, page entière)",
       ],
       after: "Paiement unique",
       cta: "Choisir l'Essentiel",
@@ -39,10 +39,8 @@ export default function PricingSection() {
       desc: "Modifiez votre guide en illimité depuis votre espace",
       features: [
         "Toutes les fonctionnalités de l'Essentiel",
-        "1 Support Guidz personnalisé",
-        "Couleurs personnalisées",
-        "Nom du logement",
-        "Phrase personnalisée gravée",
+        "Plaque en bois gravée, avec votre phrase de signature",
+        "Thème de la page : couleur libre et vos photos",
         "Message de bienvenue",
         "Recommandations locales",
         "Page multilingue",
@@ -79,10 +77,10 @@ export default function PricingSection() {
                 <Zap size={12} className="text-[#C4714A]" /> Nos formules
               </span>
               <h2 className="font-[family-name:var(--font-display)] text-5xl lg:text-6xl font-bold text-white leading-[1.05] tracking-tight mb-6">
-                Choisissez <br/> l'offre qui vous <span className="text-[#C4714A] italic">correspond.</span>
+                Choisissez <br/> l’offre qui vous <span className="text-[#C4714A] italic">correspond.</span>
               </h2>
               <p className="text-[#FBF5EC]/70 text-[15px] leading-relaxed mb-8 max-w-sm">
-                Une tarification claire et sans surprise. Optez pour la simplicité d'un paiement unique ou la liberté d'une gestion 100% autonome de vos informations.
+                Une tarification claire et sans surprise. Optez pour la simplicité d’un paiement unique ou la liberté d’une gestion 100% autonome de vos informations.
               </p>
             </div>
             
@@ -255,14 +253,14 @@ export default function PricingSection() {
                     </thead>
                     <tbody className="divide-y divide-gray-100">
                       {[
-                        { name: "Support Guidz en bois", ess: "Standard (4 couleurs)", conf: "100% Personnalisé", hl: true },
+                        { name: "Thème de la page", ess: "3 couleurs au choix", conf: "Couleur libre et photos", hl: true },
                         { name: "Phrase personnalisée gravée", ess: "-", conf: "check", hl: false },
                         { name: "Page mobile dédiée", ess: "check-green", conf: "check", hl: false },
                         { name: "Wi-Fi, Horaires, Consignes, Contacts", ess: "check-green", conf: "check", hl: false },
                         { name: "Transports & Recommandations", ess: "-", conf: "check", hl: false },
                         { name: "Page multilingue automatique", ess: "-", conf: "check", hl: false },
                         { name: "Espace propriétaire en ligne", ess: "-", conf: "check", hl: false },
-                        { name: "Mises à jour des informations", ess: "À la demande (25€)", conf: "Illimitées et autonomes", hl: true, last: true },
+                        { name: "Mises à jour des informations", ess: "5 € la session, page entière", conf: "Illimitées et autonomes", hl: true, last: true },
                       ].map((row, i) => (
                         <motion.tr 
                           initial={{ opacity: 0, x: -10 }}

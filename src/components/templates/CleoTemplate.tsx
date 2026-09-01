@@ -481,12 +481,26 @@ export default function CleoTemplate({
                 </span>
                 <h4 className="font-bold text-sm text-[#2A2016] mb-3">{t("arrivalPoint")}</h4>
                 <div className="h-52 rounded-2xl overflow-hidden border border-gray-200 relative bg-gray-100">
-                  <iframe
-                    title="Carte d'arrivée"
-                    src={`https://maps.google.com/maps?q=${encodeURIComponent(mapAddress)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
-                    className="w-full h-full border-0"
-                    loading="lazy"
-                  />
+                  {/*
+                    Hôte `www.google.com` plutôt que `maps.google.com` : le
+                    second redirige, et Safari refuse la redirection dans un
+                    cadre — la carte restait blanche sur Mac. Et sans adresse,
+                    on n'affiche pas de carte du tout : elle montrerait le
+                    monde entier, ce qui n'aide personne.
+                  */}
+                  {mapAddress.trim() ? (
+                    <iframe
+                      title="Carte d'arrivée"
+                      src={`https://www.google.com/maps?q=${encodeURIComponent(mapAddress)}&z=14&output=embed`}
+                      className="w-full h-full border-0"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center px-6 text-center text-xs text-[#6B5D4E]">
+                      L’adresse du logement n’est pas encore renseignée.
+                    </div>
+                  )}
                   <a
                     href={`https://www.google.com/maps/search/${encodeURIComponent(mapAddress)}`}
                     target="_blank"
@@ -1587,7 +1601,7 @@ export default function CleoTemplate({
           <button
             type="button"
             onClick={() => setWeatherOpen((open) => !open)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl hover:bg-gray-50/80 transition-colors cursor-pointer group"
+            className="w-full flex items-center justify-between gap-2 @xl:gap-3 px-3 @xl:px-4 py-2.5 rounded-2xl hover:bg-gray-50/80 transition-colors cursor-pointer group"
           >
             {/* Gauche : Horloge Apple & Ville */}
             <div className="flex items-center gap-2.5 min-w-0">
@@ -1602,17 +1616,28 @@ export default function CleoTemplate({
             </div>
 
             {/* Droite : Météo synthétique Apple avec Icône Duotone Vectorielle */}
+            {/*
+              La moitié droite cédait devant l'heure au lieu de céder du
+              terrain : les deux blocs étaient insécables, et sur téléphone la
+              météo venait recouvrir l'horloge. Elle se réduit désormais dans
+              l'ordre de son utilité — le libellé, puis le mot du bouton —
+              avant que quoi que ce soit ne déborde.
+
+              Les seuils sont ceux du CONTENEUR et non de la fenêtre : ce
+              gabarit sert aussi bien une page plein écran qu'un aperçu de
+              350 px, où « sm: » ne tombe jamais au bon endroit.
+            */}
             {showWeather && weather && (
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex min-w-0 items-center gap-1.5 @xl:gap-2">
                 <WeatherIcon code={weather.code} emoji={weather.emoji} />
-                <span className={`text-xs font-black text-[#2A2016] tabular-nums ${titleFont}`}>
+                <span className={`shrink-0 text-xs font-black text-[#2A2016] tabular-nums ${titleFont}`}>
                   {weather.temperature}°
                 </span>
-                <span className="text-[10px] text-[#8A8078] font-medium hidden sm:inline">
+                <span className="hidden @2xl:inline truncate text-[10px] font-medium text-[#8A8078]">
                   {weather.label}
                 </span>
-                <span className="flex items-center gap-1 text-[10px] font-bold text-[#6B5D4E] group-hover:text-white group-hover:bg-[#2A2016] bg-gray-100 px-2.5 py-1 rounded-full transition-all ml-1">
-                  <span>{weatherOpen ? "Fermer" : "Prévisions"}</span>
+                <span className="ml-1 flex shrink-0 items-center gap-1 rounded-full bg-gray-100 px-2 @xl:px-2.5 py-1 text-[10px] font-bold text-[#6B5D4E] transition-all group-hover:bg-[#2A2016] group-hover:text-white">
+                  <span className="hidden @xl:inline">{weatherOpen ? "Fermer" : "Prévisions"}</span>
                   <CaretDown
                     size={10}
                     weight="bold"

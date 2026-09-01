@@ -107,7 +107,22 @@ const ESSENTIAL_MODULES: ModuleId[] = ["arrivee", "wifi", "contacts", "depart"];
 /** Ordre d'apparition des sections dans le livret du voyageur. */
 const GROUP_ORDER: ModuleGroup[] = ["tuiles", "sejour", "surplace", "alentours"];
 
-const COLOR_PRESETS = ["#C4714A", "#2B5F75", "#C4714A", "#0E7C86", "#5A7A4E", "#D4A34A", "#1A1510"];
+/*
+ * Palette proposée en Confort.
+ *
+ * La teinte Guidz y figurait DEUX FOIS : deux pastilles identiques côte à
+ * côte, dont l'une ne servait à rien. Elle n'apparaît plus qu'une seule fois.
+ */
+const COLOR_PRESETS = ["#C4714A", "#2B5F75", "#0E7C86", "#5A7A4E", "#D4A34A", "#1A1510"];
+
+/**
+ * Palette de l'Essentielle : une chaude, une froide, une végétale.
+ *
+ * Trois familles franchement distinctes plutôt qu'un début de liste tronqué —
+ * la découpe précédente reprenait le doublon et proposait donc deux fois la
+ * même couleur à qui n'en avait que quatre.
+ */
+const COULEURS_ESSENTIELLE = ["#C4714A", "#2B5F75", "#5A7A4E"];
 const CHECKIN_HOURS = ["10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"];
 const CHECKOUT_HOURS = ["06", "07", "08", "09", "10", "11", "12", "13", "14"];
 const ADDRESS_CATEGORIES = ["Restaurant", "Bar", "Plage", "Activité", "Commerce", "Culture", "Nature"];
@@ -2363,7 +2378,7 @@ export default function AdminModernTileEditor({
                     Confort.
                   */}
                   <div className="flex items-center gap-2.5 flex-wrap">
-                    {(estConfort ? COLOR_PRESETS : COLOR_PRESETS.slice(0, 4)).map((color) => {
+                    {(estConfort ? COLOR_PRESETS : COULEURS_ESSENTIELLE).map((color) => {
                       const active = (data.comfortOptions?.theme?.primaryColor || "#2B5F75") === color;
                       return (
                         <button
@@ -2391,6 +2406,25 @@ export default function AdminModernTileEditor({
                     </label>
                     )}
                   </div>
+
+                  {/*
+                    On nomme la limite plutôt que de la laisser deviner : trois
+                    couleurs franches en Essentielle, la palette entière en
+                    Confort.
+                  */}
+                  {!estConfort && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBasculeErreur(null);
+                        setBasculeVers("comfort");
+                      }}
+                      disabled={!peutChangerDeFormule}
+                      className="text-[11px] font-bold text-[#A35A38] hover:text-[#C4714A] transition-colors disabled:opacity-50"
+                    >
+                      Passer au Confort pour choisir librement votre couleur →
+                    </button>
+                  )}
                 </div>
 
                 <VerrouConfort onDebloquer={peutChangerDeFormule ? () => { setBasculeErreur(null); setBasculeVers("comfort"); } : undefined}
@@ -2597,14 +2631,29 @@ export default function AdminModernTileEditor({
                 </div>
 
                 {!estAdmin && !data.isActive && (
-                  <button
-                    type="button"
-                    onClick={() => void handlePayer()}
-                    disabled={paiement || isLoading}
-                    className="w-full py-3 rounded-2xl bg-[#C4714A] hover:bg-[#A35A38] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-[#C4714A]/20 transition-colors disabled:opacity-60"
-                  >
-                    {paiement ? "Ouverture du paiement…" : "Valider ma page"}
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => void handlePayer()}
+                      disabled={paiement || isLoading}
+                      className="w-full py-3 rounded-2xl bg-[#C4714A] hover:bg-[#A35A38] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-[#C4714A]/20 transition-colors disabled:opacity-60"
+                    >
+                      {paiement ? "Ouverture du paiement…" : "Valider ma page"}
+                    </button>
+
+                    {/*
+                      L'échec du paiement n'était affiché que dans l'onglet
+                      Plaque. Depuis ce bouton-ci, l'hôte cliquait et ne voyait
+                      RIEN — ni page de paiement, ni explication. Un bouton qui
+                      échoue en silence est pire qu'un bouton absent.
+                    */}
+                    {orderError && (
+                      <p className="mt-2.5 flex items-start gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-[11px] leading-relaxed text-red-700">
+                        <Warning size={13} weight="fill" className="mt-0.5 shrink-0" />
+                        {orderError}
+                      </p>
+                    )}
+                  </>
                 )}
 
                 {/* Ce que le livret publié produit réellement. */}

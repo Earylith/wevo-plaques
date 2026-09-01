@@ -370,8 +370,10 @@ export default function EspaceClientPage() {
             </div>
             <p className="mt-3 max-w-lg text-[14.5px] leading-relaxed text-[#6B5D4E]">
               Votre formule Essentielle comprend une page composée une fois.
-              Écrivez-nous pour toute retouche — ou passez au Confort pour
-              reprendre la main quand vous voulez.
+              Une retouche se règle <strong>5 € la session</strong> : vous
+              reprenez la main sur la page entière, le temps de la session.
+              Pour modifier aussi souvent que vous le voulez, le Confort ouvre
+              l’édition en permanence.
             </p>
           </div>
 
