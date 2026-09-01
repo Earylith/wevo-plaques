@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Package, Warning, ArrowSquareOut, Copy, Check, PencilSimple,
+  Package, Warning, ArrowSquareOut, Copy, Check, PencilSimple, Download,
 } from "@phosphor-icons/react";
 import { getPlaqueOrders, updateOrderStatus } from "../orders";
 import { PlaqueOrder, OrderStatus, ORDER_STATUS_LABELS } from "@/lib/types/accommodation";
@@ -219,16 +219,19 @@ export default function OrdersPage() {
                   <span className="font-semibold text-[#5C3D2E]">URL gravée :</span>{" "}
                   <span className="font-mono">{order.permanentUrl}</span>
                 </span>
-                <span className="text-[11px] text-[#6B5D4E]">
-                  <span className="font-semibold text-[#5C3D2E]">Fichier de gravure :</span>{" "}
-                  {order.engravingFile ? (
-                    <a href={order.engravingFile} className="underline hover:text-[#C4714A]">
-                      télécharger
-                    </a>
-                  ) : (
-                    <span className="text-[#A8998A]">en attente du gabarit vectoriel</span>
-                  )}
-                </span>
+                {/*
+                  Le fichier est fabriqué à la demande, à partir de la
+                  configuration figée dans la commande : il n'y a rien à
+                  stocker, et une plaque déjà produite ne peut pas changer
+                  parce que l'hôte a modifié sa phrase entre-temps.
+                */}
+                <a
+                  href={`/api/admin/gravure/${order.id}`}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#A35A38] underline decoration-[#EDD9A3] underline-offset-2 hover:text-[#C4714A]"
+                >
+                  <Download size={12} weight="bold" />
+                  Fichier de gravure (DXF)
+                </a>
               </div>
             </div>
           ))}
