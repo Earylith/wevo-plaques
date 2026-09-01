@@ -20,6 +20,7 @@ const plans = [
       "Assistance prioritaire"
     ],
     cta: "Demander un devis",
+    offre: "multibien",
   },
   {
     name: "Signature",
@@ -37,6 +38,7 @@ const plans = [
       "Intégrations (PMS, etc.)"
     ],
     cta: "Demander un devis",
+    offre: "signature",
   }
 ];
 
@@ -102,7 +104,7 @@ export default function ProSection() {
                   </div>
 
                   <a
-                    href="#contact"
+                    href={`/devis?offre=${plan.offre}`}
                     className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-3.5 rounded-full bg-[#2A2016] text-white font-semibold text-sm hover:bg-[#C4714A] transition-all btn-press shadow-md hover:shadow-lg"
                   >
                     {plan.cta}

@@ -2,13 +2,23 @@ import { ArrowUpRight, Building2, Mountain, Sun, Waves } from "lucide-react";
 import AnimateOnScroll from "./AnimateOnScroll";
 
 /*
- * Les quatre livrets Confort ouverts au public.
+ * Les livrets ouverts au public, dans les deux formules.
  *
  * Le résumé de chaque carte reprend le message d'accueil du livret : la carte
  * doit annoncer ce que le visiteur va réellement trouver derrière le lien.
  * Les repères restent thématiques, sans chiffres — le contenu des démos vit
  * dans Firestore, un décompte figé ici finirait par mentir.
+ *
+ * Le nombre annoncé dans le texte se compte, il ne s'écrit pas : il disait
+ * « quatre » alors qu'il y en avait six. Une phrase qui contredit ce qu'on a
+ * sous les yeux coûte plus cher que pas de phrase du tout.
  */
+/** Le nombre en toutes lettres, tant qu'il se dit d'un mot. */
+const NOMBRES: Record<number, string> = {
+  2: "deux", 3: "trois", 4: "quatre", 5: "cinq", 6: "six",
+  7: "sept", 8: "huit", 9: "neuf", 10: "dix",
+};
+
 const livrets = [
   {
     slug: "demo-paris",
@@ -125,8 +135,9 @@ export default function LivretsDemoSection() {
               Ouvrez un <em className="not-italic text-gradient-terra">vrai livret</em>
             </h2>
             <p className="text-lg text-[#6B5D4E] leading-relaxed">
-              Parcourez nos quatre livrets de présentation. Ce sont des pages en ligne, pas des
-              maquettes : exactement ce que vos voyageurs découvrent après avoir scanné la plaque.
+              Parcourez nos {NOMBRES[livrets.length] ?? livrets.length} livrets de présentation. Ce
+              sont des pages en ligne, pas des maquettes : exactement ce que vos voyageurs
+              découvrent après avoir scanné la plaque.
             </p>
           </div>
         </AnimateOnScroll>

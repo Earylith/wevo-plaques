@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { List, Plus, SignOut, Package } from "@phosphor-icons/react";
+import { List, Plus, SignOut, Package, Envelope } from "@phosphor-icons/react";
 import Link from "next/link";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -58,6 +58,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             <Package size={20} />
             <span className="font-medium text-sm">Commandes</span>
+          </Link>
+          {/*
+            Tant que l'envoi d'e-mail n'est pas branché, cet écran est le seul
+            endroit où une demande de devis existe.
+          */}
+          <Link
+            href="/admin/devis"
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+              pathname === "/admin/devis" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <Envelope size={20} />
+            <span className="font-medium text-sm">Devis</span>
           </Link>
         </nav>
         

@@ -286,6 +286,18 @@ export default function OrdersPage() {
                   <Download size={12} weight="bold" />
                   Gravure SVG
                 </a>
+                {/*
+                  Le QR seul, pour tout ce qui n'est pas la plaque : une
+                  étiquette, un visuel dans un e-mail. Il encode la même
+                  adresse permanente, avec le même encodeur.
+                */}
+                <a
+                  href={`/api/admin/gravure/${order.id}?format=qr`}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#2B5F75] underline decoration-[#D6E3E8] underline-offset-2 hover:text-[#C4714A]"
+                >
+                  <Download size={12} weight="bold" />
+                  QR seul (PNG)
+                </a>
               </div>
             </div>
           ))}

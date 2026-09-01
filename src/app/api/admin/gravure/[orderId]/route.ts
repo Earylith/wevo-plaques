@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { adminDb } from "@/lib/firebase/admin";
 import { PlaqueOrder } from "@/lib/types/accommodation";
+import QRCode from "qrcode";
 import { fabriquerGravure } from "@/lib/server/gravure";
 import { configPlaqueComplete } from "@/lib/plaque";
 
@@ -34,6 +35,39 @@ export async function GET(
     return NextResponse.json({ error: "Commande introuvable." }, { status: 404 });
   }
   const commande = doc.data() as PlaqueOrder;
+
+  /*
+   * Le QR seul, en image.
+   *
+   * Il sert quand la plaque n'est pas en jeu : une étiquette, un livret
+   * papier, un visuel à glisser dans un e-mail. Le fichier de gravure, lui,
+   * ne s'ouvre qu'avec un logiciel de découpe.
+   *
+   * Il encode la MÊME adresse permanente que la plaque, et se fabrique avec
+   * le même encodeur : les deux ne peuvent pas mener à des endroits
+   * différents. Correction « Q » plutôt que « M » ici : une image imprimée
+   * puis photographiée pardonne moins qu'une gravure nette.
+   */
+  if (request.nextUrl.searchParams.get("format") === "qr") {
+    try {
+      const png = await QRCode.toBuffer(commande.permanentUrl, {
+        errorCorrectionLevel: "Q",
+        margin: 2,
+        width: 1200,
+        color: { dark: "#2A2016FF", light: "#FFFFFFFF" },
+      });
+      return new NextResponse(new Uint8Array(png), {
+        headers: {
+          "Content-Type": "image/png",
+          "Content-Disposition": `attachment; filename="${commande.reference}-qr.png"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    } catch (error) {
+      console.error("[qr]", error);
+      return NextResponse.json({ error: "QR non généré." }, { status: 500 });
+    }
+  }
 
   try {
     const plaque = configPlaqueComplete(commande.plaque);
