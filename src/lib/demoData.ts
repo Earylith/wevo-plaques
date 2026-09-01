@@ -46,7 +46,6 @@ export const demoEssentielle: Accommodation = {
     departureNotes:
       "Laissez les clés dans la boîte, code inchangé. Un message me suffit pour me prévenir de votre départ.",
     parking: "Place réservée n°3 dans la cour, entrée par la rue des Remparts",
-    breakfast: "Panier du boulanger sur demande, à commander la veille avant 18h",
     departureInstructions: [
       { text: "Sortir les poubelles (containers au bout de la rue)", required: true },
       { text: "Lancer le lave-vaisselle", required: false },

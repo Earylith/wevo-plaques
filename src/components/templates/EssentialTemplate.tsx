@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   List, X, WifiHigh, Key, DoorOpen, BookOpen, Phone, WarningCircle,
-  MapPin, Car, Coffee, Clock, Copy, Check, CaretDown, House, ChatCircleDots,
+  MapPin, Car, Clock, Copy, Check, CaretDown, House, ChatCircleDots,
 } from "@phosphor-icons/react";
 import { Accommodation, ModuleId, isModuleVisible } from "@/lib/types/accommodation";
 import { trackLivretOpen, trackModuleOpen } from "@/app/stats-actions";
@@ -260,8 +260,7 @@ export default function EssentialTemplate({
     rempli(data.practicalInfo?.checkin) ||
       rempli(data.practicalInfo?.arrivalNotes) ||
       rempli(data.property?.address) ||
-      rempli(data.practicalInfo?.parking) ||
-      false
+      rempli(data.practicalInfo?.parking)
   );
   const montreWifi = visible("wifi", rempli(data.wifi?.ssid) || rempli(data.wifi?.password) || codes.length > 0);
   const montreDepart = visible(
@@ -420,14 +419,6 @@ export default function EssentialTemplate({
                   <span className="inline-flex items-center gap-1.5">
                     <Car size={14} weight="duotone" className="shrink-0 text-[#6B5D4E]" />
                     {data.practicalInfo.parking}
-                  </span>
-                </Ligne>
-              )}
-              {rempli(data.practicalInfo?.breakfast) && (
-                <Ligne label="Petit-déjeuner">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Coffee size={14} weight="duotone" className="shrink-0 text-[#6B5D4E]" />
-                    {data.practicalInfo.breakfast}
                   </span>
                 </Ligne>
               )}

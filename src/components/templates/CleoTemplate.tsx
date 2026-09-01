@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useDeferredValue, useRef, useSyncExternalStore } from "react";
-import { Accommodation, ModuleId, UpsellItem, getModuleDefinition } from "@/lib/types/accommodation";
+import { Accommodation, ModuleId, getModuleDefinition } from "@/lib/types/accommodation";
 import { getModuleStatus, visibleModulesOf, getLocalTimeInfo, resolveGallery } from "@/lib/livret";
 import { fetchWeather, formatForecastDay, WeatherSnapshot } from "@/lib/weather";
 import SkyBackdrop, { conditionFromCode } from "@/components/templates/SkyBackdrop";
@@ -13,7 +13,7 @@ import {
 import {
   Key, WifiHigh, Phone, HandWaving, MapPin, BookOpen, Medal, Bus, FirstAid,
   ChatCircleDots, BookBookmark, ArrowLeft, Copy, Check, CaretRight, CaretDown,
-  NavigationArrow, Star, PencilSimple, DoorOpen, ShoppingBag, GridFour,
+  NavigationArrow, Star, PencilSimple, DoorOpen, GridFour,
   ListChecks, ArrowSquareOut, Warning, Car, SquaresFour, List as ListIcon, Clock,
   Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake, CloudFog,
 } from "@phosphor-icons/react";
@@ -371,7 +371,7 @@ export default function CleoTemplate({
 
   const emergencyContacts = (data.contacts || []).filter((c) => c.type === "emergency");
   const usefulContacts = (data.contacts || []).filter((c) => c.type !== "emergency" && c.type !== "owner");
-  const upsells: UpsellItem[] = data.comfortOptions?.upsells || [];
+
   const equipments = data.equipments || [];
   const recommendations = data.recommendations || [];
   const departureSteps =
@@ -396,15 +396,6 @@ export default function CleoTemplate({
   // L'adresse alimente une iframe Google Maps : différée, sinon chaque frappe
   // dans le champ adresse de l'éditeur déclenche une navigation complète.
   const mapAddress = useDeferredValue(data.property?.address || "");
-
-  const formatPrice = (item: UpsellItem) => {
-    if (item.priceLabel) return item.priceLabel;
-    if (!item.price) return t("onRequest");
-    const amount = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(item.price);
-    if (item.priceUnit === "per_person") return `${amount} ${t("perPerson")}`;
-    if (item.priceUnit === "per_day") return `${amount} ${t("perDay")}`;
-    return amount;
-  };
 
   /* ══════════════════════════════════════════════════════════════════════
      Briques réutilisables
@@ -847,45 +838,15 @@ export default function CleoTemplate({
               />
             )}
 
-            {upsells.length > 0 && (
-              <div className="pt-2">
-                <div className="flex items-center gap-2.5 mb-3">
-                  <ShoppingBag size={18} weight="duotone" style={{ color: primaryColor }} />
-                  <h4 className="font-bold text-sm text-[#2A2016]">{t("extras")}</h4>
-                </div>
-                <p className="text-[11px] text-[#8A8078] mb-3 leading-relaxed">
-                  {t("extrasIntro")}
-                </p>
-                <div className="space-y-2.5">
-                  {upsells.map((item, idx) => (
-                    <div key={item.id || idx} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h5 className="text-xs font-bold text-[#2A2016] flex items-center gap-2">
-                            {item.icon && <span>{item.icon}</span>}
-                            {item.title}
-                          </h5>
-                          {item.description && (
-                            <p className="text-[11px] text-[#8A8078] mt-1 leading-relaxed">{item.description}</p>
-                          )}
-                        </div>
-                        <span className="shrink-0 text-xs font-extrabold px-2.5 py-1 rounded-lg" style={{ backgroundColor: `${primaryColor}14`, color: primaryColor }}>
-                          {formatPrice(item)}
-                        </span>
-                      </div>
-                      {data.owner?.phone && (
-                        <a
-                          href={`tel:${data.owner.phone.replace(/\s/g, "")}`}
-                          className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-2 text-[11px] font-bold text-[#2A2016] hover:bg-gray-50 transition-colors"
-                        >
-                          <Phone size={13} weight="fill" /> {t("askHost")}
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {/*
+              Les « petits plus » attendent leur retour.
+
+              Ils ne sont plus proposés dans l'éditeur : les afficher
+              imposerait à l'hôte un bloc qu'il ne peut ni écrire ni retirer —
+              exactement le défaut que ce gabarit s'interdit. `UpsellCard` et
+              le type restent en place pour le jour où la fonctionnalité
+              reviendra.
+            */}
           </div>
         );
 
@@ -1100,7 +1061,7 @@ export default function CleoTemplate({
       case "depart": return departureSteps.length > 2 ? t("beforeLeaving") : null;
       case "bienvenue": return (data.property?.welcomeMessage || "").length > 260 ? t("welcome") : null;
       case "contacts": return (data.contacts || []).length > 3 ? t("usefulContacts") : null;
-      case "equipements": return equipments.length > 8 || upsells.length > 0 ? t("yourEquipment") : null;
+      case "equipements": return equipments.length > 8 ? t("yourEquipment") : null;
       case "adresses": return recommendations.length > 3 ? t("discoverAround") : null;
       case "transports": return (data.transportLines || []).length > 4 ? t("nearbyLines") : null;
       case "reglement": return (data.rules || []).length > 3 ? t("houseRules") : null;

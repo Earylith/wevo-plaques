@@ -89,17 +89,17 @@ const livrets = [
   },
   {
     slug: "demo-confort2",
-    ville: "Marseille 8e",
-    nom: "Bienvenue à Marseille",
-    type: "Penthouse à La Pointe-Rouge",
+    ville: "Les Goudes",
+    nom: "Le Cabanon des Goudes",
+    type: "Maison de pêcheur",
     resume:
-      "Le guide du 8e arrondissement, entre la mer et la Bonne Mère, calanques et navettes comprises.",
+      "Au bout de la route, à l'entrée des calanques : sentiers, navette maritime et le bus 20 toutes les 40 minutes.",
     image:
       "https://images.unsplash.com/photo-1507652313519-d4e9174996dd?auto=format&fit=crop&w=900&q=75",
     icone: Sun,
     accent: "#C4714A",
     accentPale: "#F7EBE4",
-    reperes: "Calanques & plages · Codes d'accès",
+    reperes: "Sentiers & navette · Codes d'accès",
     formule: "Confort",
   },
 ];
