@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { Lock, ArrowRight } from "@phosphor-icons/react";
+import { Star } from "@phosphor-icons/react";
 
 /**
  * Voile posé sur une option réservée à la formule Confort.
@@ -115,36 +115,31 @@ export default function VerrouConfort({
           className="absolute inset-0 flex w-full items-center justify-end px-3 group"
         >
           <span className="flex items-center gap-1.5 rounded-full bg-white/95 border border-[#EDD9A3] shadow-sm px-2.5 py-1.5 text-[10px] font-extrabold text-[#A35A38] group-hover:border-[#C4714A] transition-colors">
-            <Lock size={11} weight="fill" />
-            Formule Confort
+            <Star size={11} weight="fill" className="text-[#C4714A]" />
+            Confort
           </span>
         </Declencheur>
       ) : (
-        /* Bloc : un bandeau bas, qui n'occulte pas ce qu'il surmonte. */
-        <div className="absolute inset-x-0 bottom-0 p-3">
+        /*
+         * Bloc : une étoile, posée dans le coin.
+         *
+         * C'était un bandeau qui répétait « Passer à la formule Confort » sous
+         * chaque option verrouillée — quatre fois dans le même éditeur. Une
+         * phrase qu'on lit une fois devient du bruit à la quatrième, et le
+         * bandeau finissait par masquer ce qu'il était censé faire désirer.
+         *
+         * L'étoile dit la même chose en un signe. L'argument reste, en
+         * infobulle : il sert à qui s'interroge, sans encombrer les autres.
+         */
+        <div className="absolute inset-x-0 bottom-0 flex justify-end p-2.5">
           <Declencheur
             onDebloquer={onDebloquer}
-            className="block w-full text-left rounded-xl bg-white/90 backdrop-blur-[2px] border border-[#EDD9A3] shadow-sm px-3.5 py-2.5 group hover:border-[#C4714A] transition-colors"
+            titre={argument ? `${argument} — réservé à la formule Confort` : "Réservé à la formule Confort"}
+            className="flex items-center gap-1.5 rounded-full bg-white/95 border border-[#EDD9A3] shadow-sm px-2.5 py-1.5 group hover:border-[#C4714A] transition-colors"
           >
-            <span className="flex items-center gap-2">
-              <span className="w-7 h-7 rounded-full bg-[#F7EBE4] text-[#C4714A] flex items-center justify-center shrink-0">
-                <Lock size={13} weight="fill" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[11px] font-bold text-[#2A2016]">
-                  Passer à la formule Confort
-                </span>
-                {argument && (
-                  <span className="block text-[10px] text-[#6B5D4E] leading-snug">
-                    {argument}
-                  </span>
-                )}
-              </span>
-              <ArrowRight
-                size={13}
-                weight="bold"
-                className="shrink-0 text-[#C4714A] group-hover:translate-x-0.5 transition-transform"
-              />
+            <Star size={12} weight="fill" className="text-[#C4714A] shrink-0" />
+            <span className="text-[10px] font-extrabold text-[#A35A38] whitespace-nowrap">
+              Confort
             </span>
           </Declencheur>
         </div>

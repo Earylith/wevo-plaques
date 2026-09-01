@@ -1242,16 +1242,18 @@ export default function AdminModernTileEditor({
               placeholder="Place n°42 au sous-sol, bip sur le trousseau"
             />
             {/*
-              Le petit-déjeuner s'affichait déjà dans le livret sans que
-              personne puisse le renseigner : un bloc figé que l'hôte
-              subissait au lieu de le remplir.
+              Le petit-déjeuner appartient au Confort. Le proposer en
+              Essentielle revenait à faire remplir un champ que la page ne rend
+              pas : l'hôte écrivait pour personne.
             */}
-            <TextField
-              label="Petit-déjeuner"
-              value={data.practicalInfo?.breakfast || ""}
-              onChange={(v) => setPractical({ breakfast: v })}
-              placeholder="Servi de 8h30 à 10h dans la véranda"
-            />
+            {estConfort && (
+              <TextField
+                label="Petit-déjeuner"
+                value={data.practicalInfo?.breakfast || ""}
+                onChange={(v) => setPractical({ breakfast: v })}
+                placeholder="Servi de 8h30 à 10h dans la véranda"
+              />
+            )}
           </div>
         );
 

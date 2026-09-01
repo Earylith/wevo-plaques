@@ -261,7 +261,7 @@ export default function EssentialTemplate({
       rempli(data.practicalInfo?.arrivalNotes) ||
       rempli(data.property?.address) ||
       rempli(data.practicalInfo?.parking) ||
-      rempli(data.practicalInfo?.breakfast)
+      false
   );
   const montreWifi = visible("wifi", rempli(data.wifi?.ssid) || rempli(data.wifi?.password) || codes.length > 0);
   const montreDepart = visible(

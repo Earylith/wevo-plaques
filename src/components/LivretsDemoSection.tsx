@@ -23,6 +23,7 @@ const livrets = [
     accent: "#2B5F75",
     accentPale: "#E4EEF3",
     reperes: "Métro & transports · Bonnes adresses",
+    formule: "Confort",
   },
   {
     slug: "demo-biarritz",
@@ -37,6 +38,7 @@ const livrets = [
     accent: "#4A849E",
     accentPale: "#E4EEF3",
     reperes: "Local à planches · Options sur place",
+    formule: "Confort",
   },
   {
     slug: "demo-chamonix",
@@ -51,6 +53,39 @@ const livrets = [
     accent: "#5A7A4E",
     accentPale: "#EBF0E6",
     reperes: "Ski room & garage · Consignes d'hiver",
+    formule: "Confort",
+  },
+  {
+    slug: "demo-essentielle",
+    href: "/demo-essentielle",
+    ville: "Lourmarin",
+    nom: "Le Clos des Oliviers",
+    type: "Maison de village",
+    resume:
+      "L'essentiel, bien rangé : arrivée, Wi-Fi, règlement et contacts, sur une page qui tient dans un écran.",
+    image:
+      "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=900&q=75",
+    icone: Sun,
+    accent: "#5A7A4E",
+    accentPale: "#EBF0E6",
+    reperes: "Arrivée & départ · Codes d'accès",
+    formule: "Essentielle",
+  },
+  {
+    slug: "demo-essentielle-2",
+    href: "/h/demo-essentielle-2",
+    ville: "Lyon 1er",
+    nom: "Le Studio des Canuts",
+    type: "Studio à la Croix-Rousse",
+    resume:
+      "Un studio de ville, avec ses codes d'immeuble et ses consignes de départ. Rien de plus, rien de moins.",
+    image:
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=900&q=75",
+    icone: Building2,
+    accent: "#2B5F75",
+    accentPale: "#E4EEF3",
+    reperes: "Boîte à clés · Règles de l'immeuble",
+    formule: "Essentielle",
   },
   {
     slug: "demo-confort2",
@@ -65,6 +100,7 @@ const livrets = [
     accent: "#C4714A",
     accentPale: "#F7EBE4",
     reperes: "Calanques & plages · Codes d'accès",
+    formule: "Confort",
   },
 ];
 
@@ -105,7 +141,7 @@ export default function LivretsDemoSection() {
                 l'impression d'un objet posé.
               */}
               <a
-                href={`/${livret.slug}`}
+                href={livret.href ?? `/${livret.slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group flex h-full flex-col rounded-[30px] bg-white p-3 ring-1 ring-[#2A2016]/[0.06] shadow-[0_1px_2px_rgba(42,32,22,0.04),0_8px_24px_-12px_rgba(42,32,22,0.14)] transition-all duration-500 ease-out hover:-translate-y-1.5 hover:shadow-[0_2px_4px_rgba(42,32,22,0.04),0_28px_50px_-18px_rgba(42,32,22,0.28)]"
@@ -123,6 +159,15 @@ export default function LivretsDemoSection() {
                   <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-3 py-1.5 text-[11px] font-semibold tracking-tight text-[#2A2016] shadow-[0_2px_8px_rgba(42,32,22,0.12)] backdrop-blur-md">
                     <livret.icone size={13} style={{ color: livret.accent }} />
                     {livret.ville}
+                  </span>
+                  <span
+                    className="absolute right-3 top-3 inline-flex items-center rounded-full px-3 py-1.5 text-[11px] font-bold tracking-tight shadow-[0_2px_8px_rgba(42,32,22,0.12)] backdrop-blur-md"
+                    style={{
+                      backgroundColor: livret.formule === "Confort" ? "#C4714A" : "rgba(255,255,255,0.88)",
+                      color: livret.formule === "Confort" ? "#FFFFFF" : "#2A2016",
+                    }}
+                  >
+                    {livret.formule}
                   </span>
                 </div>
 
