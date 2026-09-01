@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { adminAuth } from "@/lib/firebase/admin";
 import { PlaceResult, LatLon, categoryFromOsm } from "@/lib/geo";
 
 /**
@@ -35,11 +36,24 @@ const TIMEOUT_MS = 8000;
 /** Horodatage du dernier appel, pour tenir la cadence imposée. */
 let lastCallAt = 0;
 
-async function requireAdminAuth() {
+/**
+ * Qui a le droit de chercher une adresse.
+ *
+ * Guidz par son cookie, l'hôte par son jeton Firebase. La recherche n'exigeait
+ * que le cookie : un hôte qui composait son livret voyait donc l'action
+ * échouer, et le message d'erreur est masqué en production — il ne restait
+ * qu'un « An error occurred in the Server Components render » sans rien pour
+ * comprendre. Le champ d'adresse paraissait cassé, et avec lui la carte du
+ * logement, qui dépend de l'adresse.
+ */
+async function autoriser(jetonHote?: string) {
   const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value !== "true") {
-    throw new Error("Unauthorized access. Admin privileges required.");
+  if (cookieStore.get("admin_auth")?.value === "true") return;
+
+  if (!jetonHote) {
+    throw new Error("Connectez-vous pour rechercher une adresse.");
   }
+  await adminAuth.verifyIdToken(jetonHote);
 }
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -228,9 +242,10 @@ export type ModeRecherche = "adresse" | "lieu";
 export async function searchPlaces(
   query: string,
   near?: LatLon,
-  mode: ModeRecherche = "adresse"
+  mode: ModeRecherche = "adresse",
+  jetonHote?: string
 ): Promise<PlaceResult[]> {
-  await requireAdminAuth();
+  await autoriser(jetonHote);
 
   const trimmed = query.trim();
   if (trimmed.length < 3) return [];
@@ -292,13 +307,7 @@ export async function searchPlaces(
   }
 
   if (lastError) {
-    console.error("[searchPlaces]", lastError);
-    if (lastError instanceof Error && lastError.name === "AbortError") {
-      throw new Error("La recherche a mis trop de temps. Réessayez.");
-    }
-    throw new Error(
-      lastError instanceof Error ? lastError.message : "La recherche de lieux est indisponible."
-    );
+    console.error("[searchPlaces] annuaires injoignables", lastError);
   }
 
   return [];

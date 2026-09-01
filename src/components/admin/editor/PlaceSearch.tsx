@@ -103,7 +103,19 @@ export default function PlaceSearch({
         typeof nearLat === "number" && typeof nearLon === "number"
           ? { lat: nearLat, lon: nearLon }
           : undefined;
-      searchPlaces(trimmed, point, mode)
+
+      /*
+       * Le jeton de l'hôte accompagne la recherche.
+       *
+       * Sans lui, le serveur n'acceptait que le cookie de Guidz : un hôte qui
+       * composait son livret voyait l'action échouer, et le message est masqué
+       * en production. Le champ paraissait cassé — et la carte du logement
+       * avec, puisqu'elle dépend de l'adresse.
+       */
+      import("@/lib/firebase/config")
+        .then(({ auth }) => auth.currentUser?.getIdToken())
+        .catch(() => undefined)
+        .then((jeton) => searchPlaces(trimmed, point, mode, jeton))
         .then((found) => {
           // Une réponse tardive ne doit pas écraser une recherche plus récente.
           if (requestId !== requestIdRef.current) return;

@@ -1,5 +1,6 @@
 "use server";
 
+import { FieldValue } from "firebase-admin/firestore";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { Accommodation, OfferType, OrderStatus, PlaqueOrder } from "@/lib/types/accommodation";
 import { LivretStats } from "@/lib/stats";
@@ -37,6 +38,8 @@ export interface EspaceClient {
     enLigne: boolean;
     /** Adresse permanente gravée, si une plaque a été commandée. */
     permanentId: string | null;
+    /** Message que l'hôte envoie avec son lien, s'il l'a personnalisé. */
+    messagePartage: string | null;
   } | null;
   stats: LivretStats;
   commande: {
@@ -138,6 +141,7 @@ export async function chargerEspaceClient(jetonHote: string): Promise<EspaceClie
       formule: livret.offerType,
       enLigne: Boolean(livret.isActive),
       permanentId: livret.permanentId || null,
+      messagePartage: livret.shareMessage || null,
     },
     stats: (statsSnap?.exists ? statsSnap.data() : {}) as LivretStats,
     commande: commandes[0]
@@ -155,4 +159,35 @@ export async function chargerEspaceClient(jetonHote: string): Promise<EspaceClie
       : null,
     abonnement,
   };
+}
+
+/**
+ * Enregistre le message que l'hôte joint à son lien.
+ *
+ * Le lien lui-même n'y figure jamais : il est ajouté au moment de l'envoi.
+ * L'adresse d'un livret peut changer tant qu'il n'est pas payé, et un message
+ * figé enverrait alors les voyageurs dans le vide.
+ */
+export async function enregistrerMessagePartage(
+  accommodationId: string,
+  message: string,
+  jetonHote?: string
+): Promise<void> {
+  if (!jetonHote) throw new Error("Connectez-vous pour enregistrer votre message.");
+  const jeton = await adminAuth.verifyIdToken(jetonHote);
+
+  const ref = adminDb.collection(ACCOMMODATIONS).doc(accommodationId);
+  const doc = await ref.get();
+  if (!doc.exists) throw new Error("Livret introuvable.");
+
+  const livret = doc.data() as Accommodation;
+  if (!livret.ownerUid || livret.ownerUid !== jeton.uid) {
+    throw new Error("Ce livret n’est pas rattaché à votre compte.");
+  }
+
+  const propre = message.trim().slice(0, 500);
+  await ref.update({
+    shareMessage: propre || FieldValue.delete(),
+    updatedAt: Date.now(),
+  });
 }

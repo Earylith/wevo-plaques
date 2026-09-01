@@ -10,6 +10,7 @@ import {
 import { useAuth } from "@/lib/hooks/useAuth";
 import { chargerEspaceClient, EspaceClient } from "@/app/espace-actions";
 import { ouvrirBasculeConfort } from "@/app/paiement-actions";
+import PartagerLivret from "@/components/proprietaire/PartagerLivret";
 import { rankedModules, buildInsights, HOUR_LABELS } from "@/lib/stats";
 import { ORDER_STATUS_LABELS } from "@/lib/types/accommodation";
 
@@ -329,6 +330,18 @@ export default function EspaceClientPage() {
             </a>
           </div>
         </div>
+
+        {/*
+          Envoyer le livret est le geste qui suit immédiatement le fait de
+          l'avoir : il a sa place ici, sous le lien, et non dans un écran à
+          part.
+        */}
+        <PartagerLivret
+          livretId={livret.id}
+          lien={lienPartage}
+          messageInitial={livret.messagePartage}
+          jeton={async () => user?.getIdToken()}
+        />
 
         {livret.permanentId && (
           <p className="border-t border-black/[0.05] px-5 py-3.5 text-[12.5px] leading-relaxed text-[#A8998A] sm:px-7">

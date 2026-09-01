@@ -264,6 +264,15 @@ export interface Accommodation {
    */
   slugLocked?: boolean;
 
+  /**
+   * Message que l'hôte envoie avec son lien.
+   *
+   * Le lien seul, jeté dans une conversation, ressemble à un spam : le
+   * voyageur ne sait ni de qui il vient ni pourquoi. L'hôte écrit donc son
+   * mot une fois, et le retrouve prérempli à chaque partage.
+   */
+  shareMessage?: string;
+
   /** Configuration de la plaque en cours de personnalisation. */
   plaque?: PlaqueConfig;
 

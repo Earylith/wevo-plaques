@@ -34,7 +34,7 @@ function VeilContent({ asLink, onActivate }: { asLink: boolean; onActivate: () =
     <>
       <span className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-xs font-bold text-[#2A2016] shadow-lg sm:px-5 sm:py-3 sm:text-sm">
         <MousePointerClick size={18} className="text-[#C4714A]" />
-        Essayer l&apos;éditeur
+        Tester l&apos;éditeur
       </span>
       <span className="px-4 text-center text-[11px] font-semibold text-white drop-shadow sm:text-xs">
         Démo libre — rien n&apos;est enregistré
@@ -70,20 +70,6 @@ export default function DemoPreviewSection() {
    * fait que faire défiler la page d'accueil.
    */
   const [active, setActive] = useState(false);
-  /*
-   * Sur un petit écran, l'éditeur est réduit à un quart de sa taille : il est
-   * là pour être regardé, pas manipulé. Le voile envoie alors vers la démo
-   * plein écran plutôt que de déverrouiller un formulaire illisible.
-   */
-  const [tooSmall, setTooSmall] = useState(false);
-
-  useEffect(() => {
-    const query = window.matchMedia("(max-width: 767px)");
-    const sync = () => setTooSmall(query.matches);
-    sync();
-    query.addEventListener("change", sync);
-    return () => query.removeEventListener("change", sync);
-  }, []);
 
   /* Le mockup s'adapte à sa largeur : on met l'écran virtuel à l'échelle. */
   useEffect(() => {
@@ -173,7 +159,7 @@ export default function DemoPreviewSection() {
                   {/* Voile d'activation */}
                   {!active && (
                     <VeilContent
-                      asLink={tooSmall}
+                      asLink
                       onActivate={() => setActive(true)}
                     />
                   )}
