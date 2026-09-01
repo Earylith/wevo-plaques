@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   List, X, WifiHigh, Key, DoorOpen, BookOpen, Phone, WarningCircle,
   MapPin, Car, Coffee, Clock, Copy, Check, CaretDown, House, ChatCircleDots,
 } from "@phosphor-icons/react";
 import { Accommodation, ModuleId, isModuleVisible } from "@/lib/types/accommodation";
+import { trackLivretOpen, trackModuleOpen } from "@/app/stats-actions";
 
 /**
  * Gabarit de la formule Essentielle.
@@ -37,6 +38,8 @@ interface SectionProps {
   couleur: string;
   zone: Record<string, unknown>;
   children: React.ReactNode;
+  /** Appelé quand le voyageur rouvre une rubrique qu'il avait repliée. */
+  surOuverture?: () => void;
 }
 
 /**
@@ -45,7 +48,16 @@ interface SectionProps {
  * Repliable tant que le conteneur est étroit, toujours ouvert au-delà : la
  * bascule est en CSS, jamais en JavaScript sur la largeur de la fenêtre.
  */
-function Rubrique({ ancre, titre, sousTitre, Icone, couleur, zone, children }: SectionProps) {
+function Rubrique({
+  ancre,
+  titre,
+  sousTitre,
+  Icone,
+  couleur,
+  zone,
+  children,
+  surOuverture,
+}: SectionProps) {
   const [ouvert, setOuvert] = useState(true);
 
   return (
@@ -61,7 +73,12 @@ function Rubrique({ ancre, titre, sousTitre, Icone, couleur, zone, children }: S
         onClick={(e) => {
           // Le repli ne doit pas déclencher l'ouverture du formulaire.
           e.stopPropagation();
-          setOuvert((v) => !v);
+          setOuvert((v) => {
+            // Seule la RÉOUVERTURE compte : les rubriques sont déployées
+            // d'emblée, et une mesure doit refléter un geste, pas un affichage.
+            if (!v) surOuverture?.();
+            return !v;
+          });
         }}
         aria-expanded={ouvert}
         className="w-full flex items-center justify-between gap-3 text-left"
@@ -162,14 +179,48 @@ interface EssentialTemplateProps {
   onModuleClick?: (id: ModuleId) => void;
   /** Rubrique en cours d'édition, mise en évidence dans l'aperçu. */
   activeModule?: ModuleId;
+  /**
+   * Identifiant du livret, pour la mesure d'usage.
+   *
+   * Le comptage n'existait que dans le gabarit Confort : une page Essentielle
+   * ne remontait donc AUCUNE consultation, et son tableau de bord restait
+   * désespérément vide. L'hôte en concluait que personne ne lisait sa page.
+   */
+  trackingId?: string;
 }
 
 export default function EssentialTemplate({
   data,
   onModuleClick,
   activeModule,
+  trackingId,
 }: EssentialTemplateProps) {
   const [menuOuvert, setMenuOuvert] = useState(false);
+
+  /*
+   * Une seule remontée par visite, et jamais depuis l'éditeur : l'hôte qui
+   * relit son livret n'est pas un voyageur. `onModuleClick` n'existe que côté
+   * éditeur — sa présence suffit à reconnaître ce cas.
+   */
+  /**
+   * Remontée d'une rubrique consultée, côté voyageur uniquement.
+   *
+   * Les rubriques sont déployées d'emblée : on ne compte donc pas un
+   * affichage, mais le geste de rouvrir ce qu'on avait replié — le seul qui
+   * désigne vraiment un contenu.
+   */
+  const compter = (id: ModuleId) =>
+    trackingId && !onModuleClick
+      ? () => void trackModuleOpen(trackingId, id)
+      : undefined;
+
+  const compte = useRef(false);
+  useEffect(() => {
+    if (!trackingId || onModuleClick || compte.current) return;
+    compte.current = true;
+    const viaQr = document.referrer === "" && window.location.search.includes("qr");
+    void trackLivretOpen(trackingId, viaQr);
+  }, [trackingId, onModuleClick]);
 
   const couleur = data.comfortOptions?.theme?.primaryColor || "#C4714A";
 
@@ -336,6 +387,7 @@ export default function EssentialTemplate({
           <Rubrique
             id="arrivee"
             ancre="arrivee"
+            surOuverture={compter("arrivee" as ModuleId)}
             titre="Arrivée"
             sousTitre="Horaire, accès et consignes d’arrivée"
             Icone={Key}
@@ -390,6 +442,7 @@ export default function EssentialTemplate({
           <Rubrique
             id="wifi"
             ancre="wifi"
+            surOuverture={compter("wifi" as ModuleId)}
             titre="Codes & Wi-Fi"
             sousTitre="Réseau, mot de passe et digicodes"
             Icone={WifiHigh}
@@ -412,6 +465,7 @@ export default function EssentialTemplate({
           <Rubrique
             id="depart"
             ancre="depart"
+            surOuverture={compter("depart" as ModuleId)}
             titre="Départ"
             sousTitre="Horaire et check-list de fin de séjour"
             Icone={DoorOpen}
@@ -460,6 +514,7 @@ export default function EssentialTemplate({
           <Rubrique
             id="reglement"
             ancre="reglement"
+            surOuverture={compter("reglement" as ModuleId)}
             titre="Règlement"
             sousTitre="Les règles de la maison"
             Icone={BookOpen}
@@ -481,6 +536,7 @@ export default function EssentialTemplate({
           <Rubrique
             id="contacts"
             ancre="contacts"
+            surOuverture={compter("contacts" as ModuleId)}
             titre="Contacts"
             sousTitre="Vos numéros, les secours et les urgences"
             Icone={Phone}

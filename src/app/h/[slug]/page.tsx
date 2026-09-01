@@ -97,5 +97,5 @@ export default async function AccommodationPage({ params }: Props) {
     return <CleoTemplate data={data} trackingId={data.id} />;
   }
 
-  return <EssentialTemplate data={data} />;
+  return <EssentialTemplate data={data} trackingId={data.id} />;
 }

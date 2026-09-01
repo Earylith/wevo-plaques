@@ -165,6 +165,16 @@ export default function AdminModernTileEditor({
   const peutChangerDeFormule = estAdmin || !data.isActive;
 
   /*
+   * Où « revenir » mène.
+   *
+   * L'éditeur est le même écran pour Guidz et pour l'hôte : la sortie ne peut
+   * donc pas être écrite en dur. Elle l'était, vers l'administration — un
+   * hôte qui cliquait « Retour au tableau de bord » atterrissait sur la
+   * connexion Guidz, sans comprendre pourquoi.
+   */
+  const retour = estAdmin ? "/admin/hebergements" : "/proprietaire/dashboard";
+
+  /*
    * L'adresse publique se fige dès qu'elle circule : une plaque commandée la
    * porte gravée, et une page publiée a pu être mise en favori.
    */
@@ -1891,14 +1901,14 @@ export default function AdminModernTileEditor({
         <div className="flex items-center gap-3 min-w-0">
           {demo ? null : (
           <Link
-            href="/admin/hebergements"
+            href={retour}
             onClick={(e) => {
               if (dirty && !confirm("Des modifications ne sont pas enregistrées. Quitter quand même ?")) {
                 e.preventDefault();
               }
             }}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors shrink-0"
-            title="Retour aux hébergements"
+            title={estAdmin ? "Retour aux hébergements" : "Retour à mon espace"}
           >
             <ArrowLeft size={20} weight="bold" />
           </Link>
@@ -2651,7 +2661,7 @@ export default function AdminModernTileEditor({
 
           <div className="p-2.5 border-t border-[#EDD9A3]/60 text-center shrink-0">
             <Link
-              href="/admin/hebergements"
+              href={retour}
               onClick={(e) => {
                 if (dirty && !confirm("Des modifications ne sont pas enregistrées. Quitter quand même ?")) {
                   e.preventDefault();
@@ -2659,7 +2669,7 @@ export default function AdminModernTileEditor({
               }}
               className="text-[11px] font-bold text-gray-400 hover:text-[#2A2016] transition-colors"
             >
-              Retour au tableau de bord
+              {estAdmin ? "Retour aux hébergements" : "Retour à mon espace"}
             </Link>
           </div>
         </aside>
