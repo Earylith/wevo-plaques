@@ -40,6 +40,14 @@ export interface EspaceClient {
     permanentId: string | null;
     /** Message que l'hôte envoie avec son lien, s'il l'a personnalisé. */
     messagePartage: string | null;
+    /**
+     * Fin de la session de modification payée, si elle court encore.
+     *
+     * Ne concerne que l'Essentielle : le Confort modifie sans limite.
+     */
+    editionJusquA: number | null;
+    /** Une résiliation est demandée, effective à l'échéance. */
+    resiliationDemandee: boolean;
   } | null;
   stats: LivretStats;
   commande: {
@@ -100,6 +108,30 @@ async function lireAbonnement(id: string | null | undefined): Promise<Abonnement
   }
 }
 
+/**
+ * Retrouve le livret et vérifie qu'il appartient bien à l'appelant.
+ *
+ * Chaque geste destructeur passe par ici : sans cette vérification, un
+ * identifiant deviné suffirait à résilier — ou supprimer — le compte d'un
+ * autre.
+ */
+async function livretDeLHote(
+  accommodationId: string,
+  jetonHote?: string
+): Promise<Accommodation> {
+  if (!jetonHote) throw new Error("Connectez-vous pour poursuivre.");
+  const jeton = await adminAuth.verifyIdToken(jetonHote);
+
+  const doc = await adminDb.collection(ACCOMMODATIONS).doc(accommodationId).get();
+  if (!doc.exists) throw new Error("Livret introuvable.");
+
+  const livret = { ...(doc.data() as Accommodation), id: doc.id };
+  if (!livret.ownerUid || livret.ownerUid !== jeton.uid) {
+    throw new Error("Ce livret n’est pas rattaché à votre compte.");
+  }
+  return livret;
+}
+
 export async function chargerEspaceClient(jetonHote: string): Promise<EspaceClient> {
   if (!jetonHote) throw new Error("Connectez-vous pour accéder à votre espace.");
 
@@ -142,6 +174,9 @@ export async function chargerEspaceClient(jetonHote: string): Promise<EspaceClie
       enLigne: Boolean(livret.isActive),
       permanentId: livret.permanentId || null,
       messagePartage: livret.shareMessage || null,
+      editionJusquA:
+        livret.editionUntil && livret.editionUntil > Date.now() ? livret.editionUntil : null,
+      resiliationDemandee: Boolean(livret.cancelAtPeriodEnd),
     },
     stats: (statsSnap?.exists ? statsSnap.data() : {}) as LivretStats,
     commande: commandes[0]
@@ -190,4 +225,92 @@ export async function enregistrerMessagePartage(
     shareMessage: propre || FieldValue.delete(),
     updatedAt: Date.now(),
   });
+}
+
+/**
+ * Résilie l'abonnement Confort à la fin de la période payée.
+ *
+ * On ne coupe pas immédiatement : l'hôte a payé son mois ou son année, il en
+ * garde le bénéfice. À l'échéance, le webhook fera retomber le livret en
+ * Essentielle — sa page reste en ligne et sa plaque continue de fonctionner.
+ */
+export async function resilierAbonnement(
+  accommodationId: string,
+  jetonHote?: string
+): Promise<{ finLe: number | null }> {
+  const livret = await livretDeLHote(accommodationId, jetonHote);
+
+  if (!livret.stripeSubscriptionId) {
+    throw new Error("Aucun abonnement en cours sur ce livret.");
+  }
+  if (!paiementConfigure()) {
+    throw new Error("La facturation est momentanément injoignable. Réessayez.");
+  }
+
+  const abo = await stripe().subscriptions.update(livret.stripeSubscriptionId, {
+    cancel_at_period_end: true,
+  });
+
+  const fin = (abo as unknown as { current_period_end?: number }).current_period_end;
+
+  await adminDb.collection(ACCOMMODATIONS).doc(accommodationId).update({
+    cancelAtPeriodEnd: true,
+    updatedAt: Date.now(),
+  });
+
+  return { finLe: typeof fin === "number" ? fin * 1000 : null };
+}
+
+/** Annule une résiliation demandée, tant qu'elle n'a pas pris effet. */
+export async function reprendreAbonnement(
+  accommodationId: string,
+  jetonHote?: string
+): Promise<void> {
+  const livret = await livretDeLHote(accommodationId, jetonHote);
+  if (!livret.stripeSubscriptionId) throw new Error("Aucun abonnement en cours.");
+
+  await stripe().subscriptions.update(livret.stripeSubscriptionId, {
+    cancel_at_period_end: false,
+  });
+  await adminDb.collection(ACCOMMODATIONS).doc(accommodationId).update({
+    cancelAtPeriodEnd: false,
+    updatedAt: Date.now(),
+  });
+}
+
+/**
+ * Supprime définitivement le compte et son livret.
+ *
+ * Immédiat et sans retour : la page disparaît, le compte aussi, et le QR de la
+ * plaque ne mène plus nulle part. C'est la conséquence qu'il faut annoncer
+ * AVANT le clic, pas découvrir après.
+ *
+ * L'abonnement est résilié sur-le-champ pour ne pas continuer à prélever
+ * quelqu'un qui n'a plus rien. Les COMMANDES sont conservées : elles portent
+ * la trace d'un objet réellement produit et payé, et notre comptabilité en
+ * dépend. Elles ne contiennent que ce qui a été gravé.
+ */
+export async function supprimerCompte(
+  accommodationId: string,
+  jetonHote?: string
+): Promise<void> {
+  const livret = await livretDeLHote(accommodationId, jetonHote);
+
+  if (livret.stripeSubscriptionId && paiementConfigure()) {
+    try {
+      await stripe().subscriptions.cancel(livret.stripeSubscriptionId);
+    } catch (e) {
+      // Un abonnement déjà résilié ne doit pas empêcher la suppression.
+      console.error("[supprimerCompte] résiliation", e);
+    }
+  }
+
+  await adminDb.collection(STATS).doc(accommodationId).delete().catch(() => {});
+  await adminDb.collection(ACCOMMODATIONS).doc(accommodationId).delete();
+
+  if (livret.ownerUid) {
+    await adminAuth.deleteUser(livret.ownerUid).catch((e) => {
+      console.error("[supprimerCompte] compte Firebase", e);
+    });
+  }
 }

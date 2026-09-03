@@ -603,3 +603,24 @@ export function reduireAEssentielle(data: Accommodation): Accommodation {
     translations: undefined,
   } as Accommodation;
 }
+
+/**
+ * Durée d'une session de modification payée.
+ *
+ * Sept jours, et non « une seule modification ». Une session qui se
+ * consommerait au premier enregistrement transformerait un clic malheureux en
+ * cinq euros perdus — l'hôte doit pouvoir revenir, relire et corriger.
+ */
+export const DUREE_SESSION_MODIFICATION_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * L'hôte a-t-il une session de modification en cours ?
+ *
+ * Concerne la seule formule Essentielle : le Confort modifie sans limite, et
+ * n'a donc jamais de session.
+ */
+export function sessionModificationActive(data: {
+  editionUntil?: number | null;
+}): boolean {
+  return Boolean(data.editionUntil && data.editionUntil > Date.now());
+}

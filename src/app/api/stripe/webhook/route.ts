@@ -5,6 +5,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { Accommodation, PlaqueConfig } from "@/lib/types/accommodation";
 import { creerCommandeInterne, commandeDejaPassee } from "@/lib/server/plaqueOrders";
 import { configPlaqueComplete } from "@/lib/plaque";
+import { DUREE_SESSION_MODIFICATION_MS } from "@/lib/livret";
 
 /**
  * Réception des événements Stripe.
@@ -83,6 +84,95 @@ async function traiterBascule(session: Stripe.Checkout.Session) {
   });
 
   console.info("[stripe] livret", accommodationId, "basculé en formule Confort");
+}
+
+/**
+ * Session de modification accordée, pour une Essentielle publiée.
+ *
+ * Rien à publier ni à graver : l'hôte a déjà sa page et sa plaque. On lui
+ * ouvre simplement l'éditeur pour une semaine.
+ *
+ * La date se CUMULE si une session court déjà : payer deux fois doit donner
+ * deux fois le temps, jamais le remettre à zéro.
+ */
+async function traiterSessionModification(session: Stripe.Checkout.Session) {
+  const accommodationId = session.client_reference_id || session.metadata?.accommodationId;
+  if (!accommodationId) {
+    console.error("[stripe] session de modification sans identifiant", session.id);
+    return;
+  }
+
+  const docRef = adminDb.collection(ACCOMMODATIONS).doc(accommodationId);
+  const doc = await docRef.get();
+  if (!doc.exists) {
+    console.error("[stripe] livret introuvable pour la session", accommodationId);
+    return;
+  }
+
+  const livret = doc.data() as Accommodation;
+  const depart = Math.max(Date.now(), livret.editionUntil || 0);
+
+  await docRef.update({
+    editionUntil: depart + DUREE_SESSION_MODIFICATION_MS,
+    updatedAt: Date.now(),
+  });
+
+  console.info("[stripe] session de modification ouverte pour", accommodationId);
+}
+
+/**
+ * Fin d'abonnement : le livret retombe en Essentielle.
+ *
+ * Il n'est jamais supprimé ni dépublié. L'hôte a payé sa plaque, et son QR
+ * pointe sur cette page : la faire disparaître parce qu'un abonnement à 1,99 €
+ * s'arrête transformerait un objet en bois en morceau de bois inutile. Le
+ * contenu Confort reste en base et réapparaît intact s'il revient.
+ */
+async function traiterFinAbonnement(abonnement: Stripe.Subscription) {
+  const trouves = await adminDb
+    .collection(ACCOMMODATIONS)
+    .where("stripeSubscriptionId", "==", abonnement.id)
+    .limit(1)
+    .get();
+
+  if (trouves.empty) {
+    console.warn("[stripe] aucun livret pour l'abonnement", abonnement.id);
+    return;
+  }
+
+  const doc = trouves.docs[0];
+  await doc.ref.update({
+    offerType: "essential",
+    template: "essential",
+    cancelAtPeriodEnd: false,
+    stripeSubscriptionId: null,
+    downgradedAt: Date.now(),
+    updatedAt: Date.now(),
+  });
+
+  console.info("[stripe] livret", doc.id, "repassé en Essentielle");
+}
+
+/**
+ * Résiliation demandée, pas encore effective.
+ *
+ * On l'enregistre pour que l'espace client l'annonce — « se termine le … » —
+ * plutôt que de laisser l'hôte croire que rien ne s'est passé. Le retour à
+ * l'Essentielle n'aura lieu qu'à la fin de la période payée.
+ */
+async function traiterMajAbonnement(abonnement: Stripe.Subscription) {
+  const trouves = await adminDb
+    .collection(ACCOMMODATIONS)
+    .where("stripeSubscriptionId", "==", abonnement.id)
+    .limit(1)
+    .get();
+
+  if (trouves.empty) return;
+
+  await trouves.docs[0].ref.update({
+    cancelAtPeriodEnd: Boolean(abonnement.cancel_at_period_end),
+    updatedAt: Date.now(),
+  });
 }
 
 /**
@@ -192,12 +282,29 @@ export async function POST(request: NextRequest) {
          */
         if (session.metadata?.type === "bascule-confort") {
           await traiterBascule(session);
+        } else if (session.metadata?.type === "session-modification") {
+          await traiterSessionModification(session);
         } else {
           const origin =
             process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
           await traiterPaiement(session, origin);
         }
       }
+    }
+
+    /*
+     * Cycle de vie de l'abonnement.
+     *
+     * Deux événements, et ils ne disent pas la même chose : le premier
+     * annonce une résiliation à venir, le second constate qu'elle a eu lieu.
+     * N'écouter que le premier laisserait un Confort actif à vie ; n'écouter
+     * que le second ne préviendrait de rien.
+     */
+    if (evenement.type === "customer.subscription.deleted") {
+      await traiterFinAbonnement(evenement.data.object as Stripe.Subscription);
+    }
+    if (evenement.type === "customer.subscription.updated") {
+      await traiterMajAbonnement(evenement.data.object as Stripe.Subscription);
     }
 
     return NextResponse.json({ received: true });

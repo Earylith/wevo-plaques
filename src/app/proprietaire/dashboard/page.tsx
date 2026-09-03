@@ -9,8 +9,10 @@ import {
 } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { chargerEspaceClient, EspaceClient } from "@/app/espace-actions";
-import { ouvrirBasculeConfort } from "@/app/paiement-actions";
+import { ouvrirBasculeConfort, ouvrirSessionModification } from "@/app/paiement-actions";
+import { RythmeAbonnement } from "@/lib/stripe";
 import PartagerLivret from "@/components/proprietaire/PartagerLivret";
+import GererAbonnement from "@/components/proprietaire/GererAbonnement";
 import { rankedModules, buildInsights, HOUR_LABELS } from "@/lib/stats";
 import { ORDER_STATUS_LABELS } from "@/lib/types/accommodation";
 
@@ -140,6 +142,15 @@ export default function EspaceClientPage() {
   const [copie, setCopie] = useState(false);
   const [bascule, setBascule] = useState(false);
   const [erreurBascule, setErreurBascule] = useState<string | null>(null);
+  /*
+   * Rythme de facturation choisi pour la bascule.
+   *
+   * L'annuel revient moins cher, le mensuel engage moins. Aucun des deux
+   * n'est « le bon » : on présente les deux, et le mensuel est
+   * présélectionné parce qu'il est le moins engageant.
+   */
+  const [rythme, setRythme] = useState<RythmeAbonnement>("mensuel");
+  const [sessionEnCours, setSessionEnCours] = useState(false);
 
   useEffect(() => {
     if (loading) return;
@@ -220,7 +231,7 @@ export default function EspaceClientPage() {
    * Guidz. Verrouiller dès le départ reviendrait à lui vendre une page qu'il
    * n'aurait jamais eu le droit d'écrire.
    */
-  const peutEditer = estConfort || !livret.enLigne;
+  const peutEditer = estConfort || !livret.enLigne || Boolean(livret.editionJusquA);
   const origine = typeof window !== "undefined" ? window.location.origin : "";
   const lienPartage = `${origine}/h/${livret.slug}`;
 
@@ -250,7 +261,7 @@ export default function EspaceClientPage() {
     setErreurBascule(null);
     try {
       const jeton = await user?.getIdToken();
-      const { url } = await ouvrirBasculeConfort(livret.id, window.location.origin, jeton);
+      const { url } = await ouvrirBasculeConfort(livret.id, window.location.origin, jeton, rythme);
       window.location.assign(url);
     } catch (e) {
       console.error(e);
@@ -261,14 +272,41 @@ export default function EspaceClientPage() {
     }
   };
 
+  /** Jeton Firebase de l'hôte, redemandé à chaque geste. */
+  const jetonHote = async () => user?.getIdToken();
+
+  /*
+   * Session de modification, pour une Essentielle publiée.
+   *
+   * Rien n'est ouvert ici : c'est le webhook qui accorde la session une fois
+   * l'encaissement confirmé. Le client revient sur cet écran, et le bouton
+   * « Modifier » y est apparu.
+   */
+  const ouvrirSession = async () => {
+    setSessionEnCours(true);
+    setErreurBascule(null);
+    try {
+      const { url } = await ouvrirSessionModification(
+        livret.id,
+        window.location.origin,
+        await jetonHote()
+      );
+      window.location.assign(url);
+    } catch (e) {
+      console.error(e);
+      setErreurBascule(e instanceof Error ? e.message : "Le paiement n’a pas pu être ouvert.");
+      setSessionEnCours(false);
+    }
+  };
+
+  const dateLongue = (ms: number) =>
+    new Date(ms).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+
   const copierLien = () => {
     navigator.clipboard?.writeText(lienPartage);
     setCopie(true);
     setTimeout(() => setCopie(false), 2000);
   };
-
-  const dateLongue = (ms: number) =>
-    new Date(ms).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 
   return (
     <div className="mx-auto max-w-4xl px-5 pb-24 pt-10 sm:px-8 sm:pt-16">
@@ -343,6 +381,17 @@ export default function EspaceClientPage() {
           jeton={async () => user?.getIdToken()}
         />
 
+        {/*
+          Un lien seul, jeté dans une conversation, ressemble à un spam. L'hôte
+          écrit son mot une fois et le retrouve prérempli à chaque envoi.
+        */}
+        <PartagerLivret
+          livretId={livret.id}
+          lien={lienPartage}
+          messageInitial={livret.messagePartage}
+          jeton={jetonHote}
+        />
+
         {livret.permanentId && (
           <p className="border-t border-black/[0.05] px-5 py-3.5 text-[12.5px] leading-relaxed text-[#A8998A] sm:px-7">
             Le QR de votre plaque pointe vers une adresse permanente. Ce lien-ci
@@ -357,12 +406,18 @@ export default function EspaceClientPage() {
           <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
             <div className="min-w-0">
               <h2 className="font-[family-name:var(--font-display)] text-[24px] font-bold tracking-[-0.015em] text-[#2A2016]">
-                {estConfort ? "Votre livret" : "Composez votre page"}
+                {estConfort
+                  ? "Votre livret"
+                  : livret.editionJusquA
+                    ? "Session de modification ouverte"
+                    : "Composez votre page"}
               </h2>
               <p className="mt-1.5 max-w-md text-[14.5px] leading-relaxed text-[#6B5D4E]">
                 {estConfort
                   ? "Modifiez votre contenu autant de fois que vous le souhaitez. Les changements sont visibles immédiatement."
-                  : "Renseignez votre livret, puis publiez-le avec votre plaque. Votre formule Essentielle comprend une page composée une fois : après publication, les retouches passeront par nous."}
+                  : livret.editionJusquA
+                    ? `Votre session est ouverte jusqu’au ${dateLongue(livret.editionJusquA)}. Modifiez ce que vous voulez d’ici là, autant de fois que nécessaire.`
+                    : "Renseignez votre livret, puis publiez-le avec votre plaque. Votre formule Essentielle comprend une page composée une fois : après publication, les retouches se règlent 5 € la session."}
               </p>
             </div>
             <Link
@@ -370,7 +425,7 @@ export default function EspaceClientPage() {
               className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#2A2016] px-6 py-3.5 text-[14px] font-semibold text-white transition-all hover:bg-[#C4714A] active:scale-[0.98]"
             >
               <PencilSimple size={15} weight="bold" />
-              {estConfort ? "Modifier" : "Composer mon livret"}
+              {estConfort || livret.editionJusquA ? "Modifier" : "Composer mon livret"}
             </Link>
           </div>
         </Surface>
@@ -420,10 +475,39 @@ export default function EspaceClientPage() {
               c'est-à-dire trop tard.
             */}
             <p className="mt-5 text-[14px] text-[#5C3D2E]">
-              <span className="font-semibold text-[#2A2016]">20 € une fois</span>
-              {" "}+ 1,99 €/mois. Votre page et votre plaque sont déjà payées :
-              vous ne réglez que l’écart entre les deux formules.
+              <span className="font-semibold text-[#2A2016]">20 € une fois</span>, puis
+              l’abonnement au rythme qui vous convient. Votre page et votre
+              plaque sont déjà payées : vous ne réglez que l’écart entre les
+              deux formules.
             </p>
+
+            {/*
+              Le rythme se choisit AVANT d'arriver chez Stripe. Le découvrir
+              sur la page de paiement, c'est devoir revenir en arrière pour
+              changer d'avis — et beaucoup ne reviennent pas.
+            */}
+            <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+              {([
+                { cle: "mensuel" as const, titre: "1,99 €/mois", detail: "Sans engagement, arrêtable à tout moment" },
+                { cle: "annuel" as const, titre: "19 €/an", detail: "Deux mois offerts par rapport au mensuel" },
+              ]).map((choix) => (
+                <button
+                  key={choix.cle}
+                  type="button"
+                  onClick={() => setRythme(choix.cle)}
+                  className={`rounded-2xl border p-4 text-left transition-all ${
+                    rythme === choix.cle
+                      ? "border-[#C4714A] bg-white"
+                      : "border-black/[0.08] bg-white/60 hover:border-black/20"
+                  }`}
+                >
+                  <span className="block text-[15px] font-bold text-[#2A2016]">{choix.titre}</span>
+                  <span className="mt-0.5 block text-[12.5px] leading-snug text-[#6B5D4E]">
+                    {choix.detail}
+                  </span>
+                </button>
+              ))}
+            </div>
 
             <button
               type="button"
@@ -445,6 +529,30 @@ export default function EspaceClientPage() {
                 {erreurBascule}
               </p>
             )}
+          </div>
+
+          {/*
+            La session de modification, pour qui ne veut pas s'abonner.
+            Beaucoup d'hôtes changent une ligne par an : leur imposer un
+            abonnement pour cela reviendrait à ne rien leur vendre du tout.
+          */}
+          <div className="border-t border-black/[0.05] p-5 sm:p-7">
+            <h3 className="text-[15px] font-bold tracking-[-0.01em] text-[#2A2016]">
+              Juste une correction à faire ?
+            </h3>
+            <p className="mt-1.5 max-w-lg text-[14px] leading-relaxed text-[#6B5D4E]">
+              Ouvrez une session de modification à <strong>5 €</strong> : vous
+              reprenez la main sur votre page entière pendant sept jours, autant
+              de fois que nécessaire dans ce délai.
+            </p>
+            <button
+              type="button"
+              onClick={() => void ouvrirSession()}
+              disabled={sessionEnCours}
+              className="mt-4 inline-flex items-center gap-2 rounded-full border border-black/[0.1] px-5 py-3 text-[13.5px] font-semibold text-[#2A2016] transition-all hover:border-[#C4714A] hover:text-[#C4714A] active:scale-[0.98] disabled:opacity-60"
+            >
+              {sessionEnCours ? "Ouverture du paiement…" : "Ouvrir une session — 5 €"}
+            </button>
           </div>
         </Surface>
       )}
@@ -657,6 +765,20 @@ export default function EspaceClientPage() {
           )}
         </div>
       )}
+
+      {/*
+        Résiliation et suppression, tout en bas et sans emphase.
+        Ce sont des sorties : elles doivent être trouvables sans être
+        proposées. Les mettre en avant reviendrait à les suggérer.
+      */}
+      <GererAbonnement
+        livretId={livret.id}
+        nom={livret.nom}
+        aUnAbonnement={Boolean(abonnement)}
+        resiliationDemandee={livret.resiliationDemandee}
+        finLe={abonnement?.prochaineEcheance ?? null}
+        jeton={jetonHote}
+      />
     </div>
   );
 }

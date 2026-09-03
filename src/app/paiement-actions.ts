@@ -3,7 +3,11 @@
 import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { Accommodation } from "@/lib/types/accommodation";
-import { stripe, tarifsFormule, tarifsBascule, paiementConfigure } from "@/lib/stripe";
+import { sessionModificationActive } from "@/lib/livret";
+import {
+  stripe, tarifsFormule, tarifsBascule, tarifSessionModification,
+  paiementConfigure, RythmeAbonnement,
+} from "@/lib/stripe";
 
 /**
  * Ouverture du paiement, quelle que soit la formule.
@@ -51,7 +55,8 @@ export interface OuvertureSession {
 export async function ouvrirPaiement(
   accommodationId: string,
   origin: string,
-  jetonHote?: string
+  jetonHote?: string,
+  rythme: RythmeAbonnement = "mensuel"
 ): Promise<OuvertureSession> {
   if (!paiementConfigure()) {
     throw new Error(
@@ -66,7 +71,7 @@ export async function ouvrirPaiement(
   await verifierAcces(livret, jetonHote);
 
   // La formule du livret décide de ce qui est facturé.
-  const { ponctuel, abonnement } = tarifsFormule(livret.offerType);
+  const { ponctuel, abonnement } = tarifsFormule(livret.offerType, rythme);
   const lignes = [{ price: ponctuel, quantity: 1 }];
   if (abonnement) lignes.push({ price: abonnement, quantity: 1 });
 
@@ -85,6 +90,7 @@ export async function ouvrirPaiement(
       slug: livret.slug || "",
       plaqueWood: livret.plaque?.wood || "noyer",
       plaqueTagline: livret.plaque?.engravedTagline || "",
+      rythme,
     },
     success_url: `${origin}/commande/merci?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/admin/hebergements/${accommodationId}`,
@@ -110,7 +116,8 @@ export async function ouvrirPaiement(
 export async function ouvrirBasculeConfort(
   accommodationId: string,
   origin: string,
-  jetonHote?: string
+  jetonHote?: string,
+  rythme: RythmeAbonnement = "mensuel"
 ): Promise<OuvertureSession> {
   if (!paiementConfigure()) {
     throw new Error(
@@ -133,7 +140,7 @@ export async function ouvrirBasculeConfort(
     );
   }
 
-  const { ponctuel, abonnement } = tarifsBascule();
+  const { ponctuel, abonnement } = tarifsBascule(rythme);
   const lignes = [{ price: ponctuel, quantity: 1 }];
   if (abonnement) lignes.push({ price: abonnement, quantity: 1 });
 
@@ -151,8 +158,68 @@ export async function ouvrirBasculeConfort(
       accommodationId,
       type: "bascule-confort",
       slug: livret.slug || "",
+      rythme,
     },
     success_url: `${origin}/proprietaire/dashboard?bascule=ok`,
+    cancel_url: `${origin}/proprietaire/dashboard`,
+    locale: "fr",
+    allow_promotion_codes: true,
+  });
+
+  if (!session.url) throw new Error("Stripe n’a pas renvoyé d’adresse de paiement.");
+  return { url: session.url, reference: session.id };
+}
+
+/**
+ * Ouvre une session de modification, pour une Essentielle DÉJÀ publiée.
+ *
+ * L'Essentielle est une page composée une fois. Plutôt que de renvoyer l'hôte
+ * vers nous pour la moindre correction, il ouvre sa page lui-même : cinq
+ * euros, et il modifie TOUT ce qu'il veut pendant une semaine.
+ *
+ * Sept jours et non « une seule modification » : une session qui se
+ * consommerait au premier enregistrement transformerait un clic malheureux en
+ * cinq euros perdus. L'hôte doit pouvoir revenir, relire, corriger.
+ *
+ * Rien n'est ouvert ici : c'est le webhook qui accorde la session, une fois
+ * l'encaissement confirmé.
+ */
+export async function ouvrirSessionModification(
+  accommodationId: string,
+  origin: string,
+  jetonHote?: string
+): Promise<OuvertureSession> {
+  if (!paiementConfigure()) {
+    throw new Error("Le paiement n’est pas encore configuré.");
+  }
+
+  const doc = await adminDb.collection(ACCOMMODATIONS).doc(accommodationId).get();
+  if (!doc.exists) throw new Error("Livret introuvable.");
+  const livret = { ...(doc.data() as Accommodation), id: doc.id };
+
+  await verifierAcces(livret, jetonHote);
+
+  if (livret.offerType === "comfort") {
+    throw new Error("Votre formule Confort vous permet déjà de modifier sans limite.");
+  }
+  if (!livret.isActive) {
+    throw new Error("Votre livret n’est pas encore publié : vous pouvez le modifier librement.");
+  }
+  if (sessionModificationActive(livret)) {
+    throw new Error("Votre session de modification est déjà ouverte.");
+  }
+
+  const session = await stripe().checkout.sessions.create({
+    mode: "payment",
+    line_items: [{ price: tarifSessionModification(), quantity: 1 }],
+    client_reference_id: accommodationId,
+    customer_email: livret.owner?.email || undefined,
+    metadata: {
+      accommodationId,
+      type: "session-modification",
+      slug: livret.slug || "",
+    },
+    success_url: `${origin}/proprietaire/dashboard?session=ok`,
     cancel_url: `${origin}/proprietaire/dashboard`,
     locale: "fr",
     allow_promotion_codes: true,

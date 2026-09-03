@@ -50,7 +50,10 @@ export function paiementConfigure(): boolean {
  * Stripe accepte un tarif ponctuel dans une session en mode `subscription` :
  * il est simplement porté par la première facture.
  */
-export function tarifsFormule(offre: OfferType): {
+export function tarifsFormule(
+  offre: OfferType,
+  rythme: RythmeAbonnement = "mensuel"
+): {
   ponctuel: string;
   abonnement: string | null;
 } {
@@ -70,7 +73,7 @@ export function tarifsFormule(offre: OfferType): {
     ponctuel,
     // L'abonnement est facultatif : sans lui, la session bascule en paiement
     // simple plutôt que d'échouer.
-    abonnement: process.env.STRIPE_PRICE_ABONNEMENT || null,
+    abonnement: tarifAbonnement(rythme),
   };
 }
 
@@ -85,10 +88,52 @@ export function tarifsFormule(offre: OfferType): {
  * change de formule sans rien payer : il réglera simplement le Confort au
  * moment de publier.
  */
-export function tarifsBascule(): { ponctuel: string; abonnement: string | null } {
+export function tarifsBascule(
+  rythme: RythmeAbonnement = "mensuel"
+): { ponctuel: string; abonnement: string | null } {
   const ponctuel = process.env.STRIPE_PRICE_UPGRADE_CONFORT;
   if (!ponctuel) {
     throw new Error("STRIPE_PRICE_UPGRADE_CONFORT absente. Ajoutez-la dans .env.local.");
   }
-  return { ponctuel, abonnement: process.env.STRIPE_PRICE_ABONNEMENT || null };
+  return { ponctuel, abonnement: tarifAbonnement(rythme) };
+}
+
+/**
+ * Rythme de facturation de l'abonnement Confort.
+ *
+ * Le mensuel rassure — on peut arrêter le mois suivant — l'annuel revient
+ * moins cher. Les deux mènent au même produit : seul le rythme change, et
+ * c'est l'hôte qui choisit.
+ */
+export type RythmeAbonnement = "mensuel" | "annuel";
+
+/** Le tarif d'abonnement correspondant au rythme demandé. */
+export function tarifAbonnement(rythme: RythmeAbonnement): string | null {
+  if (rythme === "annuel") {
+    const annuel = process.env.STRIPE_PRICE_ABONNEMENT_ANNUEL;
+    if (annuel) return annuel;
+    /*
+     * Repli sur le mensuel plutôt qu'un échec : un hôte qui a choisi
+     * « à l'année » et qui se retrouve devant une erreur abandonne. Il sera
+     * facturé au mois — moins avantageux pour lui, mais il aura son livret,
+     * et la situation se corrige sans qu'il perde son achat.
+     */
+    console.error("[stripe] STRIPE_PRICE_ABONNEMENT_ANNUEL absente — repli sur le mensuel");
+  }
+  return process.env.STRIPE_PRICE_ABONNEMENT || null;
+}
+
+/**
+ * Tarif d'une session de modification, pour une Essentielle DÉJÀ publiée.
+ *
+ * L'Essentielle est une page composée une fois. Plutôt que de renvoyer l'hôte
+ * vers nous pour la moindre correction, il ouvre une session : il modifie
+ * toute sa page lui-même, et paie une fois pour cela.
+ */
+export function tarifSessionModification(): string {
+  const prix = process.env.STRIPE_PRICE_SESSION_MODIFICATION;
+  if (!prix) {
+    throw new Error("STRIPE_PRICE_SESSION_MODIFICATION absente. Ajoutez-la dans .env.local.");
+  }
+  return prix;
 }

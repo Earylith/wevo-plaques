@@ -33,7 +33,15 @@ export default function EditAccommodationPage({ params }: { params: Promise<{ id
            * publié — auparavant, l'interdire reviendrait à vendre une page
            * que le client n'aurait jamais eu le droit d'écrire.
            */
-          if (acc.offerType !== "comfort" && acc.isActive) {
+          /*
+           * L'Essentielle publiée se modifie pendant une session payée.
+           *
+           * Sans cette exception, l'hôte réglait cinq euros et se retrouvait
+           * renvoyé vers son tableau de bord — il aurait payé pour une porte
+           * qui reste fermée.
+           */
+          const sessionOuverte = Boolean(acc.editionUntil && acc.editionUntil > Date.now());
+          if (acc.offerType !== "comfort" && acc.isActive && !sessionOuverte) {
             router.replace("/proprietaire/dashboard");
             return;
           }

@@ -273,6 +273,17 @@ export interface Accommodation {
    */
   shareMessage?: string;
 
+  /**
+   * Fin de la session de modification payée, en millisecondes.
+   *
+   * Ne concerne que l'Essentielle : le Confort modifie sans limite. Tant que
+   * cette date n'est pas passée, l'hôte ouvre son éditeur comme un abonné.
+   */
+  editionUntil?: number | null;
+
+  /** Passage au Confort demandé, effectif à la fin de la période en cours. */
+  cancelAtPeriodEnd?: boolean;
+
   /** Configuration de la plaque en cours de personnalisation. */
   plaque?: PlaqueConfig;
 
