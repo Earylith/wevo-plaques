@@ -92,9 +92,9 @@ export const prixLivretAccueil: Article = {
     {
       type: "tableau",
       legende:
-        "Coût cumulé pour UN logement. Les trois premières colonnes sont des hypothèses de marché, pas des tarifs attribués à une solution précise.",
+        "Chaque case donne le TOTAL DÉPENSÉ depuis le début, pour UN logement — et non un prix mensuel. Un abonnement à 5 € par mois coûte ainsi 180 € au bout de trois ans, un achat unique reste à son prix. Les trois premières colonnes sont des hypothèses de marché, pas les tarifs d’une solution précise.",
       colonnes: [
-        "Durée",
+        "Total cumulé après",
         "Abonnement 3 €/mois",
         "Abonnement 5 €/mois",
         "Abonnement 10 €/mois",
@@ -139,8 +139,14 @@ export const prixLivretAccueil: Article = {
     },
     {
       type: "tableau",
-      legende: "Coût sur trois ans, selon la taille du parc",
-      colonnes: ["Nombre de logements", "Abonnement 5 €/mois", "Guidz Essentiel", "Écart"],
+      legende:
+        "Total dépensé SUR TROIS ANS, selon la taille du parc. À 5 € par mois et par logement, un seul bien coûte 180 € sur la période — cinq biens, cinq fois plus.",
+      colonnes: [
+        "Nombre de logements",
+        "Abonnement 5 €/mois — sur 3 ans",
+        "Guidz Essentiel — une fois",
+        "Écart sur 3 ans",
+      ],
       colonneMiseEnAvant: 2,
       lignes: [
         ["1 logement", "180 €", "49 €", "131 €"],

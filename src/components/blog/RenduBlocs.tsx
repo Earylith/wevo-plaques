@@ -199,6 +199,16 @@ export default function RenduBlocs({
           case "tableau":
             return (
               <figure key={i} className="my-10">
+                {/*
+                  Ce que le tableau mesure, AVANT les chiffres. Un tableau de
+                  montants cumulés lu sans son unité de temps se lit de
+                  travers, et on accuse le tableau d'être faux.
+                */}
+                {bloc.legende && (
+                  <p className="mb-3 text-[13.5px] leading-relaxed text-[#5C3D2E]">
+                    {bloc.legende}
+                  </p>
+                )}
                 <div className="overflow-x-auto rounded-[22px] border border-[#EDD9A3] bg-white shadow-[0_10px_30px_rgba(90,61,46,0.05)]">
                   <table className="w-full min-w-[560px] border-collapse text-left">
                     <thead>
@@ -248,11 +258,14 @@ export default function RenduBlocs({
                     </tbody>
                   </table>
                 </div>
-                {bloc.legende && (
-                  <figcaption className="mt-3 text-center text-[13px] text-[#6B5D4E]/80 italic">
-                    {bloc.legende}
-                  </figcaption>
-                )}
+                {/*
+                  La légende était SOUS le tableau : le lecteur tombait donc
+                  sur les chiffres avant de savoir ce qu'ils mesuraient, et
+                  lisait « 180 € » pour un abonnement à 5 € par mois sans
+                  comprendre qu'on cumulait trois ans. Elle passe au-dessus,
+                  là où l'on énonce ce qu'on va montrer.
+                */}
+                <figcaption className="sr-only">{bloc.legende}</figcaption>
                 {/* Le tableau déborde volontairement sur téléphone plutôt que
                     de se tasser : encore faut-il le dire au lecteur. */}
                 <p className="mt-2 text-center text-[12px] text-[#6B5D4E]/60 sm:hidden">

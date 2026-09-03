@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import CarteArticle from "@/components/blog/CarteArticle";
 import CouvertureArticle from "@/components/blog/CouvertureArticle";
 import {
   ARTICLES,
@@ -21,6 +20,9 @@ import {
   trouverArticle,
 } from "@/lib/blog";
 import { urlAbsolue } from "@/lib/site";
+import { FiltreJournal } from "@/components/blog/FiltreJournal";
+import SujetsBlog from "@/components/blog/SujetsBlog";
+import GrilleArticles from "@/components/blog/GrilleArticles";
 
 /**
  * L'index du blog.
@@ -142,6 +144,13 @@ export default function BlogPage() {
       />
       <Header />
 
+      {/*
+        Le fournisseur enveloppe la page : les pastilles de sujets sont en
+        haut, la grille tout en bas, et elles doivent partager le même
+        filtre. La page elle-même reste un composant serveur — ses enfants
+        sont passés déjà rendus — donc l’index du journal reste statique.
+      */}
+      <FiltreJournal>
       <main className="flex-1 bg-[#FBF5EC]">
         {/* ── Entête ─────────────────────────────────────────── */}
         <section
@@ -172,16 +181,7 @@ export default function BlogPage() {
               évite. Pas de recettes miracles — des choses qui tiennent une saison.
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-2.5">
-              {categories.map((categorie) => (
-                <span
-                  key={categorie}
-                  className="rounded-full border border-[#EDD9A3] bg-white/70 px-3.5 py-1.5 text-[12px] font-medium text-[#6B5D4E]"
-                >
-                  {categorie}
-                </span>
-              ))}
-            </div>
+            <SujetsBlog sujets={categories} />
           </div>
         </section>
 
@@ -279,18 +279,8 @@ export default function BlogPage() {
           </div>
         </section>
 
-        {/* ── Tous les articles ──────────────────────────────── */}
-        <section className="mx-auto max-w-7xl px-6 pt-16 pb-20 lg:px-8">
-          <h2 className="mb-7 font-[family-name:var(--font-display)] text-[24px] font-bold tracking-[-0.02em] text-[#2A2016]">
-            Tous les articles
-          </h2>
-
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {suite.map((article) => (
-              <CarteArticle key={article.slug} article={article} />
-            ))}
-          </div>
-        </section>
+        {/* ── Tous les articles, filtrables par sujet ────────── */}
+        <GrilleArticles articles={suite} />
 
         {/* ── Sortie ─────────────────────────────────────────── */}
         <section className="mx-auto max-w-7xl px-6 pb-24 lg:px-8">
@@ -332,6 +322,7 @@ export default function BlogPage() {
           </div>
         </section>
       </main>
+      </FiltreJournal>
 
       <Footer />
     </>
