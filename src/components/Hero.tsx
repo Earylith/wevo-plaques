@@ -83,7 +83,7 @@ export default function Hero() {
         </div>
 
         {/* Illustration mobile : la plaque en situation, sous le discours */}
-        <div className="order-3 lg:order-2 w-full lg:hidden block">
+        <div className="order-3 lg:order-2 mt-10 lg:mt-0 w-full lg:hidden block">
           <AnimateOnScroll delay={0.4}>
             <div className="mb-10 w-full relative flex justify-center">
               {/* Halos chauds : c'est ce qui détache la photo du fond sombre */}

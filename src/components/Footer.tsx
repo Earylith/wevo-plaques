@@ -27,7 +27,7 @@ export default function Footer() {
               </span>
             </a>
             <p className="text-sm md:text-base text-white/40 max-w-sm leading-relaxed font-light mb-10">
-              L'expérience premium de vos locataires commence ici. Un support physique élégant, couplé à une interface digitale sur-mesure.
+              L&rsquo;expérience premium de vos locataires commence ici. Un support physique élégant, couplé à une interface digitale sur-mesure.
             </p>
             <a href="mailto:contact@guidzme.fr" className="inline-flex items-center gap-2 text-[#E8BE72] hover:text-white transition-colors text-sm tracking-wide font-medium group">
               contact@guidzme.fr
@@ -42,6 +42,7 @@ export default function Footer() {
               {[
                 { label: 'Concept', href: '#concept' },
                 { label: 'Démo', href: '#demo' },
+                { label: 'Tous les livrets de démonstration', href: '/livrets-demo' },
                 { label: 'Fonctionnalités', href: '#fonctionnalites' },
                 { label: 'Formules', href: '#offres' }
               ].map((item) => (

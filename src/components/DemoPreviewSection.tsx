@@ -192,32 +192,20 @@ export default function DemoPreviewSection() {
               ))}
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row md:justify-end">
-              <a
-                href="/demo-confort2"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#C4714A] px-6 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#a65d3a]"
-              >
-                Voir le livret Confort <ExternalLink size={18} />
-              </a>
-              {/* L'Essentielle a sa propre démo : la comparer est le meilleur
-                  argument pour choisir, dans un sens comme dans l'autre. */}
-              <a
-                href="/demo-essentielle"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-[#C4714A] bg-white px-6 py-3 font-bold text-[#C4714A] shadow-sm transition-colors hover:bg-[#F7EBE4]"
-              >
-                Voir le livret Essentiel <ExternalLink size={18} />
-              </a>
+            {/*
+              Une seule sortie. Cette section parle de l'ÉDITEUR ; celle qui
+              suit parle du RÉSULTAT. Proposer ici « voir un livret » doublait
+              les vitrines placées juste en dessous, et faisait cliquer au
+              hasard entre deux promesses différentes.
+            */}
+            <div className="flex md:justify-end">
               <a
                 href="/demo-editeur"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border-2 border-[#2B5F75] bg-white px-6 py-3 font-bold text-[#2B5F75] shadow-sm transition-colors hover:bg-[#E4EEF3]"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#C4714A] px-6 py-3 font-bold text-white shadow-sm transition-colors hover:bg-[#a65d3a] sm:w-auto"
               >
-                Ouvrir l&apos;éditeur en grand <ExternalLink size={18} />
+                Tester l&apos;éditeur <ExternalLink size={18} />
               </a>
             </div>
           </div>
