@@ -7,6 +7,8 @@ import { fetchWeather, formatForecastDay, WeatherSnapshot } from "@/lib/weather"
 import SkyBackdrop, { conditionFromCode } from "@/components/templates/SkyBackdrop";
 import LanguagePicker from "@/components/templates/LanguagePicker";
 import { trackLivretOpen, trackModuleOpen } from "@/app/stats-actions";
+import BoutonsItineraire from "@/components/ui/BoutonsItineraire";
+import SignalerLivret from "@/components/ui/SignalerLivret";
 import {
   Lang, availableLangs, localizeAccommodation, moduleLabel, tr, INTL_LOCALE,
 } from "@/lib/i18n";
@@ -492,16 +494,14 @@ export default function CleoTemplate({
                       L’adresse du logement n’est pas encore renseignée.
                     </div>
                   )}
-                  <a
-                    href={`https://www.google.com/maps/search/${encodeURIComponent(mapAddress)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute top-3 right-3 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1"
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    {t("directions")} <NavigationArrow size={12} weight="bold" />
-                  </a>
                 </div>
+                {/*
+                  L'itinéraire, dans l'application du voyageur : Maps, Waze ou
+                  Plans. Sous la carte et non dessus — elle EST déjà Google
+                  Maps, un bouton posé par-dessus faisait doublon et masquait
+                  ce qu'on venait regarder.
+                */}
+                <BoutonsItineraire adresse={mapAddress} couleur={primaryColor} />
               </div>
             )}
           </div>
@@ -1813,21 +1813,13 @@ export default function CleoTemplate({
             <div className="relative h-64 rounded-2xl overflow-hidden border border-gray-100 shadow-[0_1px_3px_rgba(30,25,20,0.05)] bg-gray-100">
               <iframe
                 title="Carte du logement"
-                src={`https://maps.google.com/maps?q=${encodeURIComponent(mapAddress)}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                src={`https://www.google.com/maps?q=${encodeURIComponent(mapAddress)}&z=15&output=embed`}
                 className="w-full h-full border-0"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
               />
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(mapAddress)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="absolute top-3 right-3 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-lg flex items-center gap-1.5"
-                style={{ backgroundColor: primaryColor }}
-              >
-                {t("directions")} <ArrowSquareOut size={12} weight="bold" />
-              </a>
             </div>
+            <BoutonsItineraire adresse={mapAddress} couleur={primaryColor} />
 
             <a
               href={`https://www.google.com/maps/search/${encodeURIComponent(mapAddress)}`}
@@ -1843,6 +1835,14 @@ export default function CleoTemplate({
         <p className="text-center text-[10px] text-[#B0A79E] pt-2">
           {t("footer")} · {data.property?.name}
         </p>
+        {/*
+          Signalement, côté voyageur uniquement. `trackingId` est absent dans
+          l'éditeur, où ce lien n'aurait aucun sens — et `editable` distingue
+          l'aperçu de la page publiée.
+        */}
+        {trackingId && !editable && (
+          <SignalerLivret livretId={trackingId} slug={data.slug} />
+        )}
       </main>
 
       {mounted && (inlineModal ? renderModal(true) : createPortal(renderModal(false), document.body))}

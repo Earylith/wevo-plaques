@@ -109,6 +109,13 @@ export default async function AccommodationPage({ params }: Props) {
     data.slug.startsWith("demo-confort") ||
     ["demo-paris", "demo-biarritz", "demo-chamonix"].includes(data.slug);
 
+  /*
+   * Le signalement vit désormais DANS les gabarits, pas ici.
+   *
+   * Les démonstrations ont leurs propres routes — /demo-paris et les autres
+   * rendent le gabarit directement, sans passer par cette page. Le lien n'y
+   * apparaissait donc pas, alors que ce sont les pages les plus vues.
+   */
   if (data.offerType === "comfort" || data.template === "cleo" || estDemoConfort) {
     return <CleoTemplate data={data} trackingId={data.id} />;
   }

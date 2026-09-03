@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import BandeauCookies from "@/components/ui/BandeauCookies";
 
 export const metadata: Metadata = {
   title: "Guidz — Guide d’accueil avec QR code pour hébergements",
@@ -31,7 +32,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className="h-full antialiased" suppressHydrationWarning>
-      <body className="min-h-full flex flex-col" suppressHydrationWarning>{children}</body>
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
+        {children}
+        {/*
+          Le consentement se demande AVANT tout dépôt, sur toutes les pages.
+          Le placer plus bas dans l'arbre laisserait les livrets publics sans
+          bandeau, alors que ce sont eux qui reçoivent le plus de visiteurs.
+        */}
+        <BandeauCookies />
+      </body>
     </html>
   );
 }

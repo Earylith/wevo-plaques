@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowUpRight, Building2, Mountain, Sun, Waves } from "lucide-react";
-import { LivretDemo } from "@/lib/livretsDemo";
+import { VitrineGarnie } from "@/lib/livretsDemo";
 
 /**
  * Vignette d'un livret de démonstration.
@@ -27,7 +27,7 @@ const ICONES = {
   vagues: Waves,
 } as const;
 
-export default function CarteLivretDemo({ livret }: { livret: LivretDemo }) {
+export default function CarteLivretDemo({ livret }: { livret: VitrineGarnie }) {
   const Icone = ICONES[livret.icone];
   const estConfort = livret.formule === "Confort";
 
@@ -85,14 +85,22 @@ export default function CarteLivretDemo({ livret }: { livret: LivretDemo }) {
             {pastilleVille}
             {pastilleFormule}
           </div>
+          {/*
+            Une initiale seule ne disait rien. On affiche le mot d'accueil —
+            celui-là même que le voyageur lira en ouvrant le livret : la
+            vignette annonce donc exactement ce qu'il trouvera, sans montrer
+            une photo que la formule ne comprend pas.
+          */}
           <div className="flex items-end justify-between gap-3">
-            <span
-              className="font-[family-name:var(--font-display)] text-[46px] font-bold leading-none tracking-[-0.03em] opacity-90"
+            <p
+              className="font-[family-name:var(--font-display)] text-[19px] font-bold leading-[1.15] tracking-[-0.02em]"
               style={{ color: livret.accent }}
             >
-              {livret.nom.replace(/^(Le|La|Les|L')\s*/i, "").charAt(0)}
-            </span>
-            <Icone size={34} style={{ color: livret.accent, opacity: 0.35 }} />
+              {livret.accueil
+                ? livret.accueil.split(/[.—]/)[0].trim()
+                : `Bienvenue à ${livret.nom}`}
+            </p>
+            <Icone size={30} className="shrink-0" style={{ color: livret.accent, opacity: 0.3 }} />
           </div>
         </div>
       )}

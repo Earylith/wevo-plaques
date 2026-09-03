@@ -62,6 +62,8 @@ export default function Footer() {
               {[
                 { label: 'Multi-biens (Pro)', href: '#pro' },
                 { label: 'FAQ', href: '#faq' },
+                { label: 'Confidentialité & cookies', href: '/confidentialite' },
+                { label: 'Gérer mes cookies', href: '/confidentialite#choix' },
                 { label: 'Mentions légales', href: '#' },
                 { label: 'CGV', href: '#' }
               ].map((item) => (

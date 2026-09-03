@@ -4,6 +4,7 @@ import ProblemSection from "@/components/ProblemSection";
 import SolutionSection from "@/components/SolutionSection";
 import DemoPreviewSection from "@/components/DemoPreviewSection";
 import LivretsDemoSection from "@/components/LivretsDemoSection";
+import { chargerVitrines } from "@/lib/server/vitrines";
 import FeaturesSection from "@/components/FeaturesSection";
 import DifferentiationSection from "@/components/DifferentiationSection";
 import PricingSection from "@/components/PricingSection";
@@ -12,7 +13,9 @@ import FAQSection from "@/components/FAQSection";
 import FinalCTA from "@/components/FinalCTA";
 import Footer from "@/components/Footer";
 
-export default function Home() {
+export default async function Home() {
+  const vitrines = await chargerVitrines();
+
   return (
     <>
       <Header />
@@ -22,7 +25,7 @@ export default function Home() {
         <DifferentiationSection />
         <SolutionSection />
         <DemoPreviewSection />
-        <LivretsDemoSection />
+        <LivretsDemoSection vitrines={vitrines} />
         <FeaturesSection />
         <PricingSection />
         <ProSection />

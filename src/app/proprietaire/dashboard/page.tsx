@@ -378,17 +378,6 @@ export default function EspaceClientPage() {
           livretId={livret.id}
           lien={lienPartage}
           messageInitial={livret.messagePartage}
-          jeton={async () => user?.getIdToken()}
-        />
-
-        {/*
-          Un lien seul, jeté dans une conversation, ressemble à un spam. L'hôte
-          écrit son mot une fois et le retrouve prérempli à chaque envoi.
-        */}
-        <PartagerLivret
-          livretId={livret.id}
-          lien={lienPartage}
-          messageInitial={livret.messagePartage}
           jeton={jetonHote}
         />
 

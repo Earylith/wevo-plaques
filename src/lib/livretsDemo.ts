@@ -143,3 +143,21 @@ export const LIVRETS_DEMO: LivretDemo[] = [
  * deux produits, pas seulement le plus cher.
  */
 export const LIVRETS_VEDETTE = LIVRETS_DEMO.filter((l) => l.vedette);
+
+/**
+ * Une vitrine garnie du contenu réel de son livret.
+ *
+ * La photo et le nom viennent de la base ; la couleur, l'icône et les repères
+ * restent curatés ici. Déclaré avec les données et non avec la lecture
+ * serveur : les composants d'affichage en ont besoin, et ils sont clients.
+ */
+export interface VitrineGarnie extends LivretDemo {
+  /**
+   * Mot d'accueil, affiché sur les vignettes Essentielles.
+   *
+   * Sans photo, la carte était trop nue pour donner envie. Le mot d'accueil
+   * est ce que le voyageur lira en ouvrant le livret : la vignette annonce
+   * donc exactement ce qu'il trouvera.
+   */
+  accueil?: string;
+}

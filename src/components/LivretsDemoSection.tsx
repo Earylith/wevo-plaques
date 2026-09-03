@@ -3,7 +3,7 @@
 import { ArrowRight } from "lucide-react";
 import AnimateOnScroll from "./AnimateOnScroll";
 import CarteLivretDemo from "./CarteLivretDemo";
-import { LIVRETS_DEMO, LIVRETS_VEDETTE } from "@/lib/livretsDemo";
+import { VitrineGarnie } from "@/lib/livretsDemo";
 
 /**
  * Les livrets de démonstration, sur la page d'accueil.
@@ -23,8 +23,14 @@ const NOMBRES: Record<number, string> = {
   7: "sept", 8: "huit", 9: "neuf", 10: "dix",
 };
 
-export default function LivretsDemoSection() {
-  const restants = LIVRETS_DEMO.length - LIVRETS_VEDETTE.length;
+export default function LivretsDemoSection({ vitrines }: { vitrines: VitrineGarnie[] }) {
+  /*
+   * Les vitrines arrivent garnies du contenu réel des livrets : la photo et le
+   * nom viennent de la base, et non d'une copie écrite à côté qui finissait
+   * par montrer autre chose que ce qu'on trouve derrière le lien.
+   */
+  const vedettes = vitrines.filter((v) => v.vedette);
+  const restants = vitrines.length - vedettes.length;
 
   return (
     <section
@@ -51,7 +57,7 @@ export default function LivretsDemoSection() {
                 « quatre » alors qu'il y en avait six. Une phrase qui contredit
                 ce qu'on a sous les yeux coûte plus cher que pas de phrase.
               */}
-              Parcourez {NOMBRES[LIVRETS_VEDETTE.length] ?? LIVRETS_VEDETTE.length} livrets de
+              Parcourez {NOMBRES[vedettes.length] ?? vedettes.length} livrets de
               présentation, dans les deux formules. Ce sont des pages en ligne, pas des maquettes :
               exactement ce que vos voyageurs découvrent après avoir scanné la plaque.
             </p>
@@ -59,7 +65,7 @@ export default function LivretsDemoSection() {
         </AnimateOnScroll>
 
         <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4 lg:mt-16 lg:gap-6">
-          {LIVRETS_VEDETTE.map((livret, index) => (
+          {vedettes.map((livret, index) => (
             <AnimateOnScroll key={livret.slug} delay={0.1 + index * 0.08} className="h-full">
               <CarteLivretDemo livret={livret} />
             </AnimateOnScroll>

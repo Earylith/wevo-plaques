@@ -81,7 +81,6 @@ function revalidateAccommodation(id: string, slug?: string) {
   if (slug) {
     revalidatePath(`/h/${slug}`);
     if (slug === "demo-confort2") revalidatePath("/demo-confort2");
-    if (slug === "demo-confort") revalidatePath("/demo-confort");
     if (slug === "demo-essentielle") revalidatePath("/demo-essentielle");
     if (slug === "demo-paris") revalidatePath("/demo-paris");
     if (slug === "demo-biarritz") revalidatePath("/demo-biarritz");

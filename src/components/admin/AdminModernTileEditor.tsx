@@ -23,6 +23,8 @@ import { ouvrirPaiement } from "@/app/paiement-actions";
 import StatsPanel from "@/components/admin/editor/StatsPanel";
 import ApercuPleinEcran from "@/components/admin/editor/ApercuPleinEcran";
 import ChoixFormule from "@/components/admin/editor/ChoixFormule";
+import ChoixRythme from "@/components/admin/editor/ChoixRythme";
+import { RythmeAbonnement } from "@/lib/stripe";
 import { changerFormuleBrouillon, alignerAdresseSurLeNom } from "@/app/creation-actions";
 import LibraryPicker, { PickedEntry } from "@/components/admin/editor/LibraryPicker";
 import { createPlaqueOrder, getOrdersForAccommodation } from "@/app/admin/orders";
@@ -249,6 +251,14 @@ export default function AdminModernTileEditor({
   const [basculeVers, setBasculeVers] = useState<OfferType | null>(null);
   const [basculeEnCours, setBasculeEnCours] = useState(false);
   const [basculeErreur, setBasculeErreur] = useState<string | null>(null);
+  /*
+   * Rythme de l'abonnement Confort, choisi avant le paiement.
+   *
+   * Il ne se demandait nulle part : un premier client Confort partait au mois
+   * sans qu'on lui ait posé la question, alors que l'annuel lui revient moins
+   * cher. Le mensuel reste par défaut parce qu'il engage le moins.
+   */
+  const [rythme, setRythme] = useState<RythmeAbonnement>("mensuel");
   const [orderError, setOrderError] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [autosave, setAutosave] = useState(!demo);
@@ -368,7 +378,7 @@ export default function AdminModernTileEditor({
       if (dirty) await handleSave();
       const { auth } = await import("@/lib/firebase/config");
       const jeton = await auth.currentUser?.getIdToken();
-      const { url } = await ouvrirPaiement(docId, window.location.origin, jeton);
+      const { url } = await ouvrirPaiement(docId, window.location.origin, jeton, rythme);
       // `assign` plutôt qu'une affectation sur `location.href` : le
       // compilateur React interdit d'écrire dans une valeur définie hors du
       // composant, et le résultat est le même.
@@ -2639,6 +2649,14 @@ export default function AdminModernTileEditor({
 
                 {!estAdmin && !data.isActive && (
                   <>
+                    {/*
+                      Le rythme se choisit AVANT le paiement, et seulement en
+                      Confort — l'Essentielle n'a pas d'abonnement. La question
+                      ne se posait nulle part : un premier client partait au
+                      mois sans qu'on la lui ait posée.
+                    */}
+                    {estConfort && <ChoixRythme rythme={rythme} onChange={setRythme} />}
+
                     <button
                       type="button"
                       onClick={() => void handlePayer()}

@@ -7,6 +7,8 @@ import {
 } from "@phosphor-icons/react";
 import { Accommodation, ModuleId, isModuleVisible } from "@/lib/types/accommodation";
 import { trackLivretOpen, trackModuleOpen } from "@/app/stats-actions";
+import BoutonsItineraire from "@/components/ui/BoutonsItineraire";
+import SignalerLivret from "@/components/ui/SignalerLivret";
 
 /**
  * Gabarit de la formule Essentielle.
@@ -414,6 +416,20 @@ export default function EssentialTemplate({
                   </a>
                 </Ligne>
               )}
+              {/*
+                L'itinéraire, dans l'application du voyageur.
+                Un seul lien Maps supposait que tout le monde l'utilise ; au
+                volant, avec des valises, tomber sur une page web au lieu de
+                son GPS n'est pas un détail.
+              */}
+              {rempli(data.property?.address) && (
+                <div className="py-2.5" onClick={(e) => e.stopPropagation()}>
+                  <BoutonsItineraire
+                    adresse={data.property.address || ""}
+                    couleur={couleur}
+                  />
+                </div>
+              )}
               {rempli(data.practicalInfo?.parking) && (
                 <Ligne label="Stationnement">
                   <span className="inline-flex items-center gap-1.5">
@@ -630,6 +646,13 @@ export default function EssentialTemplate({
           <Clock size={14} weight="duotone" />
           Bon séjour à {data.property?.name} !
         </p>
+        {/*
+          Côté voyageur uniquement : `trackingId` est absent dans l'éditeur,
+          où ce lien n'aurait aucun sens.
+        */}
+        {trackingId && !onModuleClick && (
+          <SignalerLivret livretId={trackingId} slug={data.slug} />
+        )}
       </footer>
     </div>
   );
