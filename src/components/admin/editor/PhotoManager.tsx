@@ -345,8 +345,10 @@ export default function PhotoManager({ photos, onChange, city, allowUpload = tru
       )}
 
       <p className="text-[11px] text-[#6B5D4E] leading-relaxed">
-        Sélectionnez ou déposez <strong>plusieurs photos d&apos;un coup</strong> : elles défileront en{" "}
-        <strong>fondu</strong> derrière le titre. La 1re sert d&apos;aperçu (QR &amp; partage).
+        Sélectionnez ou déposez <strong>plusieurs photos d&apos;un coup</strong> : elles
+        défileront en <strong>fondu</strong>
+        {" "}
+        derrière le titre. La 1re sert d&apos;aperçu (QR &amp; partage).
       </p>
     </div>
   );

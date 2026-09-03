@@ -77,6 +77,7 @@ function Formulaire() {
   const offre: OfferType = parametres.get("offre") === "essentiel" ? "essential" : "comfort";
   const { user, loading } = useAuth();
   const [mode, setMode] = useState<Mode>("inscription");
+  const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const [enCours, setEnCours] = useState(false);
@@ -111,7 +112,7 @@ function Formulaire() {
     setErreur(null);
     try {
       if (mode === "inscription") {
-        await signUp(email, motDePasse);
+        await signUp(email, motDePasse, nom);
       } else {
         await signIn(email, motDePasse);
       }
@@ -195,6 +196,34 @@ function Formulaire() {
               </div>
 
               <form onSubmit={soumettre} className="space-y-3">
+                {/*
+                  Le nom n'est demandé qu'à l'inscription : à la connexion, il
+                  est déjà connu, et le redemander donnerait l'impression que
+                  rien n'a été retenu.
+
+                  Il sert partout ensuite — la salutation du tableau de bord,
+                  l'en-tête des e-mails, le destinataire du colis. Sans lui,
+                  chaque message commence par un « Bonjour, » orphelin.
+                */}
+                {mode === "inscription" && (
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[#6B5D4E] mb-1.5">
+                      Votre nom
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={nom}
+                      onChange={(e) => setNom(e.target.value)}
+                      autoComplete="name"
+                      placeholder="Camille Rousseau"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#EDD9A3] bg-[#FBF5EC] text-sm outline-none focus:border-[#C4714A]"
+                    />
+                    <p className="mt-1 text-[10.5px] text-[#A8998A]">
+                      Pour vous accueillir par votre prénom, et pour l’adresse du colis.
+                    </p>
+                  </div>
+                )}
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-[#6B5D4E] mb-1.5">
                     Adresse e-mail

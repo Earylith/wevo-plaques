@@ -308,10 +308,28 @@ export default function EspaceClientPage() {
     setTimeout(() => setCopie(false), 2000);
   };
 
+  /*
+   * Le prénom seul, tiré du nom du compte.
+   *
+   * On ne saisit pas prénom et nom séparément : demander deux champs pour
+   * accueillir quelqu'un serait une formalité de plus à l'inscription. Le
+   * premier mot suffit, et se trompe rarement.
+   */
+  const prenom = (user?.displayName || "").trim().split(/\s+/)[0] || "";
+
   return (
     <div className="mx-auto max-w-4xl px-5 pb-24 pt-10 sm:px-8 sm:pt-16">
       {/* ── Identité ─────────────────────────────────────────────────────── */}
       <header className="guidz-apparait mb-9">
+        {/*
+          La salutation par le prénom, et rien d'autre.
+          Elle n'apparaît que si on le connaît : « Bonjour, » tout seul
+          sonnerait comme un publipostage raté, et les comptes créés avant que
+          le nom ne soit demandé n'en ont pas.
+        */}
+        {prenom && (
+          <p className="mb-2 text-[15px] text-[#6B5D4E]">Bonjour {prenom},</p>
+        )}
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <Pastille ton={estConfort ? "accent" : "neutre"}>
             Formule {estConfort ? "Confort" : "Essentielle"}

@@ -6,6 +6,7 @@ import {
   signOut as firebaseSignOut,
   sendPasswordResetEmail,
   updatePassword,
+  updateProfile,
   onAuthStateChanged,
   type User,
 } from "firebase/auth";
@@ -19,13 +20,26 @@ export const signIn = async (email: string, password: string) => {
 };
 
 /**
- * Création d'un compte par e-mail et mot de passe.
+ * Création d'un compte par e-mail, mot de passe et nom.
  *
  * L'hôte est connecté dans la foulée : c'est ce qui permet d'enchaîner
  * directement sur la création de son livret, sans étape de connexion.
+ *
+ * Le nom est posé sur le compte lui-même, puis le JETON EST RAFRAÎCHI. Sans
+ * ce rafraîchissement, le jeton encore en mémoire date d'avant
+ * l'enregistrement du nom : le serveur lirait un `name` vide, écrirait un
+ * livret sans propriétaire nommé, et enverrait un « Bonjour, » orphelin.
  */
-export const signUp = async (email: string, password: string) => {
-  return createUserWithEmailAndPassword(auth, email, password);
+export const signUp = async (email: string, password: string, nom?: string) => {
+  const identifiants = await createUserWithEmailAndPassword(auth, email, password);
+
+  const propre = (nom || "").trim();
+  if (propre) {
+    await updateProfile(identifiants.user, { displayName: propre });
+    await identifiants.user.getIdToken(true);
+  }
+
+  return identifiants;
 };
 
 /**
