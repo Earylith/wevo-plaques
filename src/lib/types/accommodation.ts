@@ -138,6 +138,24 @@ export type OrderStatus =
  * Elle fige la configuration au moment de l'achat : modifier le livret plus
  * tard ne doit jamais altérer une plaque déjà gravée.
  */
+/**
+ * Adresse postale de livraison.
+ *
+ * Reprise telle quelle de Stripe, dont c'est le format : la retranscrire
+ * dans un modèle maison n'apporterait rien qu'une occasion de perdre une
+ * ligne en chemin.
+ */
+export interface AdressePostale {
+  line1: string;
+  line2?: string;
+  postalCode: string;
+  city: string;
+  /** Région ou département, renseigné selon les pays. */
+  state?: string;
+  /** Code ISO à deux lettres : « FR », « BE »… */
+  country: string;
+}
+
 export interface PlaqueOrder {
   id?: string;
   /** Numéro lisible, du type GUIDZ-1058. */
@@ -167,6 +185,19 @@ export interface PlaqueOrder {
    * c'est la seule information qu'il attend vraiment une fois qu'il a payé.
    * Un client sans nouvelles écrit ; un client qui suit son colis attend.
    */
+  /**
+   * Où la plaque doit être envoyée.
+   *
+   * Collectée par Stripe au moment du paiement, et rattrapable à la main
+   * pour les commandes antérieures. Sans elle, une plaque gravée reste sur
+   * l'établi : l'e-mail du client ne dit pas où il habite.
+   */
+  shippingAddress?: AdressePostale;
+  /** Nom du destinataire, tel qu'il figurera sur le colis. */
+  shippingName?: string;
+  /** Téléphone du destinataire — les transporteurs le réclament. */
+  shippingPhone?: string;
+
   /** Transporteur, en clair : « Colissimo », « Mondial Relay »… */
   carrier?: string;
   /** Numéro de suivi communiqué par le transporteur. */
@@ -255,6 +286,14 @@ export interface Accommodation {
   stripeCustomerId?: string | null;
   /** Abonnement Stripe qui maintient le livret en ligne. */
   stripeSubscriptionId?: string | null;
+  /**
+   * Rythme choisi pour cet abonnement : « mensuel » ou « annuel ».
+   *
+   * Noté au paiement, sans quoi le revenu récurrent ne serait qu'une
+   * moyenne : un abonné à l'année et un abonné au mois ne pèsent pas la
+   * même chose, et les compter pareil fausse le seul chiffre qui pilote.
+   */
+  abonnementRythme?: "mensuel" | "annuel";
   /** Date du dernier encaissement confirmé. */
   paidAt?: number;
 

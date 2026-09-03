@@ -5,9 +5,10 @@ import { FieldValue } from "firebase-admin/firestore";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import {
-  Accommodation, PlaqueOrder, PlaqueConfig, OrderStatus,
+  Accommodation, PlaqueOrder, PlaqueConfig, OrderStatus, AdressePostale,
 } from "@/lib/types/accommodation";
 import { generatePermanentId, permanentUrl } from "@/lib/permanentId";
+import { adresseExpediable, adresseNettoyee } from "@/lib/adressePostale";
 
 const ACCOMMODATIONS = "accommodations";
 const ORDERS = "orders";
@@ -236,6 +237,16 @@ export interface Expedition {
   trackingUrl?: string;
   estimatedDelivery?: number | null;
   clientNote?: string;
+  /**
+   * Adresse de livraison, saisie ou corrigée à la main.
+   *
+   * Les commandes passées avant que le paiement ne demande l'adresse n'en
+   * ont aucune ; et un client se trompe parfois d'étage. Sans ce rattrapage,
+   * la seule issue serait de recréer la commande.
+   */
+  shippingAddress?: AdressePostale | null;
+  shippingName?: string;
+  shippingPhone?: string;
 }
 
 /**
@@ -277,6 +288,23 @@ export async function updateOrderShipping(orderId: string, expedition: Expeditio
     estimatedDelivery: expedition.estimatedDelivery || FieldValue.delete(),
     updatedAt: maintenant,
   };
+
+  /*
+   * L'adresse n'est touchée que si le panneau l'a envoyée : ne pas l'ouvrir
+   * ne doit pas effacer celle que le client a saisie en payant.
+   */
+  if (expedition.shippingAddress !== undefined) {
+    champs.shippingAddress =
+      expedition.shippingAddress && adresseExpediable(expedition.shippingAddress)
+        ? adresseNettoyee(expedition.shippingAddress)
+        : FieldValue.delete();
+  }
+  if (expedition.shippingName !== undefined) {
+    champs.shippingName = expedition.shippingName.trim() || FieldValue.delete();
+  }
+  if (expedition.shippingPhone !== undefined) {
+    champs.shippingPhone = expedition.shippingPhone.trim() || FieldValue.delete();
+  }
 
   // Un suivi renseigné vaut expédition : on date l'envoi et on avance l'état,
   // sauf si la commande est plus avancée ou annulée.

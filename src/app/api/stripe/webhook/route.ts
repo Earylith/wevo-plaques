@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { adminDb } from "@/lib/firebase/admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { Accommodation, PlaqueConfig } from "@/lib/types/accommodation";
 import { creerCommandeInterne, commandeDejaPassee } from "@/lib/server/plaqueOrders";
 import { configPlaqueComplete } from "@/lib/plaque";
 import { DUREE_SESSION_MODIFICATION_MS } from "@/lib/livret";
+import { adresseDepuisStripe } from "@/lib/adressePostale";
 
 /**
  * Réception des événements Stripe.
@@ -79,6 +81,7 @@ async function traiterBascule(session: Stripe.Checkout.Session) {
     stripeCustomerId: typeof session.customer === "string" ? session.customer : null,
     stripeSubscriptionId:
       typeof session.subscription === "string" ? session.subscription : null,
+    abonnementRythme: session.metadata?.rythme === "annuel" ? "annuel" : "mensuel",
     upgradedAt: Date.now(),
     updatedAt: Date.now(),
   });
@@ -146,6 +149,9 @@ async function traiterFinAbonnement(abonnement: Stripe.Subscription) {
     template: "essential",
     cancelAtPeriodEnd: false,
     stripeSubscriptionId: null,
+    // Plus d'abonnement, donc plus de rythme : le laisser gonflerait le
+    // revenu récurrent d'un client qui est parti.
+    abonnementRythme: FieldValue.delete(),
     downgradedAt: Date.now(),
     updatedAt: Date.now(),
   });
@@ -173,6 +179,37 @@ async function traiterMajAbonnement(abonnement: Stripe.Subscription) {
     cancelAtPeriodEnd: Boolean(abonnement.cancel_at_period_end),
     updatedAt: Date.now(),
   });
+}
+
+/**
+ * Où et à qui envoyer la plaque, d'après la session de paiement.
+ *
+ * L'adresse vit sous `collected_information` depuis l'API 2026-08 —
+ * l'ancien `session.shipping_details` n'existe plus. Si l'événement reçu ne
+ * la porte pas, on redemande la session à Stripe : mieux vaut un appel
+ * réseau de plus qu'une commande qu'on ne saura pas expédier.
+ */
+async function lireLivraison(session: Stripe.Checkout.Session): Promise<{
+  adresse: ReturnType<typeof adresseDepuisStripe>;
+  nom: string;
+  telephone: string;
+}> {
+  let source = session;
+
+  if (!source.collected_information?.shipping_details?.address) {
+    try {
+      source = await stripe().checkout.sessions.retrieve(session.id);
+    } catch (error) {
+      console.error("[stripe] relecture de session impossible", error);
+    }
+  }
+
+  const details = source.collected_information?.shipping_details;
+  return {
+    adresse: adresseDepuisStripe(details?.address),
+    nom: details?.name || source.customer_details?.name || "",
+    telephone: source.customer_details?.phone || "",
+  };
 }
 
 /**
@@ -205,6 +242,11 @@ async function traiterPaiement(session: Stripe.Checkout.Session, origin: string)
     stripeCustomerId: typeof session.customer === "string" ? session.customer : null,
     stripeSubscriptionId:
       typeof session.subscription === "string" ? session.subscription : null,
+    // Le rythme n'a de sens que s'il y a un abonnement : une Essentielle
+    // n'en a pas, et lui en attribuer un fausserait le revenu récurrent.
+    abonnementRythme: session.subscription
+      ? session.metadata?.rythme === "annuel" ? "annuel" : "mensuel"
+      : FieldValue.delete(),
     paidAt: maintenant,
   });
 
@@ -231,12 +273,36 @@ async function traiterPaiement(session: Stripe.Checkout.Session, origin: string)
 
   const commande = await creerCommandeInterne(accommodationId, plaque, origin);
 
-  // Le paiement est encaissé : la commande n'est plus en attente.
-  await adminDb.collection("orders").doc(commande.id!).update({
+  /*
+   * L'adresse de livraison suit la commande.
+   *
+   * Elle est recopiée ici plutôt que laissée dans Stripe : c'est l'écran de
+   * production qu'on ouvre pour expédier, pas le tableau de bord Stripe. Une
+   * commande doit se suffire à elle-même.
+   */
+  const livraison = await lireLivraison(session);
+
+  const maj: Record<string, unknown> = {
     status: "payee",
     stripeSessionId: session.id,
     updatedAt: Date.now(),
-  });
+  };
+  // Firestore refuse `undefined` : on n'écrit que ce qu'on a réellement.
+  if (livraison.adresse) maj.shippingAddress = livraison.adresse;
+  if (livraison.nom) maj.shippingName = livraison.nom;
+  if (livraison.telephone) maj.shippingPhone = livraison.telephone;
+
+  await adminDb.collection("orders").doc(commande.id!).update(maj);
+
+  if (!livraison.adresse) {
+    // Signalé fort : une plaque sans adresse ne peut pas partir, et l'équipe
+    // doit le savoir sans avoir à éplucher les commandes une par une.
+    console.warn(
+      "[stripe] commande",
+      commande.reference,
+      "encaissée SANS adresse de livraison — à réclamer au client"
+    );
+  }
 
   console.info("[stripe] commande", commande.reference, "créée pour", accommodationId);
 }

@@ -22,6 +22,17 @@ import {
 const ACCOMMODATIONS = "accommodations";
 
 /**
+ * Pays où nous acceptons d'expédier une plaque.
+ *
+ * Restreint volontairement : au-delà, les frais de port dépassent le prix de
+ * l'objet, et la douane s'invite. La liste s'élargira quand l'expédition
+ * suivra — pas avant, sous peine de vendre ce qu'on ne sait pas livrer.
+ */
+const PAYS_LIVRES = [
+  "FR", "BE", "CH", "LU", "MC", "ES", "IT", "PT", "DE", "NL",
+] as const;
+
+/**
  * Vérifie que l'appelant a le droit de payer pour ce livret.
  *
  * Deux entrées possibles : l'administration Guidz par son cookie, ou l'hôte
@@ -92,6 +103,18 @@ export async function ouvrirPaiement(
       plaqueTagline: livret.plaque?.engravedTagline || "",
       rythme,
     },
+    /*
+     * Où envoyer la plaque.
+     *
+     * Rien ne le demandait, nulle part : on vendait un objet en bois sans
+     * jamais demander où l'envoyer. L'e-mail du client ne dit pas où il
+     * habite, et une plaque gravée sans adresse reste sur l'établi. Stripe
+     * pose la question dans le même écran que le paiement — pas de
+     * formulaire supplémentaire à franchir.
+     */
+    shipping_address_collection: { allowed_countries: [...PAYS_LIVRES] },
+    // Les transporteurs réclament un numéro pour annoncer la livraison.
+    phone_number_collection: { enabled: true },
     success_url: `${origin}/commande/merci?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/admin/hebergements/${accommodationId}`,
     locale: "fr",

@@ -2,7 +2,8 @@
 
 import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
-import { Accommodation } from "@/lib/types/accommodation";
+import { Accommodation, PlaqueOrder } from "@/lib/types/accommodation";
+import { IndicateurLivret } from "@/lib/types/pilotage";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
@@ -512,4 +513,85 @@ export async function uploadAdminImageAction(formData: FormData, folder: string)
     console.error("Error uploading image via admin", error);
     throw new Error("Failed to upload image");
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PILOTAGE
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Usage réel et état de production, livret par livret.
+ *
+ * Servi à part de la liste des livrets, et jamais bloquant : si les
+ * statistiques ou les commandes sont injoignables, la liste s'affiche quand
+ * même, seulement privée de ses indicateurs. Une panne de mesure ne doit pas
+ * empêcher de gérer les hébergements.
+ */
+export async function getIndicateursLivrets(): Promise<Record<string, IndicateurLivret>> {
+  await requireAdminAuth();
+
+  const [statsSnap, ordersSnap] = await Promise.all([
+    withTimeout(adminDb.collection("stats").get(), "statistiques").catch(() => null),
+    withTimeout(adminDb.collection("orders").get(), "commandes").catch(() => null),
+  ]);
+
+  const indicateurs: Record<string, IndicateurLivret> = {};
+
+  // Trente jours glissants, en clés « AAAA-MM-JJ » comme les compteurs.
+  const depuis = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+
+  for (const doc of statsSnap?.docs || []) {
+    const data = doc.data() as {
+      opens?: number;
+      qrScans?: number;
+      lastOpenAt?: number;
+      byDay?: Record<string, number>;
+    };
+
+    let vues30j = 0;
+    for (const [jour, n] of Object.entries(data.byDay || {})) {
+      if (jour >= depuis) vues30j += Number(n) || 0;
+    }
+
+    indicateurs[doc.id] = {
+      vues: data.opens || 0,
+      scansQr: data.qrScans || 0,
+      vues30j,
+      derniereVue: data.lastOpenAt || null,
+      commandeRef: null,
+      commandeStatut: null,
+      adresseConnue: false,
+    };
+  }
+
+  /*
+   * La commande la plus récente prime : c'est la plaque en cours. Une
+   * commande annulée ne l'emporte jamais sur une commande vivante, sans quoi
+   * un remplacement annulé masquerait la plaque réellement produite.
+   */
+  const commandes = (ordersSnap?.docs || [])
+    .map((d) => d.data() as PlaqueOrder)
+    .filter((o) => o.accommodationId)
+    .sort((a, b) => a.createdAt - b.createdAt);
+
+  for (const commande of commandes) {
+    const courant = indicateurs[commande.accommodationId] || {
+      vues: 0, scansQr: 0, vues30j: 0, derniereVue: null,
+      commandeRef: null, commandeStatut: null, adresseConnue: false,
+    };
+    if (courant.commandeStatut && commande.status === "annulee") {
+      indicateurs[commande.accommodationId] = courant;
+      continue;
+    }
+    indicateurs[commande.accommodationId] = {
+      ...courant,
+      commandeRef: commande.reference,
+      commandeStatut: commande.status,
+      adresseConnue: Boolean(commande.shippingAddress?.line1),
+    };
+  }
+
+  return indicateurs;
 }

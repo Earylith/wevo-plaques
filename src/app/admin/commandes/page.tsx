@@ -1,19 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Package, Warning, ArrowSquareOut, Copy, Check, PencilSimple, Download,
+  MagnifyingGlass,
 } from "@phosphor-icons/react";
 import { getPlaqueOrders, updateOrderStatus } from "../orders";
 import PanneauExpedition, { Champ, dateCourte } from "@/components/admin/PanneauExpedition";
+import AdresseLivraison from "@/components/admin/AdresseLivraison";
+import { Indicateur, Filtre, depuis, euros } from "@/components/admin/pilotage";
+import { adresseExpediable } from "@/lib/adressePostale";
 import { PlaqueOrder, OrderStatus, ORDER_STATUS_LABELS } from "@/lib/types/accommodation";
 
 /**
  * Suivi de production des plaques.
  *
  * Pour chaque commande, l'équipe retrouve le client, le logement, la formule,
- * la configuration figée, l'URL gravée et l'état d'avancement.
+ * la configuration figée, l'URL gravée, l'adresse d'expédition et l'état
+ * d'avancement.
+ *
+ * L'écran est organisé autour de la seule question qui compte le matin :
+ * qu'est-ce qui doit sortir aujourd'hui, et qu'est-ce qui est bloqué ? D'où
+ * l'ancienneté affichée en clair et la file de production triée du plus
+ * ancien au plus récent — une commande de six jours doit remonter, pas se
+ * perdre sous celles d'hier.
  */
 
 const STATUS_ORDER: OrderStatus[] = [
@@ -36,12 +47,40 @@ const STATUS_TONE: Record<OrderStatus, string> = {
 
 const WOOD_LABEL: Record<string, string> = { clair: "Bois clair", noyer: "Noyer" };
 
+/** Ce que rapporte une commande, selon la formule choisie. */
+const PRIX_MISE_EN_SERVICE: Record<string, number> = { comfort: 69, essential: 49 };
+
+/** Les états qui demandent encore un geste de l'atelier. */
+const A_PRODUIRE: OrderStatus[] = ["payee", "fichier_genere", "en_gravure"];
+
+type Filtrage = "produire" | "bloquees" | "expediees" | "attente" | "annulees" | "toutes";
+
+/**
+ * Une commande payée depuis plus d'une semaine et toujours pas expédiée.
+ *
+ * Le seuil est volontairement bas : c'est un objet fabriqué à la main, pas
+ * un envoi le jour même — mais au-delà, le client commence à écrire.
+ */
+const RETARD_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * La commande traîne-t-elle ?
+ *
+ * Sortie du rendu : l'heure courante ne se dérive pas de l'état, et
+ * l'interroger pendant le rendu rendrait le résultat instable.
+ */
+function traineTrop(order: PlaqueOrder): boolean {
+  return A_PRODUIRE.includes(order.status) && Date.now() - order.createdAt > RETARD_MS;
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<PlaqueOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [recherche, setRecherche] = useState("");
+  const [filtre, setFiltre] = useState<Filtrage>("produire");
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -83,6 +122,87 @@ export default function OrdersPage() {
     setTimeout(() => setCopied((c) => (c === order.id ? null : c)), 2000);
   };
 
+  /* ─── L'atelier en cinq chiffres ────────────────────────────────────── */
+
+  const bilan = useMemo(() => {
+    const vivantes = orders.filter((o) => o.status !== "annulee");
+    const aProduire = vivantes.filter((o) => A_PRODUIRE.includes(o.status));
+    const expediees = orders.filter((o) => o.status === "expediee");
+
+    // Bloquées : payées, à produire, mais sans adresse où les envoyer.
+    const bloquees = aProduire.filter((o) => !adresseExpediable(o.shippingAddress));
+
+    const enRetard = aProduire.filter(traineTrop);
+
+    const encaisse = vivantes
+      .filter((o) => o.status !== "en_attente_paiement")
+      .reduce((total, o) => total + (PRIX_MISE_EN_SERVICE[o.offerType] || 0), 0);
+
+    /*
+     * Délai réel entre la commande et l'expédition, sur ce qui est parti.
+     * C'est le seul chiffre qui permette d'annoncer un délai honnête sur le
+     * site — le reste n'est qu'une intention.
+     */
+    const delais = expediees
+      .filter((o) => o.shippedAt)
+      .map((o) => (o.shippedAt! - o.createdAt) / 86400000);
+    const delaiMoyen = delais.length
+      ? Math.round((delais.reduce((a, b) => a + b, 0) / delais.length) * 10) / 10
+      : null;
+
+    return {
+      aProduire: aProduire.length,
+      bloquees: bloquees.length,
+      enRetard: enRetard.length,
+      expediees: expediees.length,
+      attente: orders.filter((o) => o.status === "en_attente_paiement").length,
+      annulees: orders.filter((o) => o.status === "annulee").length,
+      encaisse,
+      delaiMoyen,
+    };
+  }, [orders]);
+
+  /* ─── Filtres et recherche ──────────────────────────────────────────── */
+
+  const passe = useCallback((o: PlaqueOrder, f: Filtrage) => {
+    switch (f) {
+      case "produire": return A_PRODUIRE.includes(o.status);
+      case "bloquees":
+        return A_PRODUIRE.includes(o.status) && !adresseExpediable(o.shippingAddress);
+      case "expediees": return o.status === "expediee";
+      case "attente": return o.status === "en_attente_paiement";
+      case "annulees": return o.status === "annulee";
+      default: return true;
+    }
+  }, []);
+
+  const visibles = useMemo(() => {
+    const q = recherche.trim().toLowerCase();
+
+    const retenues = orders
+      .filter((o) => passe(o, filtre))
+      .filter((o) => {
+        if (!q) return true;
+        return [
+          o.reference, o.accommodationName, o.ownerName, o.ownerEmail,
+          o.accommodationSlug, o.trackingNumber, o.carrier,
+          o.shippingAddress?.city, o.shippingAddress?.postalCode,
+        ]
+          .filter(Boolean)
+          .some((champ) => String(champ).toLowerCase().includes(q));
+      });
+
+    /*
+     * La file de production se lit du plus ancien au plus récent : c'est
+     * l'ordre dans lequel on grave. Partout ailleurs, la plus récente
+     * d'abord, comme on consulte un historique.
+     */
+    const ancienDabord = filtre === "produire" || filtre === "bloquees";
+    return retenues.sort((a, b) =>
+      ancienDabord ? a.createdAt - b.createdAt : b.createdAt - a.createdAt
+    );
+  }, [orders, filtre, recherche, passe]);
+
   if (loading) {
     return (
       <div className="flex flex-col justify-center items-center h-64 gap-3">
@@ -94,13 +214,56 @@ export default function OrdersPage() {
 
   return (
     <div>
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-[#2A2016]">
           Commandes de plaques
         </h1>
         <p className="text-sm text-[#6B5D4E] mt-1">
           Suivi de production, de la commande à l’expédition.
         </p>
+      </div>
+
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <Indicateur
+          intitule="À produire"
+          valeur={bilan.aProduire}
+          detail={
+            bilan.enRetard > 0
+              ? `dont ${bilan.enRetard} de plus de 7 jours`
+              : "Aucune ne traîne"
+          }
+          ton={bilan.enRetard > 0 ? "alerte" : "neutre"}
+        />
+        <Indicateur
+          intitule="Bloquées"
+          valeur={bilan.bloquees}
+          detail={
+            bilan.bloquees > 0
+              ? "Sans adresse de livraison"
+              : "Toutes ont une adresse"
+          }
+          ton={bilan.bloquees > 0 ? "alerte" : "bien"}
+        />
+        <Indicateur
+          intitule="Expédiées"
+          valeur={bilan.expediees}
+          detail={
+            bilan.delaiMoyen !== null
+              ? `Délai moyen : ${bilan.delaiMoyen} j`
+              : "Aucun délai mesuré"
+          }
+          ton="bien"
+        />
+        <Indicateur
+          intitule="Encaissé"
+          valeur={euros(bilan.encaisse)}
+          detail="Mises en service, hors abonnements"
+        />
+        <Indicateur
+          intitule="En attente de paiement"
+          valeur={bilan.attente}
+          detail="Commandes ouvertes, non réglées"
+        />
       </div>
 
       {error && (
@@ -118,17 +281,44 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {orders.length === 0 ? (
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative">
+          <MagnifyingGlass
+            size={14}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#A8998A]"
+          />
+          <input
+            value={recherche}
+            onChange={(e) => setRecherche(e.target.value)}
+            placeholder="Référence, logement, client, suivi, ville…"
+            className="w-64 rounded-full border border-[#EDD9A3] bg-white py-2 pl-8 pr-3 text-[12px] outline-none focus:border-[#C4714A]"
+          />
+        </div>
+        <Filtre libelle="À produire" nombre={bilan.aProduire} actif={filtre === "produire"} onClick={() => setFiltre("produire")} />
+        <Filtre libelle="Bloquées" nombre={bilan.bloquees} actif={filtre === "bloquees"} onClick={() => setFiltre("bloquees")} />
+        <Filtre libelle="Expédiées" nombre={bilan.expediees} actif={filtre === "expediees"} onClick={() => setFiltre("expediees")} />
+        <Filtre libelle="En attente" nombre={bilan.attente} actif={filtre === "attente"} onClick={() => setFiltre("attente")} />
+        <Filtre libelle="Annulées" nombre={bilan.annulees} actif={filtre === "annulees"} onClick={() => setFiltre("annulees")} />
+        <Filtre libelle="Toutes" nombre={orders.length} actif={filtre === "toutes"} onClick={() => setFiltre("toutes")} />
+      </div>
+
+      {visibles.length === 0 ? (
         <div className="bg-white rounded-3xl border border-[#EDD9A3]/40 py-16 text-center">
           <Package size={32} className="mx-auto text-[#C9B99F] mb-3" />
-          <p className="text-sm font-semibold text-[#2A2016]">Aucune commande pour le moment</p>
+          <p className="text-sm font-semibold text-[#2A2016]">
+            {orders.length === 0
+              ? "Aucune commande pour le moment"
+              : "Aucune commande dans cette vue"}
+          </p>
           <p className="text-xs text-[#6B5D4E] mt-1">
-            Les commandes passées depuis l’éditeur apparaîtront ici.
+            {orders.length === 0
+              ? "Les commandes passées depuis l’éditeur apparaîtront ici."
+              : "Changez de filtre ou effacez la recherche."}
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {orders.map((order) => (
+          {visibles.map((order) => (
             <div
               key={order.id}
               className="bg-white rounded-3xl border border-[#EDD9A3]/40 shadow-sm overflow-hidden"
@@ -150,6 +340,18 @@ export default function OrdersPage() {
                     {order.version > 1 && (
                       <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#F7EBE4] text-[#A35A38]">
                         Plaque n° {order.version}
+                      </span>
+                    )}
+                    {/*
+                      L'ancienneté en clair, à côté du numéro : c'est elle
+                      qui dit si la commande doit passer devant, pas la date.
+                    */}
+                    <span className="text-[11px] text-[#A8998A]">
+                      Commandée {depuis(order.createdAt)}
+                    </span>
+                    {traineTrop(order) && (
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200">
+                        Plus de 7 jours
                       </span>
                     )}
                   </div>
@@ -253,6 +455,13 @@ export default function OrdersPage() {
                 </Champ>
                 <Champ intitule="Dernière mise à jour">{dateCourte(order.updatedAt)}</Champ>
               </div>
+
+              <AdresseLivraison
+                order={order}
+                onEnregistre={(maj) =>
+                  setOrders((current) => current.map((o) => (o.id === order.id ? { ...o, ...maj } : o)))
+                }
+              />
 
               <PanneauExpedition
                 order={order}

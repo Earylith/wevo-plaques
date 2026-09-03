@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Check, X } from "@phosphor-icons/react";
 import {
   FINALITES,
@@ -32,6 +33,14 @@ import {
  */
 
 export default function BandeauCookies() {
+  /*
+   * L'administration n'est pas un site visité : c'est l'outil interne de
+   * Guidz, derrière une authentification. Y demander un consentement n'a
+   * aucun sens juridique, et le bandeau recouvrait les lignes du tableau
+   * de bord à chaque ouverture.
+   */
+  const chemin = usePathname();
+
   /** `"inconnu"` tant que le stockage n'a pas été lu : rien ne s'affiche. */
   const [etat, setEtat] = useState<"inconnu" | "a-demander" | "repondu">("inconnu");
   const [detaille, setDetaille] = useState(false);
@@ -54,6 +63,7 @@ export default function BandeauCookies() {
     setEtat("repondu");
   };
 
+  if (chemin?.startsWith("/admin")) return null;
   if (etat !== "a-demander") return null;
 
   const bouton =

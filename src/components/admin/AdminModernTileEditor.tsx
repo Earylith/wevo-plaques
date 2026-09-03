@@ -20,7 +20,6 @@ import PlaquePreview from "@/components/admin/editor/PlaquePreview";
 import VerrouConfort from "@/components/admin/editor/VerrouConfort";
 import EssentialTemplate from "@/components/templates/EssentialTemplate";
 import { ouvrirPaiement } from "@/app/paiement-actions";
-import StatsPanel from "@/components/admin/editor/StatsPanel";
 import ApercuPleinEcran from "@/components/admin/editor/ApercuPleinEcran";
 import ChoixFormule from "@/components/admin/editor/ChoixFormule";
 import ChoixRythme from "@/components/admin/editor/ChoixRythme";
@@ -2681,8 +2680,13 @@ export default function AdminModernTileEditor({
                   </>
                 )}
 
-                {/* Ce que le livret publié produit réellement. */}
-                {docId && estAdmin && <StatsPanel accommodationId={docId} />}
+                {/*
+                  Les statistiques ne sont plus ici.
+                  L'éditeur sert à écrire ; les chiffres se lisent dans
+                  l'espace client, où ils figurent déjà pour les deux formules.
+                  Les afficher au milieu d'un formulaire annonçait « aucune
+                  consultation » à quelqu'un qui n'était pas venu pour ça.
+                */}
 
               </div>
             )}
