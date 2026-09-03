@@ -83,6 +83,9 @@ export async function lireTextesEmails(): Promise<TextesEmails> {
       commande: valide(enregistre.commande) ? enregistre.commande : TEXTES_PAR_DEFAUT.commande,
       expedition: valide(enregistre.expedition) ? enregistre.expedition : TEXTES_PAR_DEFAUT.expedition,
       devis: valide(enregistre.devis) ? enregistre.devis : TEXTES_PAR_DEFAUT.devis,
+      resiliation: valide(enregistre.resiliation)
+        ? enregistre.resiliation
+        : TEXTES_PAR_DEFAUT.resiliation,
     };
   } catch (error) {
     console.error("[emails] lecture des textes impossible, défauts utilisés", error);

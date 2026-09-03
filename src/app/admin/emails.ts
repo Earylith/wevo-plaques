@@ -3,7 +3,8 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import {
-  messageBienvenue, messageCommande, messageExpedition, messageDevis, Message,
+  messageBienvenue, messageCommande, messageExpedition, messageDevis,
+  messageResiliation, Message,
 } from "@/lib/server/emails/messages";
 import {
   lireTextesEmails, ecrireTexteEmail, retablirTexteEmail,
@@ -78,6 +79,17 @@ export async function exempleMessage(
         logements: "12",
         email: `${prenom}@conciergerie-bassin.fr`,
         telephone: "06 12 34 56 78",
+      },
+      textes
+    );
+  }
+  if (type === "resiliation") {
+    return messageResiliation(
+      {
+        prenom,
+        nomLogement: "Le Mas des Oliviers",
+        finLe: Date.now() + 18 * 86400000,
+        rythme: "mensuel",
       },
       textes
     );

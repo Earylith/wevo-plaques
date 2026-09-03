@@ -72,3 +72,25 @@ export function sansUndefined<T>(valeur: T): T {
   }
   return valeur;
 }
+
+/**
+ * La phrase réellement gravée, pour une formule donnée.
+ *
+ * La personnalisation de la phrase est une option CONFORT. Le champ était
+ * bien grisé en Essentielle — mais la valeur saisie restait en base, et
+ * l'aperçu comme la commande continuaient de l'utiliser. Un hôte qui
+ * composait en Confort puis redescendait en Essentielle voyait donc sa
+ * phrase sur l'aperçu de la plaque, et elle serait réellement partie à la
+ * gravure : une option non payée, livrée quand même.
+ *
+ * On ne l'EFFACE pas pour autant. Comme le reste du contenu Confort, elle
+ * dort et réapparaît intacte si l'hôte revient — supprimer serait
+ * irréversible pour un geste qu'on présente comme un essayage.
+ */
+export function taglineGravee(
+  plaque: Partial<PlaqueConfig> | null | undefined,
+  offre: "comfort" | "essential" | undefined
+): string {
+  if (offre !== "comfort") return TAGLINE_PAR_DEFAUT;
+  return plaque?.engravedTagline?.trim() || TAGLINE_PAR_DEFAUT;
+}

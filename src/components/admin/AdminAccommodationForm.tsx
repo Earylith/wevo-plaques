@@ -5,7 +5,7 @@ import { Accommodation, OfferType, ContactInfo, Recommendation, PointOfInterest 
 import { slugify } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
 import { Plus, Trash, Image as ImageIcon } from "@phosphor-icons/react";
-import { uploadAdminImageAction } from "@/app/admin/actions";
+import { envoyerImage } from "@/lib/envoyerImage";
 
 interface Props {
   initialData?: Accommodation;
@@ -308,13 +308,11 @@ export default function AdminAccommodationForm({ initialData, onSubmit, isLoadin
                   const file = e.target.files?.[0];
                   if (file) {
                     try {
-                      const formData = new FormData();
-                      formData.append("file", file);
-                      const url = await uploadAdminImageAction(formData, "accommodations/main");
+                      const url = await envoyerImage(file, "accommodations/main");
                       handleChange("property", "mainImageUrl", url);
                     } catch (err) {
                       console.error(err);
-                      alert("Erreur lors de l'upload");
+                      alert(err instanceof Error && err.message ? err.message : "L'envoi de l'image a échoué.");
                     }
                   }
                 }}
@@ -388,13 +386,10 @@ export default function AdminAccommodationForm({ initialData, onSubmit, isLoadin
                 onChange={(e) => handleChange("practicalInfo", "parking", e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
               />
-              <input
-                type="text"
-                placeholder="Petit-déjeuner"
-                value={formData.practicalInfo?.breakfast || ""}
-                onChange={(e) => handleChange("practicalInfo", "breakfast", e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] focus:outline-none focus:ring-2 focus:ring-[#C4714A]/50 bg-[#FBF5EC]"
-              />
+              {/*
+                Petit-déjeuner retiré ici aussi : aucun gabarit ne l'affichait.
+                Voir le commentaire dans l'éditeur moderne.
+              */}
             </div>
           </div>
         </div>
@@ -586,12 +581,10 @@ export default function AdminAccommodationForm({ initialData, onSubmit, isLoadin
                             const file = e.target.files?.[0];
                             if (file) {
                               try {
-                                const formData = new FormData();
-                                formData.append("file", file);
-                                const url = await uploadAdminImageAction(formData, "accommodations/recs");
+                                const url = await envoyerImage(file, "accommodations/recs");
                                 handleComplexArrayChange("recommendations", index, "imageUrl", url);
                               } catch (err) {
-                                alert("Erreur upload");
+                                alert(err instanceof Error && err.message ? err.message : "L’envoi de l’image a échoué.");
                               }
                             }
                           }}
@@ -666,12 +659,10 @@ export default function AdminAccommodationForm({ initialData, onSubmit, isLoadin
                     const file = e.target.files?.[0];
                     if (file) {
                       try {
-                        const formData = new FormData();
-                        formData.append("file", file);
-                        const url = await uploadAdminImageAction(formData, "accommodations/logos");
+                        const url = await envoyerImage(file, "accommodations/logos");
                         handleChange("property", "logoUrl", url);
                       } catch (err) {
-                        alert("Erreur upload");
+                        alert(err instanceof Error && err.message ? err.message : "L’envoi de l’image a échoué.");
                       }
                     }
                   }}

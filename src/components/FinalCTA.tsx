@@ -1,7 +1,8 @@
 "use client";
 
-import { ArrowRight, PhoneCall } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import AnimateOnScroll from "./AnimateOnScroll";
+import DemandeRappel from "@/components/ui/DemandeRappel";
 
 export default function FinalCTA() {
   return (
@@ -74,13 +75,7 @@ export default function FinalCTA() {
                   Commander mon Guidz
                   <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform" />
                 </a>
-                <a
-                  href="#"
-                  className="inline-flex items-center justify-center gap-3 px-10 py-5 rounded-full border-2 border-[#2A2016]/10 bg-white/50 text-[#2A2016] font-semibold text-lg hover:border-[#C4714A] hover:text-[#C4714A] hover:bg-white transition-all btn-press"
-                >
-                  <PhoneCall size={20} />
-                  Être rappelé
-                </a>
+                <DemandeRappel />
               </div>
 
               {/* Social proof */}

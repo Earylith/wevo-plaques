@@ -13,7 +13,7 @@ import { CleMessage, TexteMessage, TextesEmails, VARIABLES } from "@/lib/emailsT
 /**
  * Les e-mails que reçoivent les clients : relus, modifiables, essayables.
  *
- * Quatre messages seulement, mais ce sont les seuls écrits que Guidz adresse
+ * Cinq messages seulement, mais ce sont les seuls écrits que Guidz adresse
  * à ses clients : une faute de frappe, un lien mort ou une mise en page
  * cassée s'y voient plus que partout ailleurs.
  *
@@ -38,6 +38,12 @@ const MESSAGES: { cle: CleMessage; titre: string; quand: string }[] = [
     titre: "Plaque expédiée",
     quand:
       "Automatiquement, dès qu’un suivi de livraison est enregistré dans les commandes.",
+  },
+  {
+    cle: "resiliation",
+    titre: "Résiliation Confort",
+    quand:
+      "Quand un abonné Confort demande à résilier, dès que Stripe confirme la demande.",
   },
   {
     cle: "devis",
@@ -144,7 +150,7 @@ export default function EmailsPage() {
           E-mails clients
         </h1>
         <p className="mt-1 text-sm text-[#6B5D4E]">
-          Les quatre messages transactionnels : relisez-les, modifiez le texte, essayez-les.
+          Les cinq messages transactionnels : relisez-les, modifiez le texte, essayez-les.
         </p>
       </div>
 

@@ -4,9 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Eye, Check, Trash, ArrowLeft, ArrowRight, MagnifyingGlass, X, Spinner, Warning,
 } from "@phosphor-icons/react";
-import { uploadAdminImageAction } from "@/app/admin/actions";
-import { compressImage, MAX_UPLOAD_BYTES } from "@/lib/imageCompression";
-import { auth } from "@/lib/firebase/config";
+import { envoyerImage } from "@/lib/envoyerImage";
 
 /* Banque de photos libres (Unsplash) proposée quand l'hôte n'a pas encore
    ses propres visuels. Chaque entrée porte des mots-clés français pour que
@@ -82,27 +80,7 @@ export default function PhotoManager({ photos, onChange, city, allowUpload = tru
       const uploaded: string[] = [];
       for (const original of images) {
         try {
-          // Réduction à 1600 px + WebP : indispensable, une photo de téléphone
-          // brute dépasse la limite de corps des Server Actions.
-          const file = await compressImage(original);
-          if (file.size > MAX_UPLOAD_BYTES) {
-            throw new Error(`« ${original.name} » est trop lourde même après compression.`);
-          }
-          const fd = new FormData();
-          fd.append("file", file);
-          /*
-           * Le jeton de l'hôte accompagne l'envoi.
-           *
-           * L'action était réservée au cookie d'administration : un client
-           * qui ajoutait une photo depuis son propre éditeur se voyait
-           * refuser l'envoi, et lisait un message l'invitant à vérifier son
-           * stockage Firebase — qui n'y était pour rien.
-           *
-           * Guidz garde son cookie ; le jeton, absent dans son cas, ne
-           * change rien pour lui.
-           */
-          const jeton = await auth.currentUser?.getIdToken().catch(() => undefined);
-          const url = await uploadAdminImageAction(fd, "livrets", jeton);
+          const url = await envoyerImage(original, "livrets");
           uploaded.push(url);
         } catch (err) {
           console.error(err);

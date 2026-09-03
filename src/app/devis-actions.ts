@@ -109,6 +109,15 @@ export async function envoyerDemandeDevis(
 
   if (nom.length < 2) throw new Error("Indiquez votre nom.");
   if (!emailPlausible(email)) throw new Error("Cette adresse e-mail ne semble pas valide.");
+  /*
+   * Le téléphone est exigé côté serveur aussi, et pas seulement par
+   * l'attribut `required` du formulaire : un `required` se contourne en
+   * trois clics dans une console, et c'est le seul numéro qu'on aura pour
+   * rappeler ce prospect.
+   */
+  if ((demande.telephone || "").replace(/\D/g, "").length < 6) {
+    throw new Error("Indiquez un numéro de téléphone : nous vous rappellerons.");
+  }
   if (demande.offre !== "multibien" && demande.offre !== "signature") {
     throw new Error("Offre inconnue.");
   }

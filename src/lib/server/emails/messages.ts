@@ -401,5 +401,71 @@ export function messageDevisInterne(donnees: {
   });
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   5. RÉSILIATION — l'abonnement Confort s'arrêtera
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * L'accusé de résiliation.
+ *
+ * Il a un travail précis : dissiper la crainte. Quelqu'un qui résilie un
+ * abonnement à 1,99 € se demande immédiatement si sa page va disparaître et
+ * si sa plaque devient un morceau de bois. La réponse est non dans les deux
+ * cas, et elle doit être dite en toutes lettres, tout de suite — pas
+ * découverte par soulagement trois semaines plus tard.
+ *
+ * Il rappelle aussi qu'on peut revenir en arrière. Un client qui a résilié
+ * par erreur, ou changé d'avis, ne doit pas avoir à nous écrire pour le
+ * défaire.
+ */
+export async function messageResiliation(
+  donnees: {
+    prenom?: string;
+    nomLogement: string;
+    /** Fin de la période payée, en millisecondes. */
+    finLe: number | null;
+    rythme?: "mensuel" | "annuel";
+  },
+  textes?: TextesEmails
+): Promise<Message> {
+  const finTexte = donnees.finLe
+    ? new Date(donnees.finLe).toLocaleDateString("fr-FR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      })
+    : "la fin de votre période en cours";
+
+  const modele = rendre(await texteDe("resiliation", textes), {
+    prenom: donnees.prenom,
+    logement: donnees.nomLogement,
+    fin: finTexte,
+  });
+
+  const faits: Fait[] = [
+    { intitule: "Logement", valeur: donnees.nomLogement },
+    { intitule: "Fin de l’abonnement", valeur: finTexte, fort: true },
+    { intitule: "Votre page", valeur: "Reste en ligne, en formule Essentielle" },
+    { intitule: "Votre plaque", valeur: "Continue de fonctionner" },
+  ];
+  if (donnees.rythme) {
+    faits.splice(1, 0, {
+      intitule: "Formule quittée",
+      valeur: donnees.rythme === "annuel" ? "Confort, 19 €/an" : "Confort, 1,99 €/mois",
+    });
+  }
+
+  return composer({
+    sujet: modele.sujet,
+    apercu: "Votre page reste en ligne, et votre plaque continue de fonctionner.",
+    titre: modele.titre,
+    corps: modele.paragraphes,
+    titreFaits: "Ce qui se passe",
+    faits,
+    bouton: { libelle: "Voir mon espace", href: urlAbsolue("/proprietaire/dashboard") },
+    postScriptum: modele.postScriptum,
+  });
+}
+
 /** Les textes d'origine, pour l'administration. */
 export { TEXTES_PAR_DEFAUT };

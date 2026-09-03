@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   }
 
   const type = (request.nextUrl.searchParams.get("type") || "bienvenue") as CleMessage;
-  if (!["bienvenue", "commande", "expedition", "devis"].includes(type)) {
+  if (!["bienvenue", "commande", "expedition", "devis", "resiliation"].includes(type)) {
     return NextResponse.json({ error: "Type inconnu." }, { status: 400 });
   }
 

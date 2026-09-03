@@ -15,7 +15,9 @@ import CleoTemplate, { PreviewTarget } from "@/components/templates/CleoTemplate
 import PhotoManager from "@/components/admin/editor/PhotoManager";
 import PlaceSearch from "@/components/admin/editor/PlaceSearch";
 import TranslationsTab from "@/components/admin/editor/TranslationsTab";
-import PlaqueTab, { essenceCommandable, TAGLINE_PAR_DEFAUT } from "@/components/admin/editor/PlaqueTab";
+import PlaqueTab, { essenceCommandable } from "@/components/admin/editor/PlaqueTab";
+import { taglineGravee } from "@/lib/plaque";
+import { heureArrivee, heureDepart } from "@/lib/horaires";
 import PlaquePreview from "@/components/admin/editor/PlaquePreview";
 import VerrouConfort from "@/components/admin/editor/VerrouConfort";
 import EssentialTemplate from "@/components/templates/EssentialTemplate";
@@ -1211,7 +1213,7 @@ export default function AdminModernTileEditor({
           <div className="space-y-4">
             <TimeField
               label="Arrivée à partir de"
-              value={data.practicalInfo?.checkin || "14h00"}
+              value={heureArrivee(data.practicalInfo)}
               onChange={(v) => setPractical({ checkin: v })}
               hours={CHECKIN_HOURS}
               field="practicalInfo.checkin"
@@ -1251,18 +1253,14 @@ export default function AdminModernTileEditor({
               placeholder="Place n°42 au sous-sol, bip sur le trousseau"
             />
             {/*
-              Le petit-déjeuner appartient au Confort. Le proposer en
-              Essentielle revenait à faire remplir un champ que la page ne rend
-              pas : l'hôte écrivait pour personne.
+              Le petit-déjeuner a été retiré : aucun gabarit ne l'affichait, ni
+              en Confort ni en Essentielle. L'hôte remplissait donc un champ
+              que ses voyageurs ne voyaient nulle part. La fonction reviendra
+              avec la rubrique des services, si elle revient.
+
+              Les valeurs déjà saisies dorment en base — on ne détruit pas ce
+              qu'on a demandé à quelqu'un d'écrire.
             */}
-            {estConfort && (
-              <TextField
-                label="Petit-déjeuner"
-                value={data.practicalInfo?.breakfast || ""}
-                onChange={(v) => setPractical({ breakfast: v })}
-                placeholder="Servi de 8h30 à 10h dans la véranda"
-              />
-            )}
           </div>
         );
 
@@ -1448,7 +1446,7 @@ export default function AdminModernTileEditor({
           <div className="space-y-4">
             <TimeField
               label="Départ avant"
-              value={data.practicalInfo?.checkout || "10h00"}
+              value={heureDepart(data.practicalInfo)}
               onChange={(v) => setPractical({ checkout: v })}
               hours={CHECKOUT_HOURS}
               field="practicalInfo.checkout"
@@ -2768,11 +2766,7 @@ export default function AdminModernTileEditor({
             <div className="w-full max-w-[540px] flex flex-col items-center gap-4">
               <PlaquePreview
                 wood={essenceCommandable(data.plaque?.wood)}
-                tagline={
-                  data.plaque?.engravedTagline?.trim()
-                    ? data.plaque.engravedTagline
-                    : TAGLINE_PAR_DEFAUT
-                }
+                tagline={taglineGravee(data.plaque, data.offerType)}
                 qrValue={engravedUrl}
               />
               <p className="text-[11px] text-[#6B5D4E] text-center leading-relaxed px-4">
@@ -2887,11 +2881,7 @@ export default function AdminModernTileEditor({
             <div className="w-full max-w-[420px]">
               <PlaquePreview
                 wood={essenceCommandable(data.plaque?.wood)}
-                tagline={
-                  data.plaque?.engravedTagline?.trim()
-                    ? data.plaque.engravedTagline
-                    : TAGLINE_PAR_DEFAUT
-                }
+                tagline={taglineGravee(data.plaque, data.offerType)}
                 qrValue={engravedUrl}
               />
             </div>

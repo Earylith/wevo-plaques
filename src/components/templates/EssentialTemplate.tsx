@@ -1,5 +1,6 @@
 "use client";
 
+import { heureArrivee, heureDepart } from "@/lib/horaires";
 import React, { useEffect, useRef, useState } from "react";
 import {
   List, X, WifiHigh, Key, DoorOpen, BookOpen, Phone, WarningCircle,
@@ -257,18 +258,14 @@ export default function EssentialTemplate({
   /* Une rubrique masquée par l'hôte, ou entièrement vide, ne s'affiche pas. */
   const visible = (id: ModuleId, aDuContenu: boolean) => isModuleVisible(data, id) && aDuContenu;
 
-  const montreArrivee = visible(
-    "arrivee",
-    rempli(data.practicalInfo?.checkin) ||
-      rempli(data.practicalInfo?.arrivalNotes) ||
-      rempli(data.property?.address) ||
-      rempli(data.practicalInfo?.parking)
-  );
+  /*
+   * L'arrivée et le départ portent toujours une heure, saisie ou par défaut :
+   * ils ne peuvent donc plus être « entièrement vides ». Seul le choix de
+   * l'hôte de masquer la rubrique les fait disparaître.
+   */
+  const montreArrivee = visible("arrivee", true);
   const montreWifi = visible("wifi", rempli(data.wifi?.ssid) || rempli(data.wifi?.password) || codes.length > 0);
-  const montreDepart = visible(
-    "depart",
-    rempli(data.practicalInfo?.checkout) || rempli(data.practicalInfo?.departureNotes) || consignes.length > 0
-  );
+  const montreDepart = visible("depart", true);
   const montreReglement = visible("reglement", regles.length > 0);
   const montreContacts = visible(
     "contacts",
@@ -396,11 +393,14 @@ export default function EssentialTemplate({
             zone={zone("arrivee")}
           >
             <div className="space-y-1">
-              {rempli(data.practicalInfo?.checkin) && (
-                <Ligne label="Arrivée">
-                  <span className="font-bold">{data.practicalInfo.checkin}</span>
-                </Ligne>
-              )}
+              {/*
+                Toujours affichée, avec la convention par défaut si rien n'est
+                saisi : c'est la première question d'un voyageur, et masquer la
+                ligne le laissait sans réponse.
+              */}
+              <Ligne label="Arrivée">
+                <span className="font-bold">{heureArrivee(data.practicalInfo)}</span>
+              </Ligne>
               {rempli(data.property?.address) && (
                 <Ligne label="Adresse">
                   <a
@@ -480,11 +480,10 @@ export default function EssentialTemplate({
             zone={zone("depart")}
           >
             <div className="space-y-1">
-              {rempli(data.practicalInfo?.checkout) && (
-                <Ligne label="Départ">
-                  <span className="font-bold">{data.practicalInfo.checkout}</span>
-                </Ligne>
-              )}
+              {/* Comme l'arrivée : toujours une réponse, jamais un tiret. */}
+              <Ligne label="Départ">
+                <span className="font-bold">{heureDepart(data.practicalInfo)}</span>
+              </Ligne>
               {consignes.length > 0 && (
                 <div className="py-2.5 border-b border-[#EDD9A3]/30 last:border-0">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-[#6B5D4E] mb-2">

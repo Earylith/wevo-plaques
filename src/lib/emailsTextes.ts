@@ -7,7 +7,12 @@
  * échouer la compilation du paquet client.
  */
 
-export type CleMessage = "bienvenue" | "commande" | "expedition" | "devis";
+export type CleMessage =
+  | "bienvenue"
+  | "commande"
+  | "expedition"
+  | "devis"
+  | "resiliation";
 
 export interface TexteMessage {
   sujet: string;
@@ -49,6 +54,11 @@ export const VARIABLES: Record<CleMessage, { cle: string; sens: string }[]> = {
     { cle: "{societe}", sens: "Sa société, si elle est renseignée" },
     { cle: "{offre}", sens: "Multi-biens ou Signature" },
     { cle: "{logements}", sens: "Le nombre de logements indiqué" },
+  ],
+  resiliation: [
+    { cle: "{prenom}", sens: "Le prénom de l’hôte" },
+    { cle: "{logement}", sens: "Le nom de son logement" },
+    { cle: "{fin}", sens: "La date de fin de l’abonnement, en clair" },
   ],
 };
 
@@ -96,6 +106,17 @@ export const TEXTES_PAR_DEFAUT: TextesEmails = {
     ],
     postScriptum:
       "Vous n’avez rien à faire d’ici là. Si vous n’avez aucune nouvelle sous 48 heures, écrivez-nous : c’est qu’un message se sera perdu en route.",
+  },
+  resiliation: {
+    sujet: "Votre abonnement Confort prend fin le {fin}",
+    titre: "C’est enregistré, {prenom}",
+    paragraphes: [
+      "Votre abonnement Confort s’arrêtera le {fin}. Rien ne change d’ici là : votre livret reste complet, et vous pouvez continuer à le modifier jusqu’au dernier jour.",
+      "Ensuite, votre page « {logement} » RESTE EN LIGNE. Elle repasse simplement en formule Essentielle : les rubriques que le Confort ajoutait ne s’afficheront plus, mais rien n’est supprimé — tout réapparaît intact si vous revenez.",
+      "Votre plaque, elle, continue de fonctionner exactement comme avant. Le QR code pointe sur une adresse permanente : il ne dépend pas de votre abonnement.",
+    ],
+    postScriptum:
+      "Vous pouvez annuler cette résiliation à tout moment depuis votre espace, jusqu’à la date de fin. Et si quelque chose n’allait pas, dites-le nous en répondant à ce message : c’est utile même si vous partez.",
   },
 };
 

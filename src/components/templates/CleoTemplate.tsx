@@ -1,5 +1,6 @@
 "use client";
 
+import { heureArrivee, heureDepart } from "@/lib/horaires";
 import React, { useState, useEffect, useCallback, useDeferredValue, useRef, useSyncExternalStore } from "react";
 import { Accommodation, ModuleId, getModuleDefinition } from "@/lib/types/accommodation";
 import { getModuleStatus, visibleModulesOf, getLocalTimeInfo, resolveGallery } from "@/lib/livret";
@@ -433,7 +434,7 @@ export default function CleoTemplate({
               </span>
               <h3 className="text-xs font-bold opacity-90 mb-1">{t("checkinFrom")}</h3>
               <p className={`text-4xl font-extrabold mb-3 ${titleFont}`}>
-                {data.practicalInfo?.checkin || "—"}
+                {heureArrivee(data.practicalInfo)}
               </p>
               <p className="text-xs text-white/80">{t("checkinHint")}</p>
               <Key size={80} className="absolute -right-4 -bottom-4 opacity-15 pointer-events-none" weight="duotone" />
@@ -665,7 +666,7 @@ export default function CleoTemplate({
             <div className="bg-[#1B2233] text-white p-6 rounded-3xl shadow-lg relative overflow-hidden">
               <span className="text-[10px] font-extrabold uppercase tracking-widest opacity-70 block mb-1">{t("checkoutTime")}</span>
               <h3 className="text-xs font-bold opacity-90 mb-1">{t("checkoutBefore")}</h3>
-              <p className={`text-4xl font-extrabold ${titleFont}`}>{data.practicalInfo?.checkout || "—"}</p>
+              <p className={`text-4xl font-extrabold ${titleFont}`}>{heureDepart(data.practicalInfo)}</p>
               <DoorOpen size={80} className="absolute -right-4 -bottom-4 opacity-10 pointer-events-none" weight="duotone" />
             </div>
 
@@ -1091,7 +1092,7 @@ export default function CleoTemplate({
                 {t("checkinFrom")}
               </span>
               <span className={`text-3xl font-extrabold text-[#2A2016] mt-0.5 ${titleFont}`}>
-                {data.practicalInfo?.checkin || "15:00"}
+                {heureArrivee(data.practicalInfo)}
               </span>
               {data.practicalInfo?.parking && (
                 <span className="text-[10px] font-semibold text-[#6B5D4E] mt-1">🚗 Parking disponible</span>
@@ -1150,7 +1151,7 @@ export default function CleoTemplate({
                 {t("checkoutBefore")}
               </span>
               <span className={`text-3xl font-extrabold text-[#2A2016] mt-0.5 ${titleFont}`}>
-                {data.practicalInfo?.checkout || "11:00"}
+                {heureDepart(data.practicalInfo)}
               </span>
             </div>
             <div className="pt-2 border-t border-gray-100/80 w-full flex justify-center shrink-0">

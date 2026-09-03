@@ -9,7 +9,7 @@ import { configPlaqueComplete } from "@/lib/plaque";
 import { DUREE_SESSION_MODIFICATION_MS } from "@/lib/livret";
 import { adresseDepuisStripe } from "@/lib/adressePostale";
 import { envoyerCourriel } from "@/lib/server/email";
-import { messageCommande } from "@/lib/server/emails/messages";
+import { messageCommande, messageResiliation } from "@/lib/server/emails/messages";
 
 /**
  * Réception des événements Stripe.
@@ -177,9 +177,57 @@ async function traiterMajAbonnement(abonnement: Stripe.Subscription) {
 
   if (trouves.empty) return;
 
-  await trouves.docs[0].ref.update({
-    cancelAtPeriodEnd: Boolean(abonnement.cancel_at_period_end),
+  const doc = trouves.docs[0];
+  const livret = doc.data() as Accommodation;
+  const demandee = Boolean(abonnement.cancel_at_period_end);
+
+  /*
+   * L'accusé de résiliation ne part qu'au BASCULEMENT.
+   *
+   * Stripe émet `subscription.updated` à chaque changement — renouvellement,
+   * moyen de paiement, montant. Envoyer à chaque fois écrirait dix fois « votre
+   * abonnement prend fin » à quelqu'un qui n'a rien demandé. On compare donc à
+   * ce qu'on savait déjà.
+   */
+  const nouvelleDemande = demandee && !livret.cancelAtPeriodEnd;
+
+  await doc.ref.update({
+    cancelAtPeriodEnd: demandee,
     updatedAt: Date.now(),
+  });
+
+  if (!nouvelleDemande) return;
+
+  const destinataire = livret.owner?.email || "";
+  if (!destinataire) {
+    console.warn("[stripe] résiliation sans adresse e-mail", doc.id);
+    return;
+  }
+
+  /*
+   * `cancel_at` porte la date de fin quand la résiliation est programmée.
+   * `current_period_end` a migré sur l'élément d'abonnement selon les
+   * versions d'API : on le lit en repli, sans se fier au type.
+   */
+  const finSecondes =
+    abonnement.cancel_at ||
+    (abonnement as unknown as { current_period_end?: number }).current_period_end ||
+    null;
+
+  const message = await messageResiliation({
+    prenom: (livret.owner?.name || "").trim().split(/\s+/)[0],
+    nomLogement: livret.property?.name || livret.slug,
+    finLe: finSecondes ? finSecondes * 1000 : null,
+    rythme: livret.abonnementRythme,
+  });
+
+  await envoyerCourriel({
+    destinataire,
+    nomDestinataire: livret.owner?.name || undefined,
+    sujet: message.sujet,
+    html: message.html,
+    texte: message.texte,
+    etiquette: "resiliation",
   });
 }
 

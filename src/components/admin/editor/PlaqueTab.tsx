@@ -6,6 +6,7 @@ import {
 } from "@phosphor-icons/react";
 import { Accommodation, PlaqueConfig, PlaqueWood, PlaqueOrder, ORDER_STATUS_LABELS } from "@/lib/types/accommodation";
 import VerrouConfort from "@/components/admin/editor/VerrouConfort";
+import { taglineGravee } from "@/lib/plaque";
 
 /**
  * Onglet « Plaque » de l'éditeur.
@@ -113,7 +114,10 @@ export default function PlaqueTab({
   const [confirming, setConfirming] = useState(false);
 
   const plaque: PlaqueConfig = data.plaque || { wood: "noyer" };
-  const tagline = plaque.engravedTagline?.trim() ? plaque.engravedTagline : TAGLINE_PAR_DEFAUT;
+  // La personnalisation de la phrase est une option Confort : en Essentielle,
+  // l’aperçu doit montrer ce qui sera RÉELLEMENT gravé, pas ce qui reste en
+  // base d’un passage par le Confort.
+  const tagline = taglineGravee(plaque, data.offerType);
   const wood = WOODS.find((w) => w.id === plaque.wood) || WOODS[0];
 
   const lastOrder = orders[0];

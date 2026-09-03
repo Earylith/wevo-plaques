@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { Accommodation } from "@/lib/types/accommodation";
 import { sessionModificationActive } from "@/lib/livret";
+import { taglineGravee } from "@/lib/plaque";
 import {
   stripe, tarifsFormule, tarifsBascule, tarifSessionModification,
   paiementConfigure, RythmeAbonnement,
@@ -100,7 +101,9 @@ export async function ouvrirPaiement(
       offre: livret.offerType,
       slug: livret.slug || "",
       plaqueWood: livret.plaque?.wood || "noyer",
-      plaqueTagline: livret.plaque?.engravedTagline || "",
+      // La phrase personnalisée est une option Confort : une Essentielle part
+      // avec la phrase par défaut, quoi qu’il reste en base d’un essayage.
+      plaqueTagline: taglineGravee(livret.plaque, livret.offerType),
       rythme,
     },
     /*

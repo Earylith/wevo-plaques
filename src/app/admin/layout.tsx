@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import {
   List, Plus, SignOut, Package, Envelope, PaperPlaneTilt, Flag,
-  ClockCounterClockwise, UsersThree,
+  ClockCounterClockwise, UsersThree, PhoneCall,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 
@@ -131,6 +131,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             <UsersThree size={20} />
             <span className="font-medium text-sm">Utilisateurs</span>
+          </Link>
+
+          {/*
+            Les rappels demandés. Ils périment vite : celui qui laisse son
+            numéro un mardi soir n'attend pas le vendredi.
+          */}
+          <Link
+            href="/admin/rappels"
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+              pathname === "/admin/rappels" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <PhoneCall size={20} />
+            <span className="font-medium text-sm">Rappels</span>
           </Link>
         </nav>
         
