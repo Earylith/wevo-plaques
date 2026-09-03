@@ -56,7 +56,7 @@ export const qrCodeLocation: Article = {
       ton: "alerte",
       titre: "L’erreur qui oblige à tout refaire",
       texte:
-        "Graver un QR code contenant directement le mot de passe Wi-Fi condamne le support le jour où vous changez de box. Le même support, pointant vers une page, survit à tous les changements — c’est exactement pour cette raison que le QR code d’une plaque Guidz ne bouge jamais, quoi que vous modifiiez dans votre livret.",
+        "Graver un QR code contenant directement le mot de passe Wi-Fi condamne le support le jour où vous changez de box. Le même support, pointant vers une page, survit à tous les changements — c’est exactement pour cette raison que le QR code d’une plaque Guidz ne bouge jamais, quoi que vous modifiiez dans votre livret. Le choix du support lui-même est traité à part : [bois, plexiglas, PVC ou autocollant](/blog/plaque-accueil-qr-code-materiaux#materiaux).",
     },
 
     { type: "h2", id: "statique-dynamique", texte: "Statique ou dynamique : la vraie différence" },
@@ -231,6 +231,6 @@ export const qrCodeLocation: Article = {
   connexes: [
     "livret-accueil-numerique-location-saisonniere",
     "reduire-messages-voyageurs",
-    "comparatif-livret-accueil-numerique",
+    "plaque-accueil-qr-code-materiaux",
   ],
 };

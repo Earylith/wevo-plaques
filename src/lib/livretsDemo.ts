@@ -145,6 +145,23 @@ export const LIVRETS_DEMO: LivretDemo[] = [
 export const LIVRETS_VEDETTE = LIVRETS_DEMO.filter((l) => l.vedette);
 
 /**
+ * L'adresse publique d'un livret de démonstration, ou `null`.
+ *
+ * Elle décide de l'indexation. Les livrets des clients contiennent des
+ * codes de porte et des mots de passe Wi-Fi : ils n'ont rien à faire dans
+ * un moteur de recherche, et `/h/[slug]` est donc non indexable par
+ * défaut. Les démonstrations, elles, sont de la vitrine et doivent
+ * remonter. Cette fonction est le seul endroit qui distingue les deux —
+ * ajouter une démonstration à la liste ci-dessus suffit à la rendre
+ * indexable, sans qu'on ait à y penser ailleurs.
+ */
+export function adressePubliqueDemo(slug: string): string | null {
+  const livret = LIVRETS_DEMO.find((l) => l.slug === slug);
+  if (!livret) return null;
+  return livret.href ?? `/${livret.slug}`;
+}
+
+/**
  * Une vitrine garnie du contenu réel de son livret.
  *
  * La photo et le nom viennent de la base ; la couleur, l'icône et les repères

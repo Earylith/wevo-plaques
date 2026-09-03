@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { ARTICLES_PAR_DATE } from "@/lib/blog";
 
 export default function Footer() {
   return (
@@ -17,15 +19,15 @@ export default function Footer() {
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-8 pb-20 border-b border-white/10">
-          
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-16 lg:gap-8 pb-20 border-b border-white/10">
+
           {/* Brand Col */}
-          <div className="lg:col-span-5 flex flex-col items-start">
-            <a href="#" className="flex items-center group mb-6">
+          <div className="sm:col-span-2 lg:col-span-3 flex flex-col items-start">
+            <Link href="/" className="flex items-center group mb-6">
               <span className="font-[family-name:var(--font-display)] text-3xl font-bold text-white tracking-tight">
                 Guidzme<span className="text-[#C4714A]">.</span>
               </span>
-            </a>
+            </Link>
             <p className="text-sm md:text-base text-white/40 max-w-sm leading-relaxed font-light mb-10">
               L&rsquo;expérience premium de vos locataires commence ici. Un support physique élégant, couplé à une interface digitale sur-mesure.
             </p>
@@ -36,22 +38,52 @@ export default function Footer() {
           </div>
 
           {/* Links Col 1 */}
-          <div className="lg:col-span-3 lg:col-start-7">
+          <div className="lg:col-span-3">
             <h4 className="text-[11px] tracking-[0.2em] uppercase text-white/30 font-semibold mb-8">Navigation</h4>
             <ul className="flex flex-col gap-5">
               {[
-                { label: 'Concept', href: '#concept' },
-                { label: 'Démo', href: '#demo' },
+                { label: 'Concept', href: '/#concept' },
+                { label: 'Démo', href: '/#demo' },
                 { label: 'Tous les livrets de démonstration', href: '/livrets-demo' },
-                { label: 'Fonctionnalités', href: '#fonctionnalites' },
-                { label: 'Formules', href: '#offres' }
+                { label: 'Fonctionnalités', href: '/#fonctionnalites' },
+                { label: 'Formules et tarifs', href: '/#offres' }
               ].map((item) => (
                 <li key={item.label}>
-                  <a href={item.href} className="text-[15px] text-white/60 hover:text-white hover:translate-x-1.5 transition-all inline-block font-light">
+                  <Link href={item.href} className="text-[15px] text-white/60 hover:text-white hover:translate-x-1.5 transition-all inline-block font-light">
                     {item.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
+            </ul>
+          </div>
+
+          {/*
+            Les guides.
+            Ils sont listés depuis le sommaire du blog : un article publié
+            apparaît ici sans intervention, et le pied de page reste le
+            chemin le plus court entre n'importe quelle page et le contenu.
+          */}
+          <div className="lg:col-span-3">
+            <h4 className="text-[11px] tracking-[0.2em] uppercase text-white/30 font-semibold mb-8">Nos guides</h4>
+            <ul className="flex flex-col gap-5">
+              {ARTICLES_PAR_DATE.slice(0, 5).map((article) => (
+                <li key={article.slug}>
+                  <Link
+                    href={`/blog/${article.slug}`}
+                    className="text-[15px] text-white/60 hover:text-white hover:translate-x-1.5 transition-all inline-block font-light leading-snug"
+                  >
+                    {article.titreSeo ?? article.titre}
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <Link
+                  href="/blog"
+                  className="text-[15px] text-[#E8BE72] hover:text-white transition-colors inline-block font-medium"
+                >
+                  Voir tous les articles →
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -60,17 +92,18 @@ export default function Footer() {
             <h4 className="text-[11px] tracking-[0.2em] uppercase text-white/30 font-semibold mb-8">Informations</h4>
             <ul className="flex flex-col gap-5">
               {[
-                { label: 'Multi-biens (Pro)', href: '#pro' },
-                { label: 'FAQ', href: '#faq' },
+                { label: 'Multi-biens (Pro)', href: '/#pro' },
+                { label: 'Demander un devis', href: '/devis?offre=multibien' },
+                { label: 'FAQ', href: '/#faq' },
                 { label: 'Confidentialité & cookies', href: '/confidentialite' },
                 { label: 'Gérer mes cookies', href: '/confidentialite#choix' },
                 { label: 'Mentions légales', href: '#' },
                 { label: 'CGV', href: '#' }
               ].map((item) => (
                 <li key={item.label}>
-                  <a href={item.href} className="text-[15px] text-white/60 hover:text-white hover:translate-x-1.5 transition-all inline-block font-light">
+                  <Link href={item.href} className="text-[15px] text-white/60 hover:text-white hover:translate-x-1.5 transition-all inline-block font-light">
                     {item.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

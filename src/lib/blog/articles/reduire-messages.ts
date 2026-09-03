@@ -217,6 +217,6 @@ export const reduireMessages: Article = {
   connexes: [
     "livret-accueil-numerique-location-saisonniere",
     "avis-5-etoiles-accueil-voyageur",
-    "qr-code-location-saisonniere",
+    "airbnb-booking-reservation-directe-accueil",
   ],
 };

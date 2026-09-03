@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   title: "Livrets de démonstration — Guidz",
   description:
     "Tous nos livrets d'accueil de démonstration, en formule Essentielle et Confort. Des pages en ligne, pas des maquettes.",
+  alternates: { canonical: "/livrets-demo" },
 };
 
 export default function LivretsDemoPage() {
@@ -84,12 +85,25 @@ export default function LivretsDemoPage() {
             Choisissez votre formule, composez votre page, et publiez-la avec
             votre plaque.
           </p>
-          <Link
-            href="/#offres"
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#2A2016] px-6 py-3.5 text-[14px] font-semibold text-white transition-all hover:bg-[#C4714A] active:scale-[0.98]"
-          >
-            Voir les formules
-          </Link>
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/#offres"
+              className="inline-flex items-center gap-2 rounded-full bg-[#2A2016] px-6 py-3.5 text-[14px] font-semibold text-white transition-all hover:bg-[#C4714A] active:scale-[0.98]"
+            >
+              Voir les formules
+            </Link>
+            {/*
+              La sortie secondaire mène au journal : quelqu'un qui hésite
+              encore après avoir vu les livrets cherche des arguments, pas un
+              bouton d'achat de plus.
+            */}
+            <Link
+              href="/blog/livret-accueil-numerique-location-saisonniere"
+              className="inline-flex items-center gap-2 rounded-full border border-[#EDD9A3] px-6 py-3.5 text-[14px] font-semibold text-[#2A2016] transition-all hover:border-[#C4714A] hover:text-[#C4714A]"
+            >
+              Lire le guide du livret d’accueil
+            </Link>
+          </div>
         </div>
       </div>
     </main>

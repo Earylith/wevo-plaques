@@ -11,6 +11,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `Bienvenue à ${data.property.name}`,
     description: data.property.welcomeMessage,
+    // Vitrine publique : indexable, contrairement aux livrets des clients.
+    alternates: { canonical: "/demo-biarritz" },
   };
 }
 

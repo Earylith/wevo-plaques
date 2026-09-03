@@ -5,6 +5,7 @@ import EssentialTemplate from "@/components/templates/EssentialTemplate";
 import { reduireAEssentielle } from "@/lib/livret";
 import CleoTemplate from "@/components/templates/CleoTemplate";
 import { Info } from "lucide-react";
+import { adressePubliqueDemo } from "@/lib/livretsDemo";
 
 // Le livret doit refléter immédiatement ce qui vient d'être enregistré
 // dans l'admin : pas de mise en cache statique de cette route.
@@ -38,6 +39,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? [data.property.mainImageUrl]
     : undefined;
 
+  /*
+   * L'indexation, décidée ici et nulle part ailleurs.
+   *
+   * La mise en page interdit l'indexation de tous les livrets — ce sont
+   * ceux des clients, avec leurs codes d'accès. Seule une démonstration
+   * dont l'adresse publique EST cette adresse-ci la lève : `/h/demo-paris`
+   * reste donc écarté, puisque cette démonstration se visite sur
+   * `/demo-paris` et qu'indexer les deux reviendrait à mettre le même
+   * contenu en concurrence avec lui-même.
+   */
+  const adressePublique = adressePubliqueDemo(slug);
+  const estDemoIndexable = adressePublique === `/h/${slug}`;
+
   return {
     title: `Bienvenue à ${data.property.name}`,
     description: data.property.welcomeMessage,
@@ -46,6 +60,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: data.property.welcomeMessage,
       images: imagePartage,
     },
+    ...(estDemoIndexable
+      ? {
+          robots: { index: true, follow: true },
+          alternates: { canonical: adressePublique },
+        }
+      : {}),
   };
 }
 

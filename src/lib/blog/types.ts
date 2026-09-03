@@ -92,9 +92,27 @@ export interface Article {
   accentPale: string;
   accentSombre: string;
   /** Motif de la couverture générée. Aucune photo : rien à charger, rien à casser. */
-  motif: "arches" | "vagues" | "grille" | "rayons" | "collines" | "cercles";
+  motif:
+    | "arches"
+    | "vagues"
+    | "grille"
+    | "rayons"
+    | "collines"
+    | "cercles"
+    | "chevrons"
+    | "briques"
+    | "eventail";
   /** Nom d'icône, résolu à l'affichage. */
-  icone: "livre" | "balance" | "qr" | "messages" | "etoile" | "immeubles";
+  icone:
+    | "livre"
+    | "balance"
+    | "qr"
+    | "messages"
+    | "etoile"
+    | "immeubles"
+    | "plaque"
+    | "prix"
+    | "canaux";
   /** Article épinglé en tête de la page d'index. */
   vedette?: boolean;
   /** Les points à retenir, affichés avant le corps et repris en fin d'article. */

@@ -4,37 +4,16 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AnimateOnScroll from "./AnimateOnScroll";
+import { FAQ_ACCUEIL } from "@/lib/faq";
 
-const faqs = [
-  {
-    q: "Suis-je obligé de prendre un abonnement ?",
-    a: "Non. La formule Essentiel est disponible en paiement unique. La formule Confort inclut un abonnement qui donne accès à l'espace propriétaire et aux modifications illimitées.",
-  },
-  {
-    q: "Que comprend le paiement initial ?",
-    a: "Il comprend la création de votre Guidz, la mise en place du QR code et la création de la page digitale associée à votre logement.",
-  },
-  {
-    q: "Que se passe-t-il si mon Wi‑Fi ou mes consignes changent ?",
-    a: "Avec la formule Essentiel, les modifications sont possibles à la demande. Avec la formule Confort, vous pouvez modifier vos informations vous-même depuis votre espace propriétaire, sans limite.",
-  },
-  {
-    q: "Le QR code change-t-il si je modifie les informations ?",
-    a: "Non. Le QR code reste le même. Les informations changent sur la page associée, sans avoir besoin de refaire le support.",
-  },
-  {
-    q: "Le locataire doit-il installer une application ?",
-    a: "Non. Le locataire scanne simplement le QR code avec son téléphone et accède à la page Guidz depuis son navigateur.",
-  },
-  {
-    q: "Le support est-il personnalisable ?",
-    a: "Oui, selon la formule choisie. La formule Essentiel propose un Guidz standard, tandis que la formule Confort permet une personnalisation plus avancée.",
-  },
-  {
-    q: "Puis-je équiper plusieurs logements ?",
-    a: "Oui. La formule Multi-biens est pensée pour les propriétaires et conciergeries qui souhaitent équiper plusieurs logements avec une gestion centralisée.",
-  },
-];
+/*
+ * Les questions vivent dans `@/lib/faq`.
+ *
+ * La page d'accueil les balise aussi en `FAQPage` pour les résultats de
+ * recherche, et ce balisage doit reprendre exactement ce qui est affiché
+ * ici : une seule source, donc.
+ */
+const faqs = FAQ_ACCUEIL;
 
 export default function FAQSection() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);

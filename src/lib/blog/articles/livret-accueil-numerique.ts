@@ -200,7 +200,7 @@ export const livretAccueilNumerique: Article = {
         {
           titre: "Rendez-le accessible depuis le logement",
           texte:
-            "Un lien envoyé la veille se perd dans une conversation. Un support fixe, visible, avec un QR code, reste disponible tout le séjour — y compris pour le deuxième voyageur du groupe, celui à qui vous n’avez jamais écrit.",
+            "Un lien envoyé la veille se perd dans une conversation. Un support fixe, visible, avec un QR code, reste disponible tout le séjour — y compris pour le deuxième voyageur du groupe, celui à qui vous n’avez jamais écrit. Le choix du support est un sujet à part entière : [bois gravé, PVC, autocollant, ce que chacun tient vraiment](/blog/plaque-accueil-qr-code-materiaux#materiaux).",
         },
       ],
     },
@@ -247,7 +247,7 @@ export const livretAccueilNumerique: Article = {
     {
       type: "p",
       texte:
-        "Côté dépense, il faut distinguer trois postes : le support physique qui rend le livret accessible dans le logement, l’hébergement de la page, et le droit de la modifier. Chez Guidz, [l’Essentiel est à 49 € en paiement unique](/#offres) et [le Confort à 69 € puis 1,99 €/mois ou 19 €/an](/#offres) — c’est la formule qui ouvre les modifications illimitées depuis votre espace. Au-delà de quelques logements, les [tarifs multi-biens](/devis?offre=multibien) se chiffrent au cas par cas.",
+        "Côté dépense, il faut distinguer trois postes : le support physique qui rend le livret accessible dans le logement, l’hébergement de la page, et le droit de la modifier. Chez Guidz, [l’Essentiel est à 49 € en paiement unique](/#offres) et [le Confort à 69 € puis 1,99 €/mois ou 19 €/an](/#offres) — c’est la formule qui ouvre les modifications illimitées depuis votre espace. Au-delà de quelques logements, les [tarifs multi-biens](/devis?offre=multibien) se chiffrent au cas par cas. Le calcul complet, abonnements du marché compris, est détaillé dans [notre article sur le prix d’un livret d’accueil](/blog/prix-livret-accueil-numerique#trois-ans).",
     },
     {
       type: "encadre",
@@ -298,6 +298,6 @@ export const livretAccueilNumerique: Article = {
   connexes: [
     "comparatif-livret-accueil-numerique",
     "reduire-messages-voyageurs",
-    "qr-code-location-saisonniere",
+    "prix-livret-accueil-numerique",
   ],
 };

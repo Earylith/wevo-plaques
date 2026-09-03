@@ -23,6 +23,8 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `Bienvenue à ${data.property.name} — Démo Essentielle`,
     description: `Aperçu de la formule Essentielle Guidz, avec ${data.property.name}.`,
+    // Vitrine publique : indexable, contrairement aux livrets des clients.
+    alternates: { canonical: "/demo-essentielle" },
   };
 }
 
