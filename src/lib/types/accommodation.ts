@@ -211,6 +211,24 @@ export interface PlaqueOrder {
   /** Mot de Guidz au client, affiché dans son espace. */
   clientNote?: string;
 
+  /*
+   * Ce que le client a réellement reçu par e-mail.
+   *
+   * Sans trace, on ne sait pas si un client a été prévenu — et on le
+   * prévient deux fois, ou pas du tout. Les deux se voient.
+   */
+  /** Date d'envoi de la confirmation de commande. */
+  confirmationEnvoyeeLe?: number;
+  /** Date d'envoi de l'annonce d'expédition. */
+  expeditionNotifieeLe?: number;
+  /**
+   * Le suivi tel qu'il était au dernier envoi.
+   *
+   * Il sert à distinguer une correction de faute de frappe — qui ne mérite
+   * pas un second e-mail — d'un vrai changement de colis, qui le mérite.
+   */
+  dernierSuiviNotifie?: string;
+
   createdAt: number;
   updatedAt: number;
 }

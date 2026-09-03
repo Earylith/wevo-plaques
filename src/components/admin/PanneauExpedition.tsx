@@ -67,22 +67,47 @@ export default function PanneauExpedition({
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [enregistre, setEnregistre] = useState(false);
+  /*
+   * Prévenir le client. Coché par défaut : c'est le message qu'il attend
+   * depuis qu'il a payé. Décochable pour les corrections d'après-coup.
+   */
+  const [prevenir, setPrevenir] = useState(true);
+  const [courriel, setCourriel] = useState<string | null>(null);
 
   const soumettre = async () => {
     setEnCours(true);
     setErreur(null);
+    setCourriel(null);
     try {
       // Midi plutôt que minuit : une date de livraison ne doit pas basculer
       // au jour précédent selon le fuseau de celui qui la lit.
       const estimee = livraison ? new Date(`${livraison}T12:00:00`).getTime() : null;
 
-      await updateOrderShipping(order.id!, {
+      const issue = await updateOrderShipping(order.id!, {
         carrier: transporteur,
         trackingNumber: numero,
         trackingUrl: lien,
         clientNote: note,
         estimatedDelivery: estimee,
+        previnirClient: prevenir,
       });
+
+      /*
+       * Ce que le client a reçu, dit franchement. Un « Enregistré » qui
+       * laisse croire à un e-mail parti alors que la clé Brevo manque est
+       * pire que pas de message du tout : on l'apprend par le client.
+       */
+      setCourriel(
+        issue.courriel === "envoye"
+          ? `E-mail d’expédition envoyé à ${order.ownerEmail}.`
+          : issue.courriel === "non-configure"
+            ? "E-mail NON envoyé : la messagerie n’est pas configurée."
+            : issue.courriel === "echec"
+              ? "E-mail NON envoyé : Brevo a refusé l’envoi. Voyez les journaux."
+              : prevenir
+                ? "Aucun e-mail : ce suivi a déjà été annoncé au client."
+                : "Aucun e-mail, comme demandé."
+      );
 
       onEnregistre({
         carrier: transporteur || undefined,
@@ -175,6 +200,27 @@ export default function PanneauExpedition({
         </label>
       </div>
 
+      <label className="mt-3 flex cursor-pointer items-start gap-2">
+        <input
+          type="checkbox"
+          checked={prevenir}
+          onChange={(e) => setPrevenir(e.target.checked)}
+          className="mt-0.5 h-3.5 w-3.5 accent-[#2B5F75]"
+        />
+        <span className="text-[11px] leading-snug text-[#2A2016]">
+          Prévenir le client par e-mail
+          {order.ownerEmail && (
+            <span className="text-[#6B5D4E]"> — {order.ownerEmail}</span>
+          )}
+          {order.expeditionNotifieeLe && (
+            <span className="block text-[10px] text-[#A8998A]">
+              Déjà prévenu le {dateCourte(order.expeditionNotifieeLe)} · un
+              second envoi n’a lieu que si le suivi a changé
+            </span>
+          )}
+        </span>
+      </label>
+
       {erreur && <p className="mt-2.5 text-[11px] text-red-700">{erreur}</p>}
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -197,6 +243,16 @@ export default function PanneauExpedition({
           </span>
         )}
       </div>
+
+      {courriel && (
+        <p
+          className={`mt-2 text-[11px] font-semibold ${
+            courriel.includes("NON envoyé") ? "text-red-700" : "text-[#3F5836]"
+          }`}
+        >
+          {courriel}
+        </p>
+      )}
     </div>
   );
 }

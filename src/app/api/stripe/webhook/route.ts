@@ -8,6 +8,8 @@ import { creerCommandeInterne, commandeDejaPassee } from "@/lib/server/plaqueOrd
 import { configPlaqueComplete } from "@/lib/plaque";
 import { DUREE_SESSION_MODIFICATION_MS } from "@/lib/livret";
 import { adresseDepuisStripe } from "@/lib/adressePostale";
+import { envoyerCourriel } from "@/lib/server/email";
+import { messageCommande } from "@/lib/server/emails/messages";
 
 /**
  * Réception des événements Stripe.
@@ -302,6 +304,54 @@ async function traiterPaiement(session: Stripe.Checkout.Session, origin: string)
       commande.reference,
       "encaissée SANS adresse de livraison — à réclamer au client"
     );
+  }
+
+  /*
+   * La confirmation de commande.
+   *
+   * Envoyée depuis le webhook, et de nulle part ailleurs : c'est le seul
+   * endroit qui sache que l'argent est réellement encaissé. L'envoyer depuis
+   * la page de retour préviendrait aussi ceux dont le paiement a échoué.
+   *
+   * L'échec d'envoi ne fait pas échouer l'événement : renvoyer une erreur à
+   * Stripe le ferait rejouer, et le rejeu passerait de toute façon par
+   * `commandeDejaPassee`. Une confirmation manquée est un ennui ; une
+   * commande perdue, non.
+   */
+  const destinataireEmail =
+    livret.owner?.email || session.customer_details?.email || "";
+
+  if (destinataireEmail) {
+    const message = await messageCommande({
+      prenom: (livret.owner?.name || livraison.nom || "").trim().split(/\s+/)[0],
+      reference: commande.reference,
+      nomLogement: commande.accommodationName,
+      formule: livret.offerType,
+      slug: commande.accommodationSlug,
+      essence: plaque.wood === "clair" ? "Bois clair" : "Noyer",
+      phraseGravee: plaque.engravedTagline,
+      adresse: livraison.adresse,
+      destinataire: livraison.nom || livret.owner?.name,
+    });
+
+    const envoi = await envoyerCourriel({
+      destinataire: destinataireEmail,
+      nomDestinataire: livret.owner?.name || livraison.nom || undefined,
+      sujet: message.sujet,
+      html: message.html,
+      texte: message.texte,
+      etiquette: "commande",
+    });
+
+    if (envoi.envoye) {
+      await adminDb
+        .collection("orders")
+        .doc(commande.id!)
+        .update({ confirmationEnvoyeeLe: Date.now() })
+        .catch(() => {});
+    }
+  } else {
+    console.warn("[stripe] commande", commande.reference, "sans adresse e-mail client");
   }
 
   console.info("[stripe] commande", commande.reference, "créée pour", accommodationId);

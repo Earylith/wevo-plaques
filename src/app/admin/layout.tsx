@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { List, Plus, SignOut, Package, Envelope } from "@phosphor-icons/react";
+import { List, Plus, SignOut, Package, Envelope, PaperPlaneTilt, Flag } from "@phosphor-icons/react";
 import Link from "next/link";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -71,6 +71,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             <Envelope size={20} />
             <span className="font-medium text-sm">Devis</span>
+          </Link>
+
+          {/*
+            Les messages que reçoivent les clients. Relire avant d'envoyer :
+            ce sont les seuls écrits que Guidz leur adresse.
+          */}
+          <Link
+            href="/admin/emails"
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+              pathname === "/admin/emails" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <PaperPlaneTilt size={20} />
+            <span className="font-medium text-sm">E-mails</span>
+          </Link>
+
+          {/*
+            Les signalements de voyageurs. Le canal existait côté public,
+            mais rien ne le lisait : ils s'entassaient dans une collection
+            que personne n'ouvrait.
+          */}
+          <Link
+            href="/admin/signalements"
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+              pathname === "/admin/signalements" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <Flag size={20} />
+            <span className="font-medium text-sm">Signalements</span>
           </Link>
         </nav>
         

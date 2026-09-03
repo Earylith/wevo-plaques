@@ -2,6 +2,8 @@
 
 import { adminDb } from "@/lib/firebase/admin";
 import { MOTIFS_SIGNALEMENT, MotifSignalement } from "@/lib/signalement";
+import { envoyerCourriel } from "@/lib/server/email";
+import { urlAbsolue } from "@/lib/site";
 
 /**
  * Signalements de livrets par les voyageurs.
@@ -54,12 +56,57 @@ export async function signalerLivret(signalement: {
     return;
   }
 
-  await adminDb.collection(SIGNALEMENTS).add({
+  const details = (signalement.details || "").trim().slice(0, 2000);
+  const propre = (slug || "").slice(0, 200);
+
+  const cree = await adminDb.collection(SIGNALEMENTS).add({
     livretId,
-    slug: (slug || "").slice(0, 200),
+    slug: propre,
     motif,
-    details: (signalement.details || "").trim().slice(0, 2000),
+    details,
     statut: "nouveau",
     createdAt: Date.now(),
   });
+
+  /*
+   * Prévenir Guidz.
+   *
+   * Un signalement rangé dans une collection que personne ne regarde ne vaut
+   * pas mieux que pas de signalement du tout : un contenu haineux resterait
+   * en ligne jusqu'à ce que quelqu'un pense à ouvrir l'écran. L'e-mail met
+   * la question sous les yeux de l'équipe le jour même.
+   *
+   * L'échec d'envoi n'annule jamais l'enregistrement : le signalement existe
+   * déjà en base au moment où l'on arrive ici, et l'écran d'administration
+   * reste le registre de référence.
+   */
+  await envoyerCourriel({
+    destinataire: process.env.SIGNALEMENT_EMAIL
+      || process.env.DEVIS_EMAIL
+      || process.env.BREVO_SENDER_EMAIL
+      || "contact@guidzme.fr",
+    sujet: `Signalement — ${MOTIFS_SIGNALEMENT[motif]} · /h/${propre}`,
+    html: [
+      "<p>Un voyageur vient de signaler un livret.</p>",
+      `<p><strong>Motif :</strong> ${MOTIFS_SIGNALEMENT[motif]}<br>`,
+      `<strong>Livret :</strong> ${urlAbsolue(`/h/${propre}`)}<br>`,
+      `<strong>Identifiant :</strong> ${livretId}</p>`,
+      details ? `<p><strong>Détails :</strong><br>${details.replace(/</g, "&lt;").replace(/\n/g, "<br>")}</p>` : "",
+      `<p><a href="${urlAbsolue("/admin/signalements")}">Examiner dans l’administration</a></p>`,
+    ].join("\n"),
+    texte: [
+      "Un voyageur vient de signaler un livret.",
+      "",
+      `Motif       : ${MOTIFS_SIGNALEMENT[motif]}`,
+      `Livret      : ${urlAbsolue(`/h/${propre}`)}`,
+      `Identifiant : ${livretId}`,
+      "",
+      details || "(aucun détail)",
+      "",
+      `Examiner : ${urlAbsolue("/admin/signalements")}`,
+    ].join("\n"),
+    etiquette: "signalement",
+  });
+
+  console.info("[signalement] enregistré", cree.id, motif, propre);
 }

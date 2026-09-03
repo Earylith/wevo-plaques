@@ -5,6 +5,8 @@ import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { Accommodation, OfferType } from "@/lib/types/accommodation";
 import { createEmptyAccommodation } from "@/lib/livret";
 import { slugify } from "@/lib/utils";
+import { envoyerCourriel } from "@/lib/server/email";
+import { messageBienvenue } from "@/lib/server/emails/messages";
 
 /**
  * Ouverture d'un livret par un hôte, depuis la page de tarifs.
@@ -119,6 +121,34 @@ export async function ouvrirLivret(
   };
 
   const cree = await adminDb.collection(ACCOMMODATIONS).add(nettoyer(livret));
+
+  /*
+   * Bienvenue, et rien d'autre.
+   *
+   * Envoyé UNE seule fois, ici : c'est le seul endroit où un livret naît. Le
+   * message est attendu — on vient de créer un compte — et il ramène l'hôte
+   * dans son éditeur s'il ferme l'onglet.
+   *
+   * L'échec est avalé volontairement. Un compte créé doit le rester même si
+   * Brevo est en panne : l'hôte est déjà dans son éditeur, la panne ne
+   * concerne que le courrier.
+   */
+  if (email) {
+    const message = await messageBienvenue({
+      prenom: (jeton.name || "").trim().split(/\s+/)[0],
+      formule: offre,
+      livretId: cree.id,
+    });
+    await envoyerCourriel({
+      destinataire: email,
+      nomDestinataire: jeton.name || undefined,
+      sujet: message.sujet,
+      html: message.html,
+      texte: message.texte,
+      etiquette: "bienvenue",
+    });
+  }
+
   return { id: cree.id, slug, existant: false };
 }
 

@@ -9,6 +9,8 @@ import {
 } from "@/lib/types/accommodation";
 import { generatePermanentId, permanentUrl } from "@/lib/permanentId";
 import { adresseExpediable, adresseNettoyee } from "@/lib/adressePostale";
+import { envoyerCourriel } from "@/lib/server/email";
+import { messageExpedition } from "@/lib/server/emails/messages";
 
 const ACCOMMODATIONS = "accommodations";
 const ORDERS = "orders";
@@ -247,6 +249,14 @@ export interface Expedition {
   shippingAddress?: AdressePostale | null;
   shippingName?: string;
   shippingPhone?: string;
+  /**
+   * Prévenir le client par e-mail.
+   *
+   * Vrai par défaut : c'est le message qu'il attend. Décochable pour les
+   * corrections d'après-coup — rectifier un chiffre du numéro de suivi ne
+   * justifie pas un second « votre plaque est en route ».
+   */
+  previnirClient?: boolean;
 }
 
 /**
@@ -316,7 +326,64 @@ export async function updateOrderShipping(orderId: string, expedition: Expeditio
   }
 
   await withTimeout(orderRef.update(champs), "mise à jour du suivi");
+
+  /*
+   * Prévenir le client.
+   *
+   * Après l'écriture, et jamais avant : annoncer une expédition qu'on n'a
+   * pas réussi à enregistrer serait pire que de ne rien annoncer.
+   *
+   * Deux garde-fous. On n'envoie que s'il y a vraiment un suivi — un panneau
+   * ouvert puis refermé ne doit rien déclencher. Et on n'envoie pas deux
+   * fois le même : corriger une faute de frappe dans le numéro laisserait
+   * sinon deux « votre plaque est en route » dans la boîte du client.
+   */
+  const empreinte = [
+    (expedition.carrier || "").trim(),
+    (expedition.trackingNumber || "").trim(),
+    url,
+  ].join("|");
+
+  const veutPrevenir = expedition.previnirClient !== false;
+  const dejaDit = order.dernierSuiviNotifie === empreinte;
+
+  let courriel: "envoye" | "ignore" | "echec" | "non-configure" = "ignore";
+
+  if (aUnSuivi && veutPrevenir && !dejaDit && order.ownerEmail) {
+    const message = await messageExpedition({
+      prenom: (order.shippingName || order.ownerName || "").trim().split(/\s+/)[0],
+      reference: order.reference,
+      nomLogement: order.accommodationName,
+      transporteur: expedition.carrier,
+      numeroSuivi: expedition.trackingNumber,
+      lienSuivi: url,
+      livraisonPrevue: expedition.estimatedDelivery ?? null,
+      mot: expedition.clientNote,
+      // L'adresse fraîchement saisie prime sur celle enregistrée.
+      adresse: expedition.shippingAddress ?? order.shippingAddress,
+      destinataire: expedition.shippingName || order.shippingName || order.ownerName,
+    });
+
+    const envoi = await envoyerCourriel({
+      destinataire: order.ownerEmail,
+      nomDestinataire: order.ownerName || undefined,
+      sujet: message.sujet,
+      html: message.html,
+      texte: message.texte,
+      etiquette: "expedition",
+    });
+
+    if (envoi.envoye) {
+      courriel = "envoye";
+      await orderRef
+        .update({ expeditionNotifieeLe: maintenant, dernierSuiviNotifie: empreinte })
+        .catch(() => {});
+    } else {
+      courriel = envoi.raison === "non-configure" ? "non-configure" : "echec";
+    }
+  }
+
   revalidatePath("/admin/commandes");
 
-  return { expediee: aUnSuivi };
+  return { expediee: aUnSuivi, courriel };
 }

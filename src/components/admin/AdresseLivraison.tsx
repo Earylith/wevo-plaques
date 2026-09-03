@@ -69,6 +69,12 @@ export default function AdresseLivraison({
         shippingAddress: adresse,
         shippingName: destinataire,
         shippingPhone: telephone,
+        /*
+         * Corriger une adresse n'est pas expédier : le client ne doit pas
+         * recevoir « votre plaque est en route » parce qu'on a rectifié son
+         * numéro de rue. L'annonce d'expédition part du panneau de suivi.
+         */
+        previnirClient: false,
       });
       onEnregistre({
         shippingAddress: adresseExpediable(adresse) ? adresse : undefined,

@@ -1,6 +1,8 @@
 "use server";
 
 import { adminDb } from "@/lib/firebase/admin";
+import { envoyerCourriel } from "@/lib/server/email";
+import { messageDevis, messageDevisInterne } from "@/lib/server/emails/messages";
 
 /**
  * Demandes de devis pour les offres professionnelles.
@@ -10,8 +12,8 @@ import { adminDb } from "@/lib/firebase/admin";
  * quand même : une piste commerciale perdue parce qu'un tiers ne répondait
  * pas serait une perte sèche, et le client, lui, croirait avoir écrit.
  *
- * L'envoi Brevo n'est pas encore branché. Il se posera ici, sans rien changer
- * au reste : le contrat de cette action ne dépend pas de lui.
+ * Deux envois en découlent : la fiche pour l'équipe, et l'accusé de réception
+ * pour le demandeur. Aucun des deux ne peut faire échouer l'enregistrement.
  */
 
 const DEMANDES = "quote_requests";
@@ -40,57 +42,68 @@ function emailPlausible(valeur: string): boolean {
  * Volontairement tolérante : elle ne lève jamais. Une notification manquée
  * doit rester une notification manquée, pas une demande perdue — la demande
  * est déjà en base au moment où on arrive ici.
+ *
+ * `replyTo` porte l'adresse du demandeur : répondre au message suffit à lui
+ * répondre, sans recopier son adresse depuis l'administration.
  */
-async function notifierEquipe(demande: DemandeDevis, id: string): Promise<boolean> {
-  const cle = process.env.BREVO_API_KEY;
-  const destinataire = process.env.DEVIS_EMAIL;
+async function notifierEquipe(demande: DemandeDevis): Promise<boolean> {
+  const destinataire =
+    process.env.DEVIS_EMAIL || process.env.BREVO_SENDER_EMAIL || "contact@guidzme.fr";
 
-  if (!cle || !destinataire) {
-    // Pas encore branché : la demande reste consultable dans l'administration.
-    console.info("[devis] demande", id, "enregistrée — notification non configurée");
-    return false;
-  }
+  const message = messageDevisInterne({
+    offre: demande.offre,
+    nom: demande.nom,
+    societe: demande.societe,
+    email: demande.email,
+    telephone: demande.telephone,
+    logements: demande.logements,
+    message: demande.message,
+  });
 
-  try {
-    const reponse = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": cle,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        sender: { name: "Guidz", email: process.env.BREVO_SENDER || destinataire },
-        to: [{ email: destinataire }],
-        replyTo: { email: demande.email, name: demande.nom },
-        subject: `Demande de devis ${demande.offre === "signature" ? "Signature" : "Multi-biens"} — ${demande.societe || demande.nom}`,
-        textContent: [
-          `Offre      : ${demande.offre}`,
-          `Nom        : ${demande.nom}`,
-          `Société    : ${demande.societe || "—"}`,
-          `E-mail     : ${demande.email}`,
-          `Téléphone  : ${demande.telephone || "—"}`,
-          `Logements  : ${demande.logements || "—"}`,
-          "",
-          demande.message || "(aucun message)",
-        ].join("\n"),
-      }),
-    });
+  const envoi = await envoyerCourriel({
+    destinataire,
+    sujet: message.sujet,
+    html: message.html,
+    texte: message.texte,
+    repondreA: { email: demande.email, nom: demande.nom },
+    etiquette: "devis-interne",
+  });
 
-    if (!reponse.ok) {
-      console.error("[devis] Brevo a refusé l'envoi", reponse.status, await reponse.text());
-      return false;
-    }
-    return true;
-  } catch (error) {
-    console.error("[devis] envoi impossible", error);
-    return false;
-  }
+  return envoi.envoye;
+}
+
+/**
+ * Accuse réception auprès du demandeur.
+ *
+ * Sans ce message, celui qui remplit le formulaire n'a aucun signe que sa
+ * demande est partie : il la renvoie, ou il va voir ailleurs. Un accusé de
+ * réception coûte un e-mail et évite les deux.
+ */
+async function confirmerAuDemandeur(demande: DemandeDevis): Promise<boolean> {
+  const message = await messageDevis({
+    prenom: demande.nom.trim().split(/\s+/)[0],
+    societe: demande.societe,
+    offre: demande.offre,
+    logements: demande.logements,
+    email: demande.email,
+    telephone: demande.telephone,
+  });
+
+  const envoi = await envoyerCourriel({
+    destinataire: demande.email,
+    nomDestinataire: demande.nom,
+    sujet: message.sujet,
+    html: message.html,
+    texte: message.texte,
+    etiquette: "devis-confirmation",
+  });
+
+  return envoi.envoye;
 }
 
 export async function envoyerDemandeDevis(
   demande: DemandeDevis
-): Promise<{ id: string; notifie: boolean }> {
+): Promise<{ id: string; notifie: boolean; confirme: boolean }> {
   const nom = demande.nom?.trim() || "";
   const email = demande.email?.trim() || "";
 
@@ -123,10 +136,24 @@ export async function envoyerDemandeDevis(
     createdAt: Date.now(),
   });
 
-  const notifie = await notifierEquipe(propre, cree.id);
-  if (notifie) {
-    await cree.update({ notifiedAt: Date.now() }).catch(() => {});
+  /*
+   * Les deux envois sont menés de front et leurs échecs n'annulent rien : la
+   * demande existe déjà en base. Le demandeur reçoit son accusé, l'équipe
+   * reçoit la fiche — et si l'un des deux tombe, l'autre passe quand même.
+   */
+  const [notifie, confirme] = await Promise.all([
+    notifierEquipe(propre).catch(() => false),
+    confirmerAuDemandeur(propre).catch(() => false),
+  ]);
+
+  const trace: Record<string, number> = {};
+  if (notifie) trace.notifiedAt = Date.now();
+  if (confirme) trace.confirmedAt = Date.now();
+  if (Object.keys(trace).length) await cree.update(trace).catch(() => {});
+
+  if (!notifie) {
+    console.warn("[devis] demande", cree.id, "non notifiée à l’équipe");
   }
 
-  return { id: cree.id, notifie };
+  return { id: cree.id, notifie, confirme };
 }
