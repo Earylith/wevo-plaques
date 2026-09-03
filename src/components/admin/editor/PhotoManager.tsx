@@ -6,6 +6,7 @@ import {
 } from "@phosphor-icons/react";
 import { uploadAdminImageAction } from "@/app/admin/actions";
 import { compressImage, MAX_UPLOAD_BYTES } from "@/lib/imageCompression";
+import { auth } from "@/lib/firebase/config";
 
 /* Banque de photos libres (Unsplash) proposée quand l'hôte n'a pas encore
    ses propres visuels. Chaque entrée porte des mots-clés français pour que
@@ -89,14 +90,28 @@ export default function PhotoManager({ photos, onChange, city, allowUpload = tru
           }
           const fd = new FormData();
           fd.append("file", file);
-          const url = await uploadAdminImageAction(fd, "livrets");
+          /*
+           * Le jeton de l'hôte accompagne l'envoi.
+           *
+           * L'action était réservée au cookie d'administration : un client
+           * qui ajoutait une photo depuis son propre éditeur se voyait
+           * refuser l'envoi, et lisait un message l'invitant à vérifier son
+           * stockage Firebase — qui n'y était pour rien.
+           *
+           * Guidz garde son cookie ; le jeton, absent dans son cas, ne
+           * change rien pour lui.
+           */
+          const jeton = await auth.currentUser?.getIdToken().catch(() => undefined);
+          const url = await uploadAdminImageAction(fd, "livrets", jeton);
           uploaded.push(url);
         } catch (err) {
           console.error(err);
+          // La cause réelle, quand on l'a : « vérifiez votre stockage » a
+          // envoyé chercher le problème là où il n'était pas.
           setError(
-            err instanceof Error && err.message.includes("trop lourde")
+            err instanceof Error && err.message
               ? err.message
-              : "L’envoi de la photo a échoué. Vérifiez que le stockage Firebase est activé, ou collez un lien d’image ci-dessous."
+              : "L’envoi de la photo a échoué. Réessayez, ou collez un lien d’image ci-dessous."
           );
         } finally {
           setUploading((n) => Math.max(0, n - 1));

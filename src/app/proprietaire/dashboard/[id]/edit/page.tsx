@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { getAccommodationById, updateAccommodation } from "@/lib/firebase/firestore";
 import { Accommodation } from "@/lib/types/accommodation";
 import AdminModernTileEditor from "@/components/admin/AdminModernTileEditor";
+import { marquerVisiteEditeur } from "@/app/espace-actions";
 
 export default function EditAccommodationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -46,6 +47,19 @@ export default function EditAccommodationPage({ params }: { params: Promise<{ id
             return;
           }
           setAccommodation(acc);
+
+          /*
+           * On note le passage, sans rien attendre en retour.
+           *
+           * C'est ce qui permet de distinguer, dans l'administration, l'hôte
+           * qui revient sans oser publier de celui qui a abandonné : le
+           * premier mérite un coup de pouce, le second une relance. Sans
+           * cette trace, les deux se ressemblent.
+           */
+          void user
+            .getIdToken()
+            .then((jeton) => marquerVisiteEditeur(id, jeton))
+            .catch(() => {});
         })
         .finally(() => setLoadingAcc(false));
     }

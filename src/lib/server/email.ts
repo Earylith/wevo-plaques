@@ -1,4 +1,5 @@
 import "server-only";
+import { adminDb } from "@/lib/firebase/admin";
 
 /**
  * Envoi d'e-mails transactionnels, par l'API Brevo.
@@ -22,6 +23,44 @@ import "server-only";
  */
 
 const API = "https://api.brevo.com/v3/smtp/email";
+
+/** Le registre des envois. Voir `journaliser`. */
+const JOURNAL = "email_log";
+
+/**
+ * Consigne une tentative d'envoi, réussie ou non.
+ *
+ * Sans ce registre, la seule trace d'un e-mail était une ligne de journal
+ * serveur — introuvable trois jours plus tard, et absente en production. On
+ * ne pouvait donc pas répondre à la question la plus banale du support :
+ * « je n'ai rien reçu » — l'avons-nous vraiment envoyé, et quand ?
+ *
+ * Le CORPS n'est pas conservé : il se reconstruit à l'identique depuis les
+ * gabarits, et le stocker gonflerait la base de plusieurs kilo-octets par
+ * message pour rien.
+ *
+ * L'écriture est absorbée en cas d'échec. Un registre est un confort ; il ne
+ * doit jamais empêcher un envoi ni faire échouer ce qui l'a déclenché.
+ */
+async function journaliser(entree: {
+  etiquette: string;
+  destinataire: string;
+  sujet: string;
+  statut: "envoye" | "refuse" | "injoignable" | "non-configure";
+  messageId: string | null;
+  erreur?: string;
+}) {
+  try {
+    await adminDb.collection(JOURNAL).add({
+      ...entree,
+      // Firestore refuse `undefined` : l'erreur absente devient une absence.
+      erreur: entree.erreur || null,
+      envoyeLe: Date.now(),
+    });
+  } catch (error) {
+    console.error("[email] journalisation impossible", error);
+  }
+}
 
 /** L'expéditeur, tel qu'il apparaît chez le destinataire. */
 function expediteur() {
@@ -59,12 +98,31 @@ export async function envoyerCourriel(courriel: Courriel): Promise<ResultatEnvoi
       courriel.etiquette || "sans étiquette",
       "· BREVO_API_KEY absente"
     );
+    await journaliser({
+      etiquette: courriel.etiquette || "inconnu",
+      destinataire: courriel.destinataire,
+      sujet: courriel.sujet,
+      statut: "non-configure",
+      messageId: null,
+      erreur: "BREVO_API_KEY absente",
+    });
     return { envoye: false, raison: "non-configure" };
   }
 
   const destinataire = (courriel.destinataire || "").trim();
   if (!destinataire.includes("@")) {
     console.error("[email] destinataire invalide", destinataire);
+    // Consigné comme les autres : un client sans adresse valable est
+    // précisément le cas qu'on cherche en se demandant « pourquoi n'a-t-il
+    // rien reçu ? ».
+    await journaliser({
+      etiquette: courriel.etiquette || "inconnu",
+      destinataire: destinataire || "(vide)",
+      sujet: courriel.sujet,
+      statut: "refuse",
+      messageId: null,
+      erreur: "adresse du destinataire invalide",
+    });
     return { envoye: false, raison: "refuse", detail: "destinataire invalide" };
   }
 
@@ -92,14 +150,39 @@ export async function envoyerCourriel(courriel: Courriel): Promise<ResultatEnvoi
     if (!reponse.ok) {
       const detail = await reponse.text().catch(() => "");
       console.error("[email] Brevo a refusé", courriel.etiquette, reponse.status, detail);
-      return { envoye: false, raison: "refuse", detail: `${reponse.status} ${detail}`.trim() };
+      const motif = `${reponse.status} ${detail}`.trim();
+      await journaliser({
+        etiquette: courriel.etiquette || "inconnu",
+        destinataire,
+        sujet: courriel.sujet,
+        statut: "refuse",
+        messageId: null,
+        erreur: motif.slice(0, 800),
+      });
+      return { envoye: false, raison: "refuse", detail: motif };
     }
 
     const corps = (await reponse.json().catch(() => null)) as { messageId?: string } | null;
     console.info("[email] envoyé", courriel.etiquette, "→", destinataire);
+    await journaliser({
+      etiquette: courriel.etiquette || "inconnu",
+      destinataire,
+      sujet: courriel.sujet,
+      statut: "envoye",
+      messageId: corps?.messageId || null,
+    });
     return { envoye: true, id: corps?.messageId || null };
   } catch (error) {
     console.error("[email] envoi impossible", courriel.etiquette, error);
+    const message = error instanceof Error ? error.message : String(error);
+    await journaliser({
+      etiquette: courriel.etiquette || "inconnu",
+      destinataire: courriel.destinataire,
+      sujet: courriel.sujet,
+      statut: "injoignable",
+      messageId: null,
+      erreur: message.slice(0, 800),
+    });
     return {
       envoye: false,
       raison: "injoignable",

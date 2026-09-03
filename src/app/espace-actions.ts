@@ -314,3 +314,35 @@ export async function supprimerCompte(
     });
   }
 }
+
+/**
+ * Note le passage de l'hôte dans son éditeur.
+ *
+ * `updatedAt` ne suffisait pas : il ne bouge qu'à l'enregistrement. Un hôte
+ * qui ouvre son livret, regarde, et referme sans rien changer laissait donc
+ * exactement la même trace que celui qui n'est jamais revenu — alors que
+ * l'un hésite et l'autre a abandonné. Les relancer de la même façon serait
+ * maladroit dans les deux cas.
+ *
+ * N'échoue jamais : c'est une mesure, elle ne doit pas empêcher d'éditer.
+ */
+export async function marquerVisiteEditeur(
+  accommodationId: string,
+  jetonHote: string
+): Promise<void> {
+  try {
+    const jeton = await adminAuth.verifyIdToken(jetonHote);
+    const ref = adminDb.collection(ACCOMMODATIONS).doc(accommodationId);
+    const doc = await ref.get();
+    if (!doc.exists) return;
+
+    const livret = doc.data() as Accommodation;
+    // Le propriétaire, et lui seul : sans cette vérification, un identifiant
+    // deviné suffirait à fausser la mesure d'un autre.
+    if (livret.ownerUid !== jeton.uid) return;
+
+    await ref.update({ derniereVisiteEditeur: Date.now() });
+  } catch (error) {
+    console.error("[visite éditeur]", error);
+  }
+}

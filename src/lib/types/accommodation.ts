@@ -338,6 +338,15 @@ export interface Accommodation {
    */
   editionUntil?: number | null;
 
+  /**
+   * Dernier passage de l'hôte dans son éditeur.
+   *
+   * Distinct de `updatedAt`, qui ne bouge qu'à l'enregistrement : celui qui
+   * ouvre, regarde et referme sans modifier laissait sinon la même trace
+   * que celui qui n'est jamais revenu.
+   */
+  derniereVisiteEditeur?: number;
+
   /** Passage au Confort demandé, effectif à la fin de la période en cours. */
   cancelAtPeriodEnd?: boolean;
 

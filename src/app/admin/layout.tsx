@@ -1,7 +1,10 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { List, Plus, SignOut, Package, Envelope, PaperPlaneTilt, Flag } from "@phosphor-icons/react";
+import {
+  List, Plus, SignOut, Package, Envelope, PaperPlaneTilt, Flag,
+  ClockCounterClockwise, UsersThree,
+} from "@phosphor-icons/react";
 import Link from "next/link";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -100,6 +103,34 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             <Flag size={20} />
             <span className="font-medium text-sm">Signalements</span>
+          </Link>
+
+          {/*
+            Le registre des envois : envoyé n'est pas reçu, et c'est la seule
+            façon de répondre à « je n'ai rien reçu ».
+          */}
+          <Link
+            href="/admin/logs-emails"
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+              pathname === "/admin/logs-emails" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <ClockCounterClockwise size={20} />
+            <span className="font-medium text-sm">Logs e-mails</span>
+          </Link>
+
+          {/*
+            Les inscriptions et là où chacun s'est arrêté — de quoi relancer
+            ceux qui ont laissé un livret en plan.
+          */}
+          <Link
+            href="/admin/utilisateurs"
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+              pathname === "/admin/utilisateurs" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <UsersThree size={20} />
+            <span className="font-medium text-sm">Utilisateurs</span>
           </Link>
         </nav>
         

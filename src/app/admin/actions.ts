@@ -479,8 +479,35 @@ export async function createAdminAccommodation(data: Omit<Accommodation, "id" | 
   }
 }
 
-export async function uploadAdminImageAction(formData: FormData, folder: string) {
-  await requireAdminAuth();
+/**
+ * Qui a le droit d'envoyer une photo ?
+ *
+ * Guidz par son cookie, ou l'hôte connecté par son jeton Firebase. L'action
+ * n'acceptait que le premier : un client qui ajoutait une photo de couverture
+ * depuis SON éditeur se voyait refuser l'envoi, et lisait « vérifiez que le
+ * stockage Firebase est activé » — alors que le stockage allait très bien et
+ * que le problème était qu'on ne le reconnaissait pas.
+ *
+ * C'est le même écueil que pour la recherche d'adresse : une action pensée
+ * pour l'administration, appelée depuis l'espace client.
+ */
+async function autoriserEnvoiImage(jetonHote?: string) {
+  const cookieStore = await cookies();
+  if (cookieStore.get("admin_auth")?.value === "true") return;
+
+  if (!jetonHote) {
+    throw new Error("Connectez-vous pour envoyer une photo.");
+  }
+  const { adminAuth } = await import("@/lib/firebase/admin");
+  await adminAuth.verifyIdToken(jetonHote);
+}
+
+export async function uploadAdminImageAction(
+  formData: FormData,
+  folder: string,
+  jetonHote?: string
+) {
+  await autoriserEnvoiImage(jetonHote);
   try {
     const file = formData.get("file") as File;
     if (!file) throw new Error("No file provided");
@@ -510,8 +537,14 @@ export async function uploadAdminImageAction(formData: FormData, folder: string)
     
     return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filePath)}?alt=media&token=${token}`;
   } catch (error) {
+    /*
+     * La cause réelle remonte à l'écran. « Failed to upload image » ne
+     * distinguait pas un stockage éteint d'un droit refusé ou d'un fichier
+     * trop lourd — on cherchait le problème du mauvais côté.
+     */
     console.error("Error uploading image via admin", error);
-    throw new Error("Failed to upload image");
+    const cause = error instanceof Error ? error.message : String(error);
+    throw new Error(`Envoi impossible : ${cause}`);
   }
 }
 
