@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { PlaqueWood } from "@/lib/types/accommodation";
 
@@ -114,6 +114,19 @@ interface Props {
 }
 
 export default function PlaquePreview({ wood, tagline, qrValue, variante = "cadre" }: Props) {
+  /*
+   * Identifiant propre à cette instance.
+   *
+   * Deux aperçus coexistent dans l'éditeur : celui du panneau de droite et
+   * celui du plein écran. Le panneau reste monté même masqué sous 1024 px.
+   * Avec un identifiant fixe, les deux motifs de bois portaient le même nom,
+   * et `url(#guidz-bois)` résolvait vers le PREMIER du document — celui de
+   * l'arbre caché, qui ne peint rien. La plaque du plein écran s'affichait
+   * alors sans bois, sur téléphone précisément.
+   */
+  const instance = useId().replace(/[^a-zA-Z0-9]/g, "");
+  const motifBois = `guidz-bois-${instance}`;
+
   const cadreRef = useRef<HTMLDivElement>(null);
   const phraseRef = useRef<HTMLDivElement>(null);
   const [gabarit, setGabarit] = useState<string | null>(null);
@@ -150,7 +163,7 @@ export default function PlaquePreview({ wood, tagline, qrValue, variante = "cadr
     // Le corps de la plaque reçoit la texture du bois.
     s = s.replace(
       "<defs",
-      `<defs id="guidz-defs"><pattern id="guidz-bois" patternUnits="userSpaceOnUse" x="0" y="0" width="489.84466" height="525.37183"><image href="${TEXTURES[wood] || TEXTURE_PAR_DEFAUT}" x="0" y="0" width="489.84466" height="525.37183" preserveAspectRatio="xMidYMid slice"/></pattern></defs><defs`
+      `<defs id="guidz-defs-${instance}"><pattern id="${motifBois}" patternUnits="userSpaceOnUse" x="0" y="0" width="489.84466" height="525.37183"><image href="${TEXTURES[wood] || TEXTURE_PAR_DEFAUT}" x="0" y="0" width="489.84466" height="525.37183" preserveAspectRatio="xMidYMid slice"/></pattern></defs><defs`
     );
     s = s.replace(COULEUR_NON_GRAVE, "transparent");
 
@@ -170,7 +183,7 @@ export default function PlaquePreview({ wood, tagline, qrValue, variante = "cadr
       `<style>
         /* Le gabarit porte ses réglages dans des attributs style :
            sans !important, aucune de ces règles ne s'appliquerait. */
-        #${CORPS} { fill: url(#guidz-bois) !important; }
+        #${CORPS} { fill: url(#${motifBois}) !important; }
         ${QR_GABARIT.map((id) => "#" + id).join(", ")}, #${TEXTE} { display: none !important; }
       </style><defs`
     );
@@ -181,7 +194,7 @@ export default function PlaquePreview({ wood, tagline, qrValue, variante = "cadr
     s = s.replace(/\sheight="525\.37183mm"/, ' height="100%"');
 
     return s;
-  }, [gabarit, wood]);
+  }, [gabarit, wood, instance, motifBois]);
 
   /*
    * Réduction de la phrase pour qu'elle tienne dans la plaque.

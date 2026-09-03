@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { lookupAccommodation, resolveAccommodation } from "@/lib/firebase/admin-firestore";
 import EssentialTemplate from "@/components/templates/EssentialTemplate";
+import { reduireAEssentielle } from "@/lib/livret";
 import CleoTemplate from "@/components/templates/CleoTemplate";
 import { Info } from "lucide-react";
 
@@ -112,5 +113,11 @@ export default async function AccommodationPage({ params }: Props) {
     return <CleoTemplate data={data} trackingId={data.id} />;
   }
 
-  return <EssentialTemplate data={data} trackingId={data.id} />;
+  /*
+   * Le contenu Confort ne suit pas une page Essentielle.
+   *
+   * Le gabarit ne l'affiche pas, mais Next sérialise l'objet ENTIER dans la
+   * page : l'adresse de la photo s'y retrouvait, lisible dans le code source.
+   */
+  return <EssentialTemplate data={reduireAEssentielle(data)} trackingId={data.id} />;
 }

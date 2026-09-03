@@ -1997,7 +1997,11 @@ export default function AdminModernTileEditor({
           <button
             type="button"
             onClick={() => setPleinEcran(true)}
-            title="Voir l’aperçu en plein écran"
+            title={
+              editorSection === "plaque"
+                ? "Voir la plaque en plein écran"
+                : "Voir l’aperçu en plein écran"
+            }
             aria-label="Voir l’aperçu en plein écran"
             className="lg:hidden p-2 rounded-full border border-gray-200 text-[#6B5D4E] active:scale-95 transition-transform"
           >
@@ -2520,6 +2524,7 @@ export default function AdminModernTileEditor({
                   dirty={dirty}
                   error={orderError}
                   commandable={estAdmin}
+                  onApercu={() => setPleinEcran(true)}
                 />
               </>
             )}
@@ -2849,7 +2854,34 @@ export default function AdminModernTileEditor({
       />
 
       <ApercuPleinEcran ouvert={pleinEcran} onFermer={() => setPleinEcran(false)}>
-        {estConfort ? (
+        {editorSection === "plaque" ? (
+          /*
+            L'aperçu de la plaque vit dans un panneau `hidden lg:flex` : sur
+            téléphone, l'hôte choisissait sa gravure sans jamais la voir. Le
+            plein écran montre donc l'OBJET quand c'est de lui qu'on parle —
+            posé sur le fond chaud, avec la même mention qu'au bureau.
+          */
+          <div className="flex min-h-full flex-col items-center justify-center gap-5 bg-[#FBF5EC] px-5 py-16">
+            <div className="w-full max-w-[420px]">
+              <PlaquePreview
+                wood={essenceCommandable(data.plaque?.wood)}
+                tagline={
+                  data.plaque?.engravedTagline?.trim()
+                    ? data.plaque.engravedTagline
+                    : TAGLINE_PAR_DEFAUT
+                }
+                qrValue={engravedUrl}
+              />
+            </div>
+            <p className="max-w-[420px] px-2 text-center text-[12px] leading-relaxed text-[#6B5D4E]">
+              Cet aperçu est construit sur le gabarit de gravure lui-même : ce
+              que vous voyez est ce qui sera gravé.
+              <span className="mt-1 block text-[11px] text-[#A8998A]">
+                Seule la texture du bois est une illustration.
+              </span>
+            </p>
+          </div>
+        ) : estConfort ? (
           <CleoTemplate data={data} inlineModal />
         ) : (
           <EssentialTemplate data={data} />

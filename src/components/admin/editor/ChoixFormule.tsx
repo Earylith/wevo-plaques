@@ -28,6 +28,7 @@ const FORMULES: Record<
     prix: "69 € + 1,99 €/mois",
     detail: "réglés à la publication, avec votre plaque",
     apports: [
+      "Plaque en bois gravée, avec votre phrase de signature",
       "Modifications illimitées, quand vous voulez",
       "Bonnes adresses, équipements, questions fréquentes",
       "Page multilingue, traduite automatiquement",
@@ -41,6 +42,7 @@ const FORMULES: Record<
     prix: "49 €",
     detail: "réglés une fois, avec votre plaque",
     apports: [
+      "Plaque en bois gravée, avec la phrase standard",
       "Wi-Fi et codes d’accès",
       "Arrivée et départ",
       "Règlement de l’hébergement",

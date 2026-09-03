@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import {
-  Check, Warning, Spinner, ArrowSquareOut, Package, Lock,
+  Check, Warning, Spinner, ArrowSquareOut, Package, Lock, ArrowsOut,
 } from "@phosphor-icons/react";
 import { Accommodation, PlaqueConfig, PlaqueWood, PlaqueOrder, ORDER_STATUS_LABELS } from "@/lib/types/accommodation";
 import VerrouConfort from "@/components/admin/editor/VerrouConfort";
@@ -48,7 +48,12 @@ export const TAGLINE_MAX = 40;
 const WOODS: WoodOption[] = [
   {
     id: "noyer",
-    label: "Essence de bois",
+    /*
+     * Le titre de la section demande déjà « Essence de bois » : répéter la
+     * question en guise de réponse n'apprenait rien. La carte nomme donc
+     * l'essence.
+     */
+    label: "Noyer",
     hint: "Brun profond, contraste marqué — la signature Guidz.",
     swatch: "#5C3D2E",
   },
@@ -92,10 +97,18 @@ interface PlaqueTabProps {
    * plaque et sa phrase, Guidz produit.
    */
   commandable?: boolean;
+  /**
+   * Ouvre l'aperçu de la plaque en plein écran.
+   *
+   * L'aperçu de bureau vit dans un panneau masqué sous 1024 px : sur
+   * téléphone, l'hôte réglait sa gravure sans jamais la voir, et ne la
+   * découvrait qu'une fois la plaque chez lui.
+   */
+  onApercu?: () => void;
 }
 
 export default function PlaqueTab({
-  data, onChange, orders, onOrder, ordering, dirty, error, commandable = true,
+  data, onChange, orders, onOrder, ordering, dirty, error, commandable = true, onApercu,
 }: PlaqueTabProps) {
   const [confirming, setConfirming] = useState(false);
 
@@ -107,6 +120,21 @@ export default function PlaqueTab({
 
   return (
     <div className="space-y-5">
+      {/*
+        Sur téléphone, l'aperçu latéral n'existe pas. Sans ce rappel, l'hôte
+        règle une gravure qu'il ne verra qu'une fois la plaque chez lui.
+      */}
+      {onApercu && (
+        <button
+          type="button"
+          onClick={onApercu}
+          className="lg:hidden w-full flex items-center justify-center gap-2 py-3 rounded-full bg-[#2A2016] text-white text-[13px] font-bold active:scale-[0.98] transition-transform"
+        >
+          <ArrowsOut size={15} weight="bold" />
+          Voir ma plaque en plein écran
+        </button>
+      )}
+
       {/* ── Essence de bois ── */}
       <div className="space-y-3">
         <div>

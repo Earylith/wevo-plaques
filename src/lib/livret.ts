@@ -566,3 +566,40 @@ export function getLocalTimeInfo(
     phase: dayPhase,
   };
 }
+
+/**
+ * Le livret réduit à ce que la formule Essentielle comprend.
+ *
+ * Un hôte qui essaie le Confort, choisit une photo et une phrase gravée, puis
+ * revient à l'Essentielle GARDE tout cela en base — c'est voulu, rien n'est
+ * jamais effacé, et il retrouve son travail intact s'il repasse au Confort.
+ *
+ * Mais rien de tout cela ne doit accompagner sa page. Le gabarit Essentiel ne
+ * l'affiche pas, seulement : Next sérialise l'objet ENTIER dans la page
+ * envoyée au navigateur. L'adresse de la photo s'y retrouvait, lisible par
+ * qui regarde le code source — du contenu Confort livré à chaque visiteur
+ * d'une page qui ne l'a pas payé.
+ *
+ * On ne transmet donc que les cinq rubriques de la formule.
+ */
+export function reduireAEssentielle(data: Accommodation): Accommodation {
+  const { property, ...reste } = data;
+
+  return {
+    ...reste,
+    property: {
+      ...property,
+      // Photos : réservées au Confort.
+      mainImageUrl: "",
+      gallery: [],
+    },
+    // La phrase gravée est une option Confort de la plaque.
+    plaque: data.plaque ? { ...data.plaque, engravedTagline: "" } : data.plaque,
+    // Rubriques que l'Essentielle ne comprend pas.
+    equipments: [],
+    recommendations: [],
+    transportLines: [],
+    comfortOptions: undefined,
+    translations: undefined,
+  } as Accommodation;
+}
