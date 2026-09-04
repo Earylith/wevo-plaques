@@ -3,7 +3,7 @@
 import {
   WifiHigh,
   Clock,
-  ClipboardText,
+  TelevisionSimple,
   BookOpen,
   Phone,
   MapPin,
@@ -17,7 +17,7 @@ import AnimateOnScroll from "./AnimateOnScroll";
 const features = [
   { Icon: WifiHigh,       title: "Wi‑Fi",                 desc: "Réseau et mot de passe accessibles en un scan.",           accent: { bg: "bg-[#E4EEF3]", color: "#2B5F75" }, span: "md:col-span-2 md:row-span-2" },
   { Icon: Clock,          title: "Arrivée / départ",      desc: "Horaires, accès au logement et consignes de sortie.",      accent: { bg: "bg-[#FDF3DC]", color: "#D4A34A" }, span: "md:col-span-2 md:row-span-1" },
-  { Icon: ClipboardText,  title: "Consignes du logement", desc: "Équipements, poubelles, chauffage, jacuzzi, parking…",     accent: { bg: "bg-[#F7EBE4]", color: "#C4714A" }, span: "md:col-span-1 md:row-span-1" },
+  { Icon: TelevisionSimple, title: "Équipements du logement", desc: "Notices d'utilisation, chauffage, climatisation, électroménager, jacuzzi…", accent: { bg: "bg-[#F7EBE4]", color: "#C4714A" }, span: "md:col-span-1 md:row-span-1" },
   { Icon: BookOpen,       title: "Règles du logement",    desc: "Les règles importantes présentées clairement.",            accent: { bg: "bg-[#EBF0E6]", color: "#5A7A4E" }, span: "md:col-span-1 md:row-span-1" },
   { Icon: Phone,          title: "Contacts & Urgences",   desc: "Propriétaires, prestataires et numéros d'urgence en cas de problème.", accent: { bg: "bg-red-50", color: "#EF4444" }, span: "md:col-span-2 md:row-span-1" },
   { Icon: MapPin,         title: "Bonnes adresses",       desc: "Restaurants, activités, commerces.",                       accent: { bg: "bg-[#EBF0E6]", color: "#5A7A4E" }, span: "md:col-span-1 md:row-span-1" },
