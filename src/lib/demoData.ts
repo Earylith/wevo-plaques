@@ -1020,7 +1020,7 @@ export const demoConfortMarseille: Accommodation = {
       ]
     }
   },
-  display: { weather: true, map: true, desktopLayout: "grid" },
+  display: { weather: true, map: true, desktopLayout: "list" },
   // Configuration des rubriques du livret : ordre d'affichage et visibilité.
   modules: [
     { id: "arrivee", visible: true, order: 0 },
@@ -1324,7 +1324,7 @@ export const demoParis: Accommodation = {
       ]
     }
   },
-  display: { weather: true, map: true, desktopLayout: "grid" },
+  display: { weather: true, map: true, desktopLayout: "list" },
   modules: [
     { id: "arrivee", visible: true, order: 0 },
     { id: "wifi", visible: true, order: 1 },
@@ -1611,7 +1611,7 @@ export const demoBiarritz: Accommodation = {
       ]
     }
   },
-  display: { weather: true, map: true, desktopLayout: "grid" },
+  display: { weather: true, map: true, desktopLayout: "list" },
   modules: [
     { id: "arrivee", visible: true, order: 0 },
     { id: "wifi", visible: true, order: 1 },
@@ -1898,7 +1898,7 @@ export const demoChamonix: Accommodation = {
       ]
     }
   },
-  display: { weather: true, map: true, desktopLayout: "grid" },
+  display: { weather: true, map: true, desktopLayout: "list" },
   modules: [
     { id: "arrivee", visible: true, order: 0 },
     { id: "wifi", visible: true, order: 1 },

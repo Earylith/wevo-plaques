@@ -95,10 +95,11 @@ export default function Footer() {
                 { label: 'Multi-biens (Pro)', href: '/#pro' },
                 { label: 'Demander un devis', href: '/devis?offre=multibien' },
                 { label: 'FAQ', href: '/#faq' },
+                { label: 'CGV', href: '/cgv' },
+                { label: 'CGU', href: '/cgu' },
+                { label: 'Mentions légales', href: '/mentions-legales' },
                 { label: 'Confidentialité & cookies', href: '/confidentialite' },
-                { label: 'Gérer mes cookies', href: '/confidentialite#choix' },
-                { label: 'Mentions légales', href: '#' },
-                { label: 'CGV', href: '#' }
+                { label: 'Gérer mes cookies', href: '/confidentialite#choix' }
               ].map((item) => (
                 <li key={item.label}>
                   <Link href={item.href} className="text-[15px] text-white/60 hover:text-white hover:translate-x-1.5 transition-all inline-block font-light">
