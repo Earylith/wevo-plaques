@@ -249,7 +249,7 @@ export default function PlaqueShowcaseSection() {
     s = s.replace(
       "<defs",
       `<style>
-        #${CORPS} { fill: url(#${motifBois}) !important; }
+        #${CORPS} { fill: #4A2818 !important; fill: url(#${motifBois}) !important; }
         ${QR_GABARIT.map((id) => "#" + id).join(", ")}, #${TEXTE} { display: none !important; }
       </style><defs`
     );
@@ -404,24 +404,7 @@ export default function PlaqueShowcaseSection() {
     }
   };
 
-  /* Zoom à la molette (désactivé sur mobile) */
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
-      if (isMobile) return;
-      e.preventDefault();
-      setIsAutoRotate(false);
-      setZoom((prev) => {
-        const step = e.deltaY > 0 ? -0.15 : 0.15;
-        const next = Math.max(0.85, Math.min(2.5, prev + step));
-        if (next <= 1) {
-          setPanX(0);
-          setPanY(0);
-        }
-        return parseFloat(next.toFixed(2));
-      });
-    },
-    [isMobile]
-  );
+
 
   /* Appliquer un préréglage */
   const applyPreset = (preset: (typeof PRESETS)[number]) => {
@@ -497,8 +480,7 @@ export default function PlaqueShowcaseSection() {
               <div className="flex items-center justify-between w-full mb-2 px-2 text-[11px] font-medium text-[#6B5D4E]">
                 <span className="flex items-center gap-1.5">
                   <HandPointing size={15} className="text-[#C4714A] animate-pulse" />
-                  <span className="hidden md:inline">Glissez pour orienter en 3D à 360° • Molette pour zoomer</span>
-                  <span className="md:hidden">Glissez pour faire pivoter la plaque en 3D</span>
+                  <span>Glissez pour orienter la plaque en 3D à 360°</span>
                 </span>
                 <span className="hidden md:inline-flex bg-white/80 border border-[#EDD9A3] px-2 py-0.5 rounded-full text-[10px] text-[#5C3D2E] font-mono shadow-xs">
                   Zoom: {Math.round(currentZoom * 100)}%
@@ -516,7 +498,6 @@ export default function PlaqueShowcaseSection() {
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
-                onWheel={handleWheel}
                 className="relative w-full aspect-square max-w-[460px] rounded-3xl bg-white/40 border border-[#EDD9A3]/60 shadow-[0_12px_36px_rgba(42,32,22,0.04)] flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none"
                 style={{ perspective: "1300px", touchAction: "none" }}
               >
@@ -542,11 +523,14 @@ export default function PlaqueShowcaseSection() {
 
                 {/* ── OBJET 3D : LA PLAQUE DÉCOUPÉE DANS LE NOYER (DOUBLE-FACE) ── */}
                 <div
-                  className="relative w-[76%] sm:w-[80%] max-w-[370px] pointer-events-none transition-transform duration-75 ease-out"
+                  className="relative w-[76%] sm:w-[80%] max-w-[370px] pointer-events-none"
                   style={{
                     aspectRatio: `${1 / RATIO}`,
                     transformStyle: "preserve-3d",
+                    WebkitTransformStyle: "preserve-3d",
                     transform: `translate3d(${currentPanX}px, ${currentPanY}px, 0) scale(${currentZoom}) rotateX(${rotX}deg) rotateY(${rotY}deg)`,
+                    WebkitTransform: `translate3d(${currentPanX}px, ${currentPanY}px, 0) scale(${currentZoom}) rotateX(${rotX}deg) rotateY(${rotY}deg)`,
+                    willChange: "transform",
                   }}
                 >
                   {/* 
@@ -557,17 +541,16 @@ export default function PlaqueShowcaseSection() {
                     className="absolute inset-0 pointer-events-none"
                     style={{
                       transform: "rotateY(180deg) translateZ(1.5px)",
+                      WebkitTransform: "rotateY(180deg) translateZ(1.5px)",
                       backfaceVisibility: "hidden",
                       WebkitBackfaceVisibility: "hidden",
-                      visibility: !isFrontFacing ? "visible" : "hidden",
-                      opacity: !isFrontFacing ? 1 : 0,
-                      transition: "opacity 80ms ease-out",
+                      display: !isFrontFacing ? "block" : "none",
                     }}
                   >
                     <svg
                       viewBox="0 0 489.84466 525.37183"
                       preserveAspectRatio="xMidYMid meet"
-                      className="w-full h-full drop-shadow-[0_16px_28px_rgba(60,35,20,0.24)]"
+                      className="w-full h-full"
                     >
                       <defs>
                         <pattern
@@ -591,7 +574,8 @@ export default function PlaqueShowcaseSection() {
                       <g transform="matrix(0.26458334,0,0,0.26458332,-19.66098,-4.6913401)">
                         <path
                           d="m 143.30206,195.34023 c -1.05223,-0.1218 -4.10127,-0.68842 -6.77566,-1.25918 -6.67529,-1.42457 -7.59577,-1.55206 -11.92175,-1.65107 -4.02968,-0.0922 -4.78344,-0.0362 -11.27492,0.83806 -9.98436,1.34468 -13.504176,1.15327 -23.595248,-1.28305 -7.394715,-1.78533 -11.711655,-2.13468 -19.450134,-1.57398 -5.528672,0.40057 -11.587479,0.40424 -13.471608,0.008 -4.926426,-1.03572 -8.64048,-3.68192 -11.41896,-8.13584 -2.06165,-3.30481 -2.962364,-6.0419 -5.856842,-17.79774 -3.154064,-12.81015 -3.910027,-18.41674 -3.718869,-27.58095 0.09552,-4.57929 0.330449,-7.43794 0.995751,-12.11647 0.801472,-5.6361 1.361992,-8.48255 3.280704,-16.66017 2.305973,-9.828127 2.505738,-11.078806 2.639901,-16.527704 0.170051,-6.90641 -0.416729,-11.163574 -2.754284,-19.982689 -1.539372,-5.807732 -1.728039,-7.066414 -1.732277,-11.556946 -0.0032,-3.325394 0.03765,-3.934715 0.362968,-5.420532 1.225971,-5.599583 4.133442,-10.370358 7.809319,-12.814083 2.893535,-1.923615 5.102051,-2.586704 9.356315,-2.809143 5.503125,-0.287739 6.240063,-0.403843 10.242325,-1.613686 5.478943,-1.656223 8.677788,-2.164654 12.555786,-1.995621 3.571205,0.155663 5.782608,0.545674 11.080201,1.954155 7.051597,1.874821 14.429932,2.642807 21.963152,2.286064 6.94142,-0.328716 11.37195,-1.13113 19.80681,-3.5872 3.84415,-1.119342 5.66924,-1.411937 8.7685,-1.405731 3.16627,0.0063 4.615,0.269127 9.04754,1.641197 3.89112,1.204468 5.4739,1.545792 8.56304,1.846619 3.58384,0.348995 5.1131,0.710953 7.02095,1.661755 5.22375,2.60334 8.66231,7.426906 10.03123,14.07175 0.66857,3.245239 0.83333,6.234123 0.51499,9.342339 -0.30112,2.94004 -1.11492,7.165359 -1.96216,10.18782 -1.9794,7.061211 -2.55164,11.181534 -2.39604,17.252564 0.12295,4.79718 0.6139,8.268051 2.02,14.280522 3.01666,12.89921 4.1601,19.74432 4.70047,28.13893 0.2841,4.41346 0.30115,6.65306 0.0819,10.76133 -0.26859,5.03205 -0.96566,10.54029 -1.91672,15.1456 -1.77724,8.60597 -3.06632,14.10508 -4.40998,18.81243 -1.49812,5.2485 -4.65716,10.15458 -8.41531,13.06921 -2.95557,2.29221 -5.82755,3.50871 -9.96628,4.22156 -2.59242,0.4465 -7.1181,0.56268 -9.80478,0.25169 z"
-                          fill={`url(#${motifBoisBack})`}
+                          fill="#4A2818"
+                          style={{ fill: `url(#${motifBoisBack})` }}
                           transform="matrix(11.952365,0,0,11.952861,-280.54471,-366.51779)"
                         />
                       </g>
@@ -606,17 +590,16 @@ export default function PlaqueShowcaseSection() {
                     className="absolute inset-0 pointer-events-none"
                     style={{
                       transform: "translateZ(1.5px)",
+                      WebkitTransform: "translateZ(1.5px)",
                       backfaceVisibility: "hidden",
                       WebkitBackfaceVisibility: "hidden",
-                      visibility: isFrontFacing ? "visible" : "hidden",
-                      opacity: isFrontFacing ? 1 : 0,
-                      transition: "opacity 80ms ease-out",
+                      display: isFrontFacing ? "block" : "none",
                     }}
                   >
                     {/* Tracé vectoriel du gabarit avec texture noyer */}
                     {svgPlaque ? (
                       <div
-                        className="w-full h-full [&>svg]:w-full [&>svg]:h-full [&>svg]:drop-shadow-[0_16px_28px_rgba(60,35,20,0.24)]"
+                        className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
                         dangerouslySetInnerHTML={{ __html: svgPlaque }}
                       />
                     ) : (
@@ -916,7 +899,7 @@ export default function PlaqueShowcaseSection() {
             </div>
 
             {/* ── CARACTÉRISTIQUES TECHNIQUES ── */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-3 gap-2.5">
               <div className="p-3 rounded-2xl bg-white border border-[#EDD9A3] text-center shadow-xs">
                 <span className="block text-base font-bold text-[#2A2016]">25 × 22 cm</span>
                 <span className="text-[11px] text-[#6B5D4E]">Format généreux</span>
@@ -929,10 +912,6 @@ export default function PlaqueShowcaseSection() {
                 <span className="block text-base font-bold text-[#2A2016]">100% France</span>
                 <span className="text-[11px] text-[#6B5D4E]">Atelier artisanal</span>
               </div>
-              <div className="p-3 rounded-2xl bg-white border border-[#EDD9A3] text-center shadow-xs">
-                <span className="block text-base font-bold text-[#2A2016]">0 pile</span>
-                <span className="text-[11px] text-[#6B5D4E]">Sans entretien</span>
-              </div>
             </div>
 
             {/* Inclus dans chaque commande */}
@@ -940,10 +919,6 @@ export default function PlaqueShowcaseSection() {
               <div className="flex items-center gap-2">
                 <Check size={16} weight="bold" className="text-[#5A7A4E] shrink-0" />
                 <span>Fixation murale invisible (adhésif pro 3M haute tenue ou vis) incluse</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check size={16} weight="bold" className="text-[#5A7A4E] shrink-0" />
-                <span>Chevalet de pose sur console ou bar inclus dans chaque commande</span>
               </div>
               <div className="flex items-center gap-2">
                 <Check size={16} weight="bold" className="text-[#5A7A4E] shrink-0" />
