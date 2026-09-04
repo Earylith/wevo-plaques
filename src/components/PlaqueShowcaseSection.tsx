@@ -168,8 +168,9 @@ export default function PlaqueShowcaseSection() {
   const currentPanX = isMobile ? 0 : panX;
   const currentPanY = isMobile ? 0 : panY;
 
-  /* Détection mathématique de l'orientation : Face avant vs Dos de la plaque */
-  const isFrontFacing = Math.cos((rotY * Math.PI) / 180) >= 0;
+  /* Détection mathématique de l'orientation : Face avant vs Dos de la plaque dans tous les axes */
+  const isFrontFacing =
+    Math.cos((rotX * Math.PI) / 180) * Math.cos((rotY * Math.PI) / 180) >= 0;
 
   /* Référence du viewport et multi-touch mobile */
   const stageRef = useRef<HTMLDivElement>(null);
@@ -177,13 +178,18 @@ export default function PlaqueShowcaseSection() {
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const pinchStartDistRef = useRef<number | null>(null);
   const pinchStartZoomRef = useRef<number>(1);
-  const velocityRef = useRef<{ vx: number; lastTime: number }>({ vx: 0, lastTime: 0 });
+  const velocityRef = useRef<{ vx: number; vy: number; lastTime: number }>({
+    vx: 0,
+    vy: 0,
+    lastTime: 0,
+  });
   const momentumFrameRef = useRef<number | null>(null);
 
   const dragRef = useRef<{
     startX: number;
     startY: number;
     prevX: number;
+    prevY: number;
     initRotX: number;
     initRotY: number;
     initPanX: number;
@@ -193,6 +199,7 @@ export default function PlaqueShowcaseSection() {
     startX: 0,
     startY: 0,
     prevX: 0,
+    prevY: 0,
     initRotX: 0,
     initRotY: 0,
     initPanX: 0,
@@ -266,7 +273,7 @@ export default function PlaqueShowcaseSection() {
     return () => cancelAnimationFrame(frameId);
   }, [isAutoRotate, isInteracting]);
 
-  /* Manipulation tactile multi-touch (Pointer Events) avec zoom à 2 doigts et inertie */
+  /* Manipulation tactile & souris (Pointer Events) avec rotation 3D dans tous les axes */
   const handlePointerDown = (e: React.PointerEvent) => {
     // Stopper toute inertie en cours
     if (momentumFrameRef.current) {
@@ -279,45 +286,54 @@ export default function PlaqueShowcaseSection() {
     setIsAutoRotate(false);
 
     try {
-      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+      stageRef.current?.setPointerCapture(e.pointerId);
     } catch {}
 
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    // Sur mobile, le zoom est bloqué à 100% : désactiver le multi-touch pinch pour éviter tout bug
-    if (isMobile && pointersRef.current.size >= 2) {
+    // Sur mobile : toujours rotation 3D pure et fluide (pan désactivé, zoom bloqué à 100%)
+    if (isMobile) {
+      dragRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        prevX: e.clientX,
+        prevY: e.clientY,
+        initRotX: rotX,
+        initRotY: rotY,
+        initPanX: 0,
+        initPanY: 0,
+        isPanning: false,
+      };
+      velocityRef.current = { vx: 0, vy: 0, lastTime: performance.now() };
       return;
     }
 
-    // Détection du pinch à deux doigts pour le zoom (uniquement sur grand écran / bureau)
-    if (!isMobile && pointersRef.current.size === 2) {
+    // Détection du pinch à deux doigts pour le zoom (sur bureau / grand écran uniquement)
+    if (pointersRef.current.size === 2) {
       const pts = Array.from(pointersRef.current.values());
       pinchStartDistRef.current = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       pinchStartZoomRef.current = zoom;
       return;
     }
 
-    // Sur mobile, le pan est désactivé : toujours privilégier la rotation 3D fluide
-    const isPan = !isMobile && (e.button === 1 || e.shiftKey || zoom > 1.3);
+    const isPan = e.button === 1 || e.shiftKey || zoom > 1.3;
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
       prevX: e.clientX,
+      prevY: e.clientY,
       initRotX: rotX,
       initRotY: rotY,
       initPanX: panX,
       initPanY: panY,
       isPanning: isPan,
     };
-    velocityRef.current = { vx: 0, lastTime: performance.now() };
+    velocityRef.current = { vx: 0, vy: 0, lastTime: performance.now() };
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isInteracting) return;
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-
-    // Ignorer sur mobile si plus d'un doigt pour garder le geste propre
-    if (isMobile && pointersRef.current.size >= 2) return;
 
     // Zoom tactile fluide à deux doigts (désactivé sur mobile pour bloquer le zoom à 100%)
     if (!isMobile && pointersRef.current.size === 2 && pinchStartDistRef.current) {
@@ -337,15 +353,18 @@ export default function PlaqueShowcaseSection() {
     const now = performance.now();
     const dt = Math.max(1, now - velocityRef.current.lastTime);
     const stepDx = e.clientX - dragRef.current.prevX;
+    const stepDy = e.clientY - (dragRef.current.prevY ?? e.clientY);
     dragRef.current.prevX = e.clientX;
-    velocityRef.current = { vx: stepDx / dt, lastTime: now };
+    dragRef.current.prevY = e.clientY;
+    velocityRef.current = { vx: stepDx / dt, vy: stepDy / dt, lastTime: now };
 
-    if (dragRef.current.isPanning) {
+    if (!isMobile && dragRef.current.isPanning) {
       setPanX(dragRef.current.initPanX + dx * 0.8);
       setPanY(dragRef.current.initPanY + dy * 0.8);
     } else {
-      const newRotX = Math.max(-40, Math.min(40, dragRef.current.initRotX - dy * 0.45));
-      const newRotY = dragRef.current.initRotY + dx * 0.55;
+      // Rotation 3D libre et continue dans tous les axes (horizontal & vertical)
+      const newRotX = dragRef.current.initRotX - dy * 0.5;
+      const newRotY = dragRef.current.initRotY + dx * 0.6;
       setRotX(newRotX);
       setRotY(newRotY);
     }
@@ -360,16 +379,21 @@ export default function PlaqueShowcaseSection() {
     if (pointersRef.current.size === 0) {
       setIsInteracting(false);
       try {
-        (e.target as HTMLElement).releasePointerCapture?.(e.pointerId);
+        stageRef.current?.releasePointerCapture(e.pointerId);
       } catch {}
 
-      // Lancement tactile (inertie physique avec décélération progressive)
-      let currentVx = velocityRef.current.vx * 14;
-      if (Math.abs(currentVx) > 0.3) {
+      // Lancement tactile (inertie physique dans tous les axes avec décélération progressive)
+      let currentVx = velocityRef.current.vx * 13;
+      let currentVy = (velocityRef.current.vy ?? 0) * 13;
+      if (Math.abs(currentVx) > 0.3 || Math.abs(currentVy) > 0.3) {
         const decay = () => {
           currentVx *= 0.92;
-          if (Math.abs(currentVx) > 0.04) {
-            setRotY((y) => (y + currentVx) % 360);
+          currentVy *= 0.92;
+          const hasVx = Math.abs(currentVx) > 0.04;
+          const hasVy = Math.abs(currentVy) > 0.04;
+          if (hasVx || hasVy) {
+            if (hasVx) setRotY((y) => (y + currentVx) % 360);
+            if (hasVy) setRotX((x) => (x - currentVy) % 360);
             momentumFrameRef.current = requestAnimationFrame(decay);
           } else {
             momentumFrameRef.current = null;
@@ -482,9 +506,9 @@ export default function PlaqueShowcaseSection() {
               </div>
 
               {/* 
-                ZONE DE MANIPULATION 3D LIBRE :
-                Aucun cadre ni boîte rectangulaire sombre.
-                La plaque onduleuse flotte naturellement sur le fond crème.
+                ZONE DE MANIPULATION 3D :
+                Un cadre carré harmonieux sur fond crème qui maintient la plaque
+                parfaitement centrée quel que soit l'axe de rotation 3D.
               */}
               <div
                 ref={stageRef}
@@ -493,8 +517,8 @@ export default function PlaqueShowcaseSection() {
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
                 onWheel={handleWheel}
-                className="relative w-full aspect-[490/525] flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none"
-                style={{ perspective: "1300px" }}
+                className="relative w-full aspect-square max-w-[460px] rounded-3xl bg-white/40 border border-[#EDD9A3]/60 shadow-[0_12px_36px_rgba(42,32,22,0.04)] flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none"
+                style={{ perspective: "1300px", touchAction: "none" }}
               >
                 {/* ── GUIDAGE TACTILE MOBILE (disparaît dès le premier contact) ── */}
                 {!hasInteracted && (
@@ -503,22 +527,22 @@ export default function PlaqueShowcaseSection() {
                     <span>Touchez & faites tourner en 3D</span>
                   </div>
                 )}
-                {/* ── OMBRE PORTÉE NATURELLE AU SOL (forme ovale douce) ── */}
+                {/* ── OMBRE PORTÉE NATURELLE AU SOL (forme ovale douce, reste centrée sous la plaque) ── */}
                 <div
                   className="absolute pointer-events-none transition-transform duration-75 ease-out rounded-full bg-[#4A2617]/20 blur-[28px]"
                   style={{
                     width: "66%",
                     height: "18%",
-                    bottom: "4%",
+                    bottom: "5%",
                     left: "17%",
-                    transform: `translate(${rotY * 1.1}px, ${Math.abs(rotX) * 0.5}px) scale(${currentZoom * 0.95})`,
-                    opacity: Math.max(0.18, 0.45 - Math.abs(rotX) * 0.005),
+                    transform: `translate(${Math.sin((rotY * Math.PI) / 180) * 16}px, ${Math.sin((rotX * Math.PI) / 180) * 10}px) scale(${currentZoom * 0.95})`,
+                    opacity: Math.max(0.18, 0.45 - Math.abs(Math.sin((rotX * Math.PI) / 180)) * 0.15),
                   }}
                 />
 
                 {/* ── OBJET 3D : LA PLAQUE DÉCOUPÉE DANS LE NOYER (DOUBLE-FACE) ── */}
                 <div
-                  className="relative w-[85%] max-w-[420px] transition-transform duration-75 ease-out"
+                  className="relative w-[76%] sm:w-[80%] max-w-[370px] pointer-events-none transition-transform duration-75 ease-out"
                   style={{
                     aspectRatio: `${1 / RATIO}`,
                     transformStyle: "preserve-3d",
@@ -579,14 +603,13 @@ export default function PlaqueShowcaseSection() {
                     Gravure laser, QR Code, Phrase personnalisée & Points d'intérêt
                   */}
                   <div
-                    className="absolute inset-0"
+                    className="absolute inset-0 pointer-events-none"
                     style={{
                       transform: "translateZ(1.5px)",
                       backfaceVisibility: "hidden",
                       WebkitBackfaceVisibility: "hidden",
                       visibility: isFrontFacing ? "visible" : "hidden",
                       opacity: isFrontFacing ? 1 : 0,
-                      pointerEvents: isFrontFacing ? "auto" : "none",
                       transition: "opacity 80ms ease-out",
                     }}
                   >
