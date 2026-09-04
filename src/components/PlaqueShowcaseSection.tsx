@@ -1,6 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useId, useMemo, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useId,
+  useMemo,
+  useCallback,
+  useSyncExternalStore,
+} from "react";
 import { QRCodeSVG } from "qrcode.react";
 import AnimateOnScroll from "./AnimateOnScroll";
 import {
@@ -145,6 +153,21 @@ export default function PlaqueShowcaseSection() {
   const [isAutoRotate, setIsAutoRotate] = useState(true);
   const [isInteracting, setIsInteracting] = useState(false);
 
+  /* Détection mobile pour bloquer le zoom à 100% et fiabiliser la manipulation tactile */
+  const isMobile = useSyncExternalStore(
+    (callback) => {
+      window.addEventListener("resize", callback);
+      return () => window.removeEventListener("resize", callback);
+    },
+    () => window.innerWidth < 768,
+    () => false
+  );
+
+  /* Valeurs effectives : strictement bloquées à 100% (zoom = 1) et sans pan sur mobile */
+  const currentZoom = isMobile ? 1 : zoom;
+  const currentPanX = isMobile ? 0 : panX;
+  const currentPanY = isMobile ? 0 : panY;
+
   /* Détection mathématique de l'orientation : Face avant vs Dos de la plaque */
   const isFrontFacing = Math.cos((rotY * Math.PI) / 180) >= 0;
 
@@ -261,15 +284,21 @@ export default function PlaqueShowcaseSection() {
 
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    // Détection du pinch à deux doigts pour le zoom
-    if (pointersRef.current.size === 2) {
+    // Sur mobile, le zoom est bloqué à 100% : désactiver le multi-touch pinch pour éviter tout bug
+    if (isMobile && pointersRef.current.size >= 2) {
+      return;
+    }
+
+    // Détection du pinch à deux doigts pour le zoom (uniquement sur grand écran / bureau)
+    if (!isMobile && pointersRef.current.size === 2) {
       const pts = Array.from(pointersRef.current.values());
       pinchStartDistRef.current = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       pinchStartZoomRef.current = zoom;
       return;
     }
 
-    const isPan = e.button === 1 || e.shiftKey || zoom > 1.3;
+    // Sur mobile, le pan est désactivé : toujours privilégier la rotation 3D fluide
+    const isPan = !isMobile && (e.button === 1 || e.shiftKey || zoom > 1.3);
     dragRef.current = {
       startX: e.clientX,
       startY: e.clientY,
@@ -287,8 +316,11 @@ export default function PlaqueShowcaseSection() {
     if (!isInteracting) return;
     pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-    // Zoom tactile fluide à deux doigts
-    if (pointersRef.current.size === 2 && pinchStartDistRef.current) {
+    // Ignorer sur mobile si plus d'un doigt pour garder le geste propre
+    if (isMobile && pointersRef.current.size >= 2) return;
+
+    // Zoom tactile fluide à deux doigts (désactivé sur mobile pour bloquer le zoom à 100%)
+    if (!isMobile && pointersRef.current.size === 2 && pinchStartDistRef.current) {
       const pts = Array.from(pointersRef.current.values());
       const currentDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       const factor = currentDist / pinchStartDistRef.current;
@@ -348,20 +380,24 @@ export default function PlaqueShowcaseSection() {
     }
   };
 
-  /* Zoom à la molette */
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    setIsAutoRotate(false);
-    setZoom((prev) => {
-      const step = e.deltaY > 0 ? -0.15 : 0.15;
-      const next = Math.max(0.85, Math.min(2.5, prev + step));
-      if (next <= 1) {
-        setPanX(0);
-        setPanY(0);
-      }
-      return parseFloat(next.toFixed(2));
-    });
-  }, []);
+  /* Zoom à la molette (désactivé sur mobile) */
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      if (isMobile) return;
+      e.preventDefault();
+      setIsAutoRotate(false);
+      setZoom((prev) => {
+        const step = e.deltaY > 0 ? -0.15 : 0.15;
+        const next = Math.max(0.85, Math.min(2.5, prev + step));
+        if (next <= 1) {
+          setPanX(0);
+          setPanY(0);
+        }
+        return parseFloat(next.toFixed(2));
+      });
+    },
+    [isMobile]
+  );
 
   /* Appliquer un préréglage */
   const applyPreset = (preset: (typeof PRESETS)[number]) => {
@@ -369,15 +405,15 @@ export default function PlaqueShowcaseSection() {
     setActiveHotspot(null);
     setRotX(preset.rotX);
     setRotY(preset.rotY);
-    setZoom(preset.zoom);
-    setPanX(preset.panX);
-    setPanY(preset.panY);
+    setZoom(isMobile ? 1 : preset.zoom);
+    setPanX(isMobile ? 0 : preset.panX);
+    setPanY(isMobile ? 0 : preset.panY);
   };
 
   /* Sélection d'un détail depuis la liste de droite */
   const selectHotspot = (hs: Hotspot) => {
-    // Désactivé sur mobile (< 768px) pour éviter les déplacements imprévus lors du défilement
-    if (typeof window !== "undefined" && window.innerWidth < 768) return;
+    // Désactivé sur mobile (< 768px) pour bloquer le zoom à 100% et éviter tout déplacement imprévu
+    if (isMobile || (typeof window !== "undefined" && window.innerWidth < 768)) return;
     setIsAutoRotate(false);
     if (activeHotspot?.id === hs.id) {
       // Désélection : retour à la vue globale
@@ -437,10 +473,11 @@ export default function PlaqueShowcaseSection() {
               <div className="flex items-center justify-between w-full mb-2 px-2 text-[11px] font-medium text-[#6B5D4E]">
                 <span className="flex items-center gap-1.5">
                   <HandPointing size={15} className="text-[#C4714A] animate-pulse" />
-                  Glissez pour orienter en 3D à 360° • Molette pour zoomer
+                  <span className="hidden md:inline">Glissez pour orienter en 3D à 360° • Molette pour zoomer</span>
+                  <span className="md:hidden">Glissez pour faire pivoter la plaque en 3D</span>
                 </span>
-                <span className="bg-white/80 border border-[#EDD9A3] px-2 py-0.5 rounded-full text-[10px] text-[#5C3D2E] font-mono shadow-xs">
-                  Zoom: {Math.round(zoom * 100)}%
+                <span className="hidden md:inline-flex bg-white/80 border border-[#EDD9A3] px-2 py-0.5 rounded-full text-[10px] text-[#5C3D2E] font-mono shadow-xs">
+                  Zoom: {Math.round(currentZoom * 100)}%
                 </span>
               </div>
 
@@ -474,7 +511,7 @@ export default function PlaqueShowcaseSection() {
                     height: "18%",
                     bottom: "4%",
                     left: "17%",
-                    transform: `translate(${rotY * 1.1}px, ${Math.abs(rotX) * 0.5}px) scale(${zoom * 0.95})`,
+                    transform: `translate(${rotY * 1.1}px, ${Math.abs(rotX) * 0.5}px) scale(${currentZoom * 0.95})`,
                     opacity: Math.max(0.18, 0.45 - Math.abs(rotX) * 0.005),
                   }}
                 />
@@ -485,7 +522,7 @@ export default function PlaqueShowcaseSection() {
                   style={{
                     aspectRatio: `${1 / RATIO}`,
                     transformStyle: "preserve-3d",
-                    transform: `translate3d(${panX}px, ${panY}px, 0) scale(${zoom}) rotateX(${rotX}deg) rotateY(${rotY}deg)`,
+                    transform: `translate3d(${currentPanX}px, ${currentPanY}px, 0) scale(${currentZoom}) rotateX(${rotX}deg) rotateY(${rotY}deg)`,
                   }}
                 >
                   {/* 
@@ -683,9 +720,9 @@ export default function PlaqueShowcaseSection() {
                   ))}
                 </div>
 
-                {/* Ligne 2 : Outils tactiles rapides (Zoom + 360° Auto) */}
+                {/* Ligne 2 : Outils tactiles rapides (Zoom bureau + 360° Auto) */}
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 bg-white border border-[#EDD9A3] rounded-full p-0.5 shadow-xs">
+                  <div className="hidden md:flex items-center gap-1 bg-white border border-[#EDD9A3] rounded-full p-0.5 shadow-xs">
                     <button
                       type="button"
                       onClick={() =>
@@ -697,7 +734,7 @@ export default function PlaqueShowcaseSection() {
                       <MagnifyingGlassMinus size={15} />
                     </button>
                     <span className="text-[10px] font-mono text-[#8A7868] px-1 select-none">
-                      {Math.round(zoom * 100)}%
+                      {Math.round(currentZoom * 100)}%
                     </span>
                     <button
                       type="button"

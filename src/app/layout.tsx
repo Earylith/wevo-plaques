@@ -1,7 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import BandeauCookies from "@/components/ui/BandeauCookies";
 import { SITE_URL } from "@/lib/site";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#FBF5EC",
+};
 
 export const metadata: Metadata = {
   /*
@@ -77,9 +85,6 @@ export const metadata: Metadata = {
     description:
       "Une plaque en bois gravée avec QR code, reliée à une page dédiée à votre logement. Dès 49 €, sans abonnement.",
   },
-
-  // Couleur de la barre d'adresse sur mobile : le sable du site.
-  other: { "theme-color": "#FBF5EC" },
 };
 
 export default function RootLayout({
