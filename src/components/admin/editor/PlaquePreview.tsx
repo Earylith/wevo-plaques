@@ -1,5 +1,6 @@
 "use client";
 
+import { GABARIT_URL } from "@/lib/plaqueGabarit";
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { PlaqueWood } from "@/lib/types/accommodation";
@@ -22,7 +23,7 @@ import { PlaqueWood } from "@/lib/types/accommodation";
  * remonterait à chaque frappe et rechargerait le gabarit.
  */
 
-const GABARIT = "/images/plaques/plaque-base.svg";
+const GABARIT = GABARIT_URL;
 
 /**
  * Couleur du NON-GRAVÉ dans le gabarit.

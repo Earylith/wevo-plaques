@@ -7,6 +7,7 @@ import QRCode from "qrcode";
 import { CALQUES, Point, Trace, ecrireDxf, ecrireSvg, rectangle } from "./dxf";
 import { appliquer, lireTrace, parcourirSvg, SousTrace } from "./svg";
 import { contoursTexte } from "./police";
+import { GABARIT_SEGMENTS } from "@/lib/plaqueGabarit";
 
 /**
  * Fabrication du fichier de gravure.
@@ -20,7 +21,7 @@ import { contoursTexte } from "./police";
  * exactement ce que le gabarit contient, aux deux substitutions près.
  */
 
-const GABARIT = path.join(process.cwd(), "public", "images", "plaques", "plaque-base.svg");
+const GABARIT = path.join(process.cwd(), ...GABARIT_SEGMENTS);
 
 /** Largeur réelle de la plaque, en millimètres. La hauteur en découle. */
 const LARGEUR_PLAQUE_MM = 220;

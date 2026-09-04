@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { parcourirSvg, lireTrace, appliquer } from "@/lib/server/gravure/svg";
 import { contoursTexte } from "@/lib/server/gravure/police";
+import { GABARIT_SEGMENTS } from "@/lib/plaqueGabarit";
 
 /**
  * Sondage du gabarit, réservé à l'administration.
@@ -26,7 +27,7 @@ export async function GET() {
   }
 
   const source = readFileSync(
-    path.join(process.cwd(), "public", "images", "plaques", "plaque-base.svg"),
+    path.join(process.cwd(), ...GABARIT_SEGMENTS),
     "utf8"
   );
 
