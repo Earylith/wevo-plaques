@@ -7,6 +7,7 @@ import LivretsDemoSection from "@/components/LivretsDemoSection";
 import { chargerVitrines } from "@/lib/server/vitrines";
 import FeaturesSection from "@/components/FeaturesSection";
 import DifferentiationSection from "@/components/DifferentiationSection";
+import PlaqueShowcaseSection from "@/components/PlaqueShowcaseSection";
 import PricingSection from "@/components/PricingSection";
 import ProSection from "@/components/ProSection";
 import BlogSection from "@/components/BlogSection";
@@ -98,6 +99,7 @@ export default async function Home() {
         <Hero />
         <ProblemSection />
         <DifferentiationSection />
+        <PlaqueShowcaseSection />
         <SolutionSection />
         <DemoPreviewSection />
         <LivretsDemoSection vitrines={vitrines} />
