@@ -16,13 +16,14 @@ import { Accommodation, ModuleId } from "@/lib/types/accommodation";
  * de sorte qu'une langue à moitié remplie reste lisible plutôt que trouée.
  */
 
-export type Lang = "fr" | "en" | "es" | "it";
+export type Lang = "fr" | "en" | "es" | "it" | "de";
 
 export const LANGS: { code: Lang; label: string; flag: string; short: string }[] = [
   { code: "fr", label: "Français", flag: "🇫🇷", short: "FR" },
   { code: "en", label: "English", flag: "🇬🇧", short: "EN" },
   { code: "es", label: "Español", flag: "🇪🇸", short: "ES" },
   { code: "it", label: "Italiano", flag: "🇮🇹", short: "IT" },
+  { code: "de", label: "Deutsch", flag: "🇩🇪", short: "DE" },
 ];
 
 export const isLang = (value: string): value is Lang =>
@@ -479,7 +480,127 @@ const IT: Dict = {
   whereIsIt: "Dove si trova l’alloggio",
 };
 
-const DICTS: Record<Lang, Dict> = { fr: FR, en: EN, es: ES, it: IT };
+const DE: Dict = {
+  // Carte heure / météo
+  localTime: "Ortszeit",
+  live: "Live",
+  otherTimezoneHint: "Die Uhrzeit der Unterkunft, wo immer Sie sind",
+  feelsLike: "Gefühlt",
+  weatherCredit: "Wetter von Open-Meteo · fortlaufend aktualisiert",
+  phaseNight: "Nacht vor Ort",
+  phaseEarly: "Früher Morgen vor Ort",
+  phaseMorning: "Vormittag vor Ort",
+  phaseNoon: "Mittag vor Ort",
+  phaseAfternoon: "Nachmittag vor Ort",
+  phaseEvening: "Abend vor Ort",
+
+  // Sections & navigation
+  groupSejour: "Ihr Aufenthalt",
+  groupSurplace: "Vor Ort",
+  groupAlentours: "In der Umgebung",
+  toComplete: "Ausfüllen",
+  display: "Ansicht",
+  viewList: "Liste",
+  viewGrid: "Raster",
+  edit: "Bearbeiten",
+  close: "Schließen",
+  defaultSubtitle: "Ihr Guide für einen einfachen und angenehmen Aufenthalt",
+  footer: "Digitaler Willkommens-Guide",
+
+  // Arrivée
+  essentialInfo: "Wichtige Informationen",
+  checkinFrom: "Anreise möglich ab",
+  checkinHint: "Überprüfen Sie Ihre Route vor der Abreise.",
+  accessNotes: "Hinweise & Zugang",
+  location: "Standort",
+  arrivalPoint: "Ihr Ankunftspunkt",
+  directions: "Wegbeschreibung",
+  parking: "Parken",
+  emptyArrival: "Zugang noch nicht beschrieben",
+  emptyArrivalText: "Ihr Gastgeber hat den Zugang noch nicht beschrieben. Rufen Sie ihn gerne an.",
+
+  // Wi-Fi & codes
+  wifiNetwork: "WLAN-Netzwerk",
+  password: "Passwort",
+  copy: "Kopieren",
+  copied: "Kopiert!",
+  accessCodes: "Zugangscodes",
+  noCodes: "Für diese Unterkunft ist kein Zugangscode erforderlich.",
+  noPassword: "Kein Passwort hinterlegt — bitte fragen Sie Ihren Gastgeber.",
+  emptyWifi: "WLAN nicht angegeben",
+  emptyWifiText: "Netzwerkname und Passwort sind noch nicht hinterlegt.",
+
+  // Contacts
+  yourHost: "Ihr Gastgeber",
+  hostPhoneMissing: "Telefonnummer noch nicht angegeben.",
+  usefulContacts: "Nützliche Kontakte",
+  emergencies: "Notfall & Gesundheit",
+  emergencyNotice:
+    "In lebensbedrohlichen Notfällen wählen Sie die 112 — die europäische Notrufnummer, kostenlos von jedem Telefon, auch ohne SIM-Karte.",
+  emptyContacts: "Keine Kontakte hinterlegt",
+  emptyContactsText: "Nützliche Nummern für Ihren Aufenthalt erscheinen hier.",
+
+  // Départ
+  checkoutTime: "Abreisezeit",
+  checkoutBefore: "Abreise bitte vor",
+  beforeLeaving: "Vor der Abreise",
+  required: "Erforderlich",
+  alsoKnow: "Gut zu wissen",
+  departureInstructions: "Hinweise zur Abreise",
+  emptyDeparture: "Abreise noch nicht näher beschrieben",
+  emptyDepartureText: "Vor der Schlüsselübergabe sind keine besonderen Schritte erforderlich.",
+
+  // Bienvenue & règles
+  welcome: "Willkommen",
+  emptyWelcome: "Noch keine Willkommensnachricht",
+  emptyWelcomeText: "Ihr Gastgeber hat noch keine Willkommensnachricht verfasst.",
+
+  houseRules: "Hausordnung",
+  emptyRules: "Keine besonderen Regeln",
+  emptyRulesText: "Genießen Sie die Unterkunft wie Ihr eigenes Zuhause.",
+
+  // Équipements & services
+  howItWorks: "Funktionsweise der Unterkunft",
+  yourEquipment: "Ausstattung",
+  equipmentAvailable: "Ausstattung verfügbar",
+  equipmentsAvailable: "Ausstattungen verfügbar",
+  openForInstructions: "Tippen Sie auf eine Ausstattung, um die Anleitung zu sehen.",
+  instructionsAvailable: "Anleitung verfügbar",
+  extras: "Kleine Extras",
+  extrasIntro: "Optionale Zusatzangebote Ihres Gastgebers. Zur Buchung kontaktieren Sie ihn bitte direkt.",
+  askHost: "Gastgeber fragen",
+  onRequest: "Auf Anfrage",
+  perPerson: "/ Person",
+  perDay: "/ Tag",
+  emptyEquipment: "Ausstattung noch nicht beschrieben",
+  emptyEquipmentText: "Die Anleitungen für die Unterkunft sind noch nicht hinterlegt.",
+
+  // Adresses & alentours
+  localBook: "Lokaler Guide",
+  discoverAround: "In der Nähe entdecken",
+  addressSelected: "ausgewählte Empfehlung",
+  addressesSelected: "ausgewählte Empfehlungen",
+  all: "Alle",
+  emptyAddresses: "Noch keine Empfehlungen",
+  emptyAddressesText: "Die Lieblingsempfehlungen Ihres Gastgebers erscheinen hier.",
+
+  // Transports
+  nearbyLines: "Linien in der Nähe",
+  emptyTransport: "Verkehrsmittel nicht angegeben",
+  emptyTransportText: "Haltestellen und Linien in der Umgebung sind noch nicht aufgeführt.",
+
+  // FAQ & livre d'or
+  emptyFaq: "Noch keine Fragen",
+  emptyFaqText: "Haben Sie eine Frage? Schreiben Sie Ihrem Gastgeber, er hilft Ihnen gerne.",
+  guestbookTitle: "Hinterlassen Sie uns eine Nachricht",
+  guestbookText: "Ihr Aufenthalt neigt sich dem Ende zu? Hinterlassen Sie Ihrem Gastgeber ein paar nette Worte.",
+  writeToHost: "Dem Gastgeber schreiben",
+
+  // Carte
+  whereIsIt: "Wo sich die Unterkunft befindet",
+};
+
+const DICTS: Record<Lang, Dict> = { fr: FR, en: EN, es: ES, it: IT, de: DE };
 
 /** Texte d'interface. Retombe sur le français si la clé manque. */
 export function tr(lang: Lang, key: keyof typeof FR): string {
@@ -511,6 +632,12 @@ export const MODULE_LABELS: Record<Lang, Record<ModuleId, string>> = {
     bienvenue: "Benvenuto", reglement: "Regolamento", equipements: "Dotazioni e servizi",
     adresses: "Indirizzi consigliati", transports: "Trasporti", faq: "Domande frequenti",
     livredor: "Libro degli ospiti",
+  },
+  de: {
+    arrivee: "Ankunft", wifi: "Codes & WLAN", contacts: "Kontakte", depart: "Abreise",
+    bienvenue: "Willkommen", reglement: "Hausordnung", equipements: "Ausstattung & Services",
+    adresses: "Lokale Empfehlungen", transports: "Unterwegs vor Ort", faq: "FAQ",
+    livredor: "Gästebuch",
   },
 };
 
@@ -639,7 +766,7 @@ export function availableLangs(data: Accommodation): Lang[] {
   const enabled = data.comfortOptions?.enabledLanguages;
   const candidates: Lang[] = enabled?.length
     ? (enabled.filter(isLang) as Lang[])
-    : (["fr", "en", "es", "it"] as Lang[]);
+    : (["fr", "en", "es", "it", "de"] as Lang[]);
 
   return candidates.filter((lang) => {
     if (lang === "fr") return true;
@@ -656,4 +783,5 @@ export const INTL_LOCALE: Record<Lang, string> = {
   en: "en-GB",
   es: "es-ES",
   it: "it-IT",
+  de: "de-DE",
 };

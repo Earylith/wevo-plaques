@@ -217,8 +217,10 @@ export interface PlaqueOrder {
    * Sans trace, on ne sait pas si un client a été prévenu — et on le
    * prévient deux fois, ou pas du tout. Les deux se voient.
    */
-  /** Date d'envoi de la confirmation de commande. */
+  /** Date d'envoi de la confirmation de commande au client. */
   confirmationEnvoyeeLe?: number;
+  /** Date d'envoi de la notification de commande à l'administrateur. */
+  notificationAdminEnvoyeeLe?: number;
   /** Date d'envoi de l'annonce d'expédition. */
   expeditionNotifieeLe?: number;
   /**
@@ -246,6 +248,18 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
 export interface DepartureInstruction {
   text: string;
   required?: boolean;
+}
+
+/** Suivi de la tâche de traduction automatique exécutée en arrière-plan. */
+export interface TranslationJob {
+  status: "idle" | "in_progress" | "completed" | "warning" | "error";
+  startedAt?: number;
+  completedAt?: number;
+  targetLangs: string[];
+  completedLangs: string[];
+  totalTranslated: number;
+  warning?: string;
+  error?: string;
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -402,6 +416,9 @@ export interface Accommodation {
    * dans @/lib/i18n pour éviter une dépendance circulaire.
    */
   translations?: Record<string, unknown>;
+
+  /** Suivi d'une tâche de traduction automatique exécutée en arrière-plan. */
+  translationJob?: TranslationJob;
 
   /**
    * Blocs transverses du livret, en dehors du système de modules.

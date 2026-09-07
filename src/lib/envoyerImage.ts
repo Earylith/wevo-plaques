@@ -29,8 +29,9 @@ function enMo(octets: number): string {
 }
 
 export async function envoyerImage(fichier: File, dossier: string): Promise<string> {
-  if (!fichier.type.startsWith("image/")) {
-    throw new Error(`« ${fichier.name} » n’est pas une image.`);
+  const estImage = fichier.type.startsWith("image/") || /\.(jpe?g|png|webp|avif|heic|heif|bmp|tiff?)$/i.test(fichier.name);
+  if (!estImage) {
+    throw new Error(`« ${fichier.name} » n’est pas un format d'image reconnu.`);
   }
 
   const compresse = await compressImage(fichier);
@@ -40,13 +41,13 @@ export async function envoyerImage(fichier: File, dossier: string): Promise<stri
      * Le cas typique : un fichier HEIC d'iPhone ou de Mac, que les
      * navigateurs autres que Safari ne savent pas décoder — la compression
      * renonce alors et renvoie l'original. On le dit, plutôt que de laisser
-     * le serveur refuser un envoi de 9 Mo sans expliquer pourquoi.
+     * le serveur refuser un envoi trop lourd sans expliquer pourquoi.
      */
     const heic = /heic|heif/i.test(fichier.type) || /\.hei[cf]$/i.test(fichier.name);
     throw new Error(
       heic
-        ? `« ${fichier.name} » est au format HEIC, que votre navigateur ne sait pas convertir. Exportez-la en JPEG, ou réessayez depuis Safari.`
-        : `« ${fichier.name} » pèse encore ${enMo(compresse.size)} Mo après compression, au-delà de la limite de ${enMo(MAX_UPLOAD_BYTES)} Mo. Réduisez-la avant de l’envoyer.`
+        ? `« ${fichier.name} » est au format HEIC d’Apple et n’a pas pu être convertie automatiquement. Veuillez l’exporter en JPEG ou PNG sur votre Mac avant de l’importer.`
+        : `« ${fichier.name} » pèse encore ${enMo(compresse.size)} Mo après compression, au-delà de la limite de ${enMo(MAX_UPLOAD_BYTES)} Mo. Réduisez sa résolution avant de l’envoyer.`
     );
   }
 
@@ -56,5 +57,9 @@ export async function envoyerImage(fichier: File, dossier: string): Promise<stri
   // Absent côté Guidz, qui s'authentifie par son cookie : sans effet pour lui.
   const jeton = await auth.currentUser?.getIdToken().catch(() => undefined);
 
-  return uploadAdminImageAction(corps, dossier, jeton);
+  const res = await uploadAdminImageAction(corps, dossier, jeton);
+  if (!res.ok) {
+    throw new Error(res.error);
+  }
+  return res.url;
 }

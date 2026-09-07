@@ -46,7 +46,7 @@ export const getAccommodationBySlugAdmin = async (slug: string): Promise<Accommo
  * s'afficher en toutes circonstances. Un livret réel, lui, ne doit JAMAIS être
  * remplacé par du contenu d'emprunt.
  */
-const DEMO_SLUGS = ["demo-essentielle", "demo-confort", "demo-confort2", "demo-paris", "demo-biarritz", "demo-chamonix"] as const;
+const DEMO_SLUGS = ["demo-essentielle", "demo-confort2", "demo-paris", "demo-biarritz", "demo-chamonix"] as const;
 
 export const isDemoSlug = (slug: string): boolean =>
   (DEMO_SLUGS as readonly string[]).includes(slug);
@@ -55,7 +55,6 @@ const loadDemoFallback = async (slug: string): Promise<Accommodation | null> => 
   if (!isDemoSlug(slug)) return null;
   const demos = await import("../demoData");
   if (slug === "demo-essentielle") return demos.demoEssentielle;
-  if (slug === "demo-confort") return demos.demoConfort;
   if (slug === "demo-confort2") return demos.demoConfortMarseille;
   if (slug === "demo-paris") return demos.demoParis;
   if (slug === "demo-biarritz") return demos.demoBiarritz;

@@ -19,6 +19,7 @@ import PlaqueTab, { essenceCommandable } from "@/components/admin/editor/PlaqueT
 import { taglineGravee } from "@/lib/plaque";
 import { heureArrivee, heureDepart } from "@/lib/horaires";
 import PlaquePreview from "@/components/admin/editor/PlaquePreview";
+import { SITE_URL } from "@/lib/site";
 import VerrouConfort from "@/components/admin/editor/VerrouConfort";
 import EssentialTemplate from "@/components/templates/EssentialTemplate";
 import { ouvrirPaiement } from "@/app/paiement-actions";
@@ -116,16 +117,20 @@ const GROUP_ORDER: ModuleGroup[] = ["tuiles", "sejour", "surplace", "alentours"]
  * La teinte Guidz y figurait DEUX FOIS : deux pastilles identiques côte à
  * côte, dont l'une ne servait à rien. Elle n'apparaît plus qu'une seule fois.
  */
-const COLOR_PRESETS = ["#C4714A", "#2B5F75", "#0E7C86", "#5A7A4E", "#D4A34A", "#1A1510"];
+const COLOR_PRESETS = ["#C4714A", "#5A7A4E", "#2B5F75", "#D4A34A", "#0E7C86", "#1A1510"];
 
 /**
- * Palette de l'Essentielle : une chaude, une froide, une végétale.
- *
- * Trois familles franchement distinctes plutôt qu'un début de liste tronqué —
- * la découpe précédente reprenait le doublon et proposait donc deux fois la
- * même couleur à qui n'en avait que quatre.
+ * Palette de l'Essentielle : orange, vert, bleu et jaune.
  */
-const COULEURS_ESSENTIELLE = ["#C4714A", "#2B5F75", "#5A7A4E"];
+const COULEURS_ESSENTIELLE = ["#C4714A", "#5A7A4E", "#2B5F75", "#D4A34A"];
+const LABELS_COULEURS: Record<string, string> = {
+  "#C4714A": "Orange",
+  "#5A7A4E": "Vert",
+  "#2B5F75": "Bleu",
+  "#D4A34A": "Jaune",
+  "#0E7C86": "Bleu Canard",
+  "#1A1510": "Noir Anthracite",
+};
 const CHECKIN_HOURS = ["10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22"];
 const CHECKOUT_HOURS = ["06", "07", "08", "09", "10", "11", "12", "13", "14"];
 const ADDRESS_CATEGORIES = ["Restaurant", "Bar", "Plage", "Activité", "Commerce", "Culture", "Nature"];
@@ -463,13 +468,13 @@ export default function AdminModernTileEditor({
       const next: Accommodation = { ...current };
       const updatedLayers: Translations = { ...layers };
 
-      /** Écrit une traduction à l'index voulu, pour les trois langues. */
+      /** Écrit une traduction à l'index voulu, pour toutes les langues traduisibles. */
       const writeTranslations = (
         startIndex: number,
         entries: PickedEntry[],
         apply: (layer: TranslationLayer, index: number, entry: PickedEntry, lang: TranslatableLang) => TranslationLayer
       ) => {
-        for (const lang of ["en", "es", "it"] as TranslatableLang[]) {
+        for (const lang of ["en", "es", "it", "de"] as TranslatableLang[]) {
           let layer: TranslationLayer = { ...(updatedLayers[lang] || {}) };
           entries.forEach((entry, offset) => {
             layer = apply(layer, startIndex + offset, entry, lang);
@@ -487,7 +492,10 @@ export default function AdminModernTileEditor({
         next.equipments = list;
         writeTranslations(start, picked, (layer, index, entry, lang) => {
           const items = [...(layer.equipments || [])];
-          items[index] = { title: entry.title[lang], desc: entry.desc?.[lang] || "" };
+          items[index] = {
+            title: entry.title[lang] || entry.title.fr,
+            desc: entry.desc?.[lang] || entry.desc?.fr || "",
+          };
           return { ...layer, equipments: items };
         });
       }
@@ -499,7 +507,7 @@ export default function AdminModernTileEditor({
         next.rules = list;
         writeTranslations(start, picked, (layer, index, entry, lang) => {
           const items = [...(layer.rules || [])];
-          items[index] = entry.title[lang];
+          items[index] = entry.title[lang] || entry.title.fr;
           return { ...layer, rules: items };
         });
       }
@@ -511,7 +519,7 @@ export default function AdminModernTileEditor({
         next.practicalInfo = { ...current.practicalInfo, departureInstructions: list };
         writeTranslations(start, picked, (layer, index, entry, lang) => {
           const items = [...(layer.departureInstructions || [])];
-          items[index] = entry.title[lang];
+          items[index] = entry.title[lang] || entry.title.fr;
           return { ...layer, departureInstructions: items };
         });
       }
@@ -998,14 +1006,19 @@ export default function AdminModernTileEditor({
     sectionIndex >= 0 && sectionIndex < ADMIN_SECTIONS.length - 1
       ? ADMIN_SECTIONS[sectionIndex + 1]
       : null;
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const [origin, setOrigin] = useState<string>(SITE_URL);
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.origin) {
+      setOrigin(window.location.origin);
+    }
+  }, []);
   const publicUrl = `${origin}/h/${savedSlug}`;
   /*
-   * Adresse gravée : permanente, donc distincte du lien de partage. Tant que
-   * l'identifiant n'est pas attribué, on montre la forme sans prétendre
-   * qu'elle est définitive.
+   * Adresse gravée : permanente, donc distincte du lien de partage.
+   * Toujours basée sur SITE_URL de production pour que la gravure soit réelle
+   * et pour garantir un hash/matrice QR identique entre SSR et hydratation client.
    */
-  const engravedUrl = data.permanentId ? `${origin}/g/${data.permanentId}` : `${origin}/g/…`;
+  const engravedUrl = data.permanentId ? `${SITE_URL}/g/${data.permanentId}` : `${SITE_URL}/g/…`;
   const emergencyIdx = (data.contacts || [])
     .map((c, i) => ({ c, i }))
     .filter(({ c }) => c.type === "emergency");
@@ -2393,12 +2406,15 @@ export default function AdminModernTileEditor({
                   */}
                   <div className="flex items-center gap-2.5 flex-wrap">
                     {(estConfort ? COLOR_PRESETS : COULEURS_ESSENTIELLE).map((color) => {
-                      const active = (data.comfortOptions?.theme?.primaryColor || "#2B5F75") === color;
+                      const active = (data.comfortOptions?.theme?.primaryColor || "#C4714A") === color;
+                      const label = LABELS_COULEURS[color] || color;
                       return (
                         <button
                           key={color}
                           type="button"
                           onClick={() => setTheme({ primaryColor: color })}
+                          title={label}
+                          aria-label={label}
                           className={`w-9 h-9 rounded-full flex items-center justify-center border-2 border-white shadow-md transition-transform hover:scale-110 ${
                             active ? "ring-2 ring-offset-2 ring-[#2A2016]" : ""
                           }`}
@@ -2413,7 +2429,7 @@ export default function AdminModernTileEditor({
                       <Plus size={14} weight="bold" className="text-[#6B5D4E]" />
                       <input
                         type="color"
-                        value={data.comfortOptions?.theme?.primaryColor || "#2B5F75"}
+                        value={data.comfortOptions?.theme?.primaryColor || "#C4714A"}
                         onChange={(e) => setTheme({ primaryColor: e.target.value })}
                         className="sr-only"
                       />
@@ -2422,8 +2438,8 @@ export default function AdminModernTileEditor({
                   </div>
 
                   {/*
-                    On nomme la limite plutôt que de la laisser deviner : trois
-                    couleurs franches en Essentielle, la palette entière en
+                    On nomme la limite plutôt que de la laisser deviner : quatre
+                    couleurs en Essentielle, la palette entière en
                     Confort.
                   */}
                   {!estConfort && (
@@ -2823,7 +2839,10 @@ export default function AdminModernTileEditor({
                   <div className="w-3 h-3 rounded-full bg-amber-400" />
                   <div className="w-3 h-3 rounded-full bg-emerald-400" />
                 </div>
-                <div className="flex-1 bg-white rounded-lg px-3 py-1 text-[11px] text-gray-500 font-mono border border-gray-200 truncate">
+                <div
+                  className="flex-1 bg-white rounded-lg px-3 py-1 text-[11px] text-gray-500 font-mono border border-gray-200 truncate"
+                  suppressHydrationWarning
+                >
                   {publicUrl}
                 </div>
               </div>

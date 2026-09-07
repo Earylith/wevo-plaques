@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { adminDb } from "@/lib/firebase/admin";
 import { Creneau } from "@/lib/rappel";
+import { DATE_LANCEMENT } from "@/lib/lancement";
 
 /**
  * Les demandes de rappel, côté Guidz.
@@ -41,6 +42,7 @@ export async function listerRappels(): Promise<Rappel[]> {
 
   const snap = await adminDb.collection(RAPPELS).get();
   return snap.docs
+    .filter((d) => (d.data().createdAt || 0) >= DATE_LANCEMENT)
     .map((d) => ({ ...(d.data() as Omit<Rappel, "id">), id: d.id }))
     /*
      * À rappeler d'abord, du plus ancien au plus récent : dans cette file,

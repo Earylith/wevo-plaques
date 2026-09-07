@@ -1,6 +1,7 @@
 import "server-only";
 
-import { adminDb } from "@/lib/firebase/admin";
+import { resolveAccommodation } from "@/lib/firebase/admin-firestore";
+import { resolveGallery } from "@/lib/livret";
 import { Accommodation } from "@/lib/types/accommodation";
 import { LIVRETS_DEMO, VitrineGarnie } from "@/lib/livretsDemo";
 
@@ -12,22 +13,10 @@ import { LIVRETS_DEMO, VitrineGarnie } from "@/lib/livretsDemo";
  * celle de Paris une maison là où la page annonce un appartement. Le visiteur
  * ne trouvait pas derrière le lien ce que la carte lui avait promis.
  *
- * On lit donc le livret. Ce qui relève de la mise en page — couleur, icône,
- * repères — reste curaté dans `livretsDemo.ts` ; ce qui décrit le logement
- * vient de la base, où l'administration le modifie.
- *
- * L'ESSENTIELLE reste sans photo : sa page n'en affiche aucune, et en poser
- * une promettrait ce que la formule ne livre pas. Elle reçoit à la place son
- * mot d'accueil, pour que la vignette dise quelque chose du livret.
+ * On lit donc le livret avec resolveAccommodation, qui gère la lecture par slug,
+ * par identifiant Firestore, et le repli démo.
  */
 
-/**
- * Le texte d'accueil d'un livret Essentiel.
- *
- * Son gabarit compose une phrase standard quand l'hôte n'en a pas écrit :
- * on la reproduit à l'identique, sans quoi la vignette annoncerait autre
- * chose que la page.
- */
 function accueilEssentiel(livret: Accommodation): string {
   const ecrit = livret.property?.welcomeMessage?.trim();
   if (ecrit) return ecrit;
@@ -35,42 +24,32 @@ function accueilEssentiel(livret: Accommodation): string {
 }
 
 export async function chargerVitrines(): Promise<VitrineGarnie[]> {
-  /*
-   * Une seule requête pour tous les livrets : six lectures séparées
-   * ralentiraient la page d'accueil sans rien apporter.
-   */
-  const slugs = LIVRETS_DEMO.map((l) => l.slug);
+  const vitrines = await Promise.all(
+    LIVRETS_DEMO.map(async (vitrine) => {
+      try {
+        const livret = await resolveAccommodation(vitrine.slug);
+        if (!livret) return vitrine;
 
-  let livrets = new Map<string, Accommodation>();
-  try {
-    const snap = await adminDb
-      .collection("accommodations")
-      .where("slug", "in", slugs.slice(0, 30))
-      .get();
-    livrets = new Map(
-      snap.docs.map((d) => [(d.data() as Accommodation).slug, d.data() as Accommodation])
-    );
-  } catch (error) {
-    /*
-     * La base injoignable ne doit pas vider la page d'accueil : on retombe sur
-     * les valeurs curatées, qui restent justes même si elles sont figées.
-     */
-    console.error("[chargerVitrines]", error);
-  }
+        const estConfort = vitrine.formule === "Confort";
+        const gallery = resolveGallery(livret.property);
+        const photo = gallery[0] || livret.property?.mainImageUrl || livret.property?.gallery?.[0];
 
-  return LIVRETS_DEMO.map((vitrine) => {
-    const livret = livrets.get(vitrine.slug);
-    if (!livret) return vitrine;
+        return {
+          ...vitrine,
+          nom: livret.property?.name || vitrine.nom,
+          ville: livret.property?.city || vitrine.ville,
+          type: livret.property?.type || vitrine.type,
+          resume: livret.property?.welcomeMessage || vitrine.resume,
+          image: estConfort ? photo || vitrine.image : undefined,
+          accueil: estConfort ? undefined : accueilEssentiel(livret),
+        };
+      } catch (error) {
+        console.error(`[chargerVitrines] Erreur pour ${vitrine.slug}:`, error);
+        return vitrine;
+      }
+    })
+  );
 
-    const estConfort = vitrine.formule === "Confort";
-    const photo = livret.property?.mainImageUrl || livret.property?.gallery?.[0];
-
-    return {
-      ...vitrine,
-      // Le nom vient du livret : le renommer dans l'admin doit suffire.
-      nom: livret.property?.name || vitrine.nom,
-      image: estConfort ? photo || vitrine.image : undefined,
-      accueil: estConfort ? undefined : accueilEssentiel(livret),
-    };
-  });
+  return vitrines;
 }
+

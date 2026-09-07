@@ -324,7 +324,7 @@ export default function PricingSection() {
                         { name: "Accessible sans application", ess: "check-green", conf: "check", hl: false },
                         { name: "Abonnement", ess: "Zéro abonnement (Unique)", conf: "19 €/an (1,58 €/m) ou 1,99 €/mois", hl: true },
                         { name: "Phrase personnalisée gravée sur plaque", ess: "-", conf: "check", hl: false },
-                        { name: "Thème de la page", ess: "3 couleurs au choix", conf: "Couleur libre et photos", hl: false },
+                        { name: "Thème de la page", ess: "4 couleurs au choix", conf: "Couleur libre et photos", hl: false },
                         { name: "Wi-Fi, Horaires, Consignes, Contacts", ess: "check-green", conf: "check", hl: false },
                         { name: "Page mobile dédiée", ess: "check-green", conf: "check", hl: false },
                         { name: "Message de bienvenue", ess: "-", conf: "check", hl: false },

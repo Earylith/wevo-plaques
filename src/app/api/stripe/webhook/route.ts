@@ -9,7 +9,11 @@ import { configPlaqueComplete } from "@/lib/plaque";
 import { DUREE_SESSION_MODIFICATION_MS } from "@/lib/livret";
 import { adresseDepuisStripe } from "@/lib/adressePostale";
 import { envoyerCourriel } from "@/lib/server/email";
-import { messageCommande, messageResiliation } from "@/lib/server/emails/messages";
+import {
+  messageCommande,
+  messageCommandeAdmin,
+  messageResiliation,
+} from "@/lib/server/emails/messages";
 
 /**
  * Réception des événements Stripe.
@@ -400,6 +404,84 @@ async function traiterPaiement(session: Stripe.Checkout.Session, origin: string)
     }
   } else {
     console.warn("[stripe] commande", commande.reference, "sans adresse e-mail client");
+  }
+
+  /*
+   * Notification interne à l'équipe Guidz sur contact@guidzme.fr.
+   *
+   * Elle centralise tous les détails de la commande pour l'atelier et la
+   * logistique : numéro de commande, nom et contact de l'hôte, essence de
+   * bois choisie, phrase gravée, QR code, adresse de livraison et montant réglé.
+   * Répondre à ce courriel écrit directement au client.
+   */
+  const emailAdmin =
+    process.env.ADMIN_EMAIL || process.env.COMMANDE_EMAIL || "contact@guidzme.fr";
+
+  let montantFormate: string | null = null;
+  if (typeof session.amount_total === "number") {
+    montantFormate = (session.amount_total / 100).toLocaleString("fr-FR", {
+      style: "currency",
+      currency: (session.currency || "EUR").toUpperCase(),
+    });
+  }
+
+  const clientNom =
+    (livret.owner?.name || session.customer_details?.name || livraison.nom || "").trim();
+  const clientEmail =
+    (livret.owner?.email || session.customer_details?.email || "").trim();
+  const clientTelephone =
+    (livret.owner?.phone || session.customer_details?.phone || livraison.telephone || "").trim();
+
+  const messageAdmin = await messageCommandeAdmin({
+    reference: commande.reference,
+    nomLogement: commande.accommodationName,
+    slug: commande.accommodationSlug,
+    formule: livret.offerType,
+    rythmeAbonnement: session.subscription
+      ? session.metadata?.rythme === "annuel" ? "annuel" : "mensuel"
+      : null,
+    montantTotal: montantFormate,
+    nomClient: clientNom,
+    emailClient: clientEmail,
+    telephoneClient: clientTelephone,
+    essence: plaque.wood === "clair" ? "Bois clair (bouleau)" : "Noyer massif",
+    phraseGravee: plaque.engravedTagline,
+    urlPermanente: commande.permanentUrl,
+    destinataireLivraison: livraison.nom || clientNom,
+    adresse: livraison.adresse,
+    telephoneLivraison: livraison.telephone || clientTelephone,
+    dateCommande: new Date().toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    stripeSessionId: session.id,
+  });
+
+  try {
+    const envoiAdmin = await envoyerCourriel({
+      destinataire: emailAdmin,
+      nomDestinataire: "Guidz Administration",
+      sujet: messageAdmin.sujet,
+      html: messageAdmin.html,
+      texte: messageAdmin.texte,
+      repondreA: clientEmail ? { email: clientEmail, nom: clientNom || undefined } : undefined,
+      etiquette: "commande-admin",
+    });
+
+    if (envoiAdmin.envoye) {
+      await adminDb
+        .collection("orders")
+        .doc(commande.id!)
+        .update({ notificationAdminEnvoyeeLe: Date.now() })
+        .catch(() => {});
+    } else {
+      console.warn("[stripe] notification admin commande non envoyée", envoiAdmin);
+    }
+  } catch (err) {
+    console.error("[stripe] erreur envoi notification admin commande", err);
   }
 
   console.info("[stripe] commande", commande.reference, "créée pour", accommodationId);

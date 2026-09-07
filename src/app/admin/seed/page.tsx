@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { seedDemos } from "@/app/admin/actions";
+import { seedDemos, nettoyerDonneesTestsAdmin } from "@/app/admin/actions";
 import Link from "next/link";
-import { CheckCircle, ExternalLink, Sparkles } from "lucide-react";
+import { CheckCircle, ExternalLink, Sparkles, Trash2, AlertTriangle } from "lucide-react";
 
 const demosList = [
   { name: "Le Clos des Oliviers (Lourmarin)", slug: "demo-essentielle", tag: "Essentielle" },
-  { name: "Villa L'Écrin d'Or (Cannes)", slug: "demo-confort", tag: "Confort Classic" },
   { name: "Bienvenue à Marseille (Penthouse)", slug: "demo-confort2", tag: "Cléo" },
   { name: "Le Loft Haussmannien (Paris)", slug: "demo-paris", tag: "Ville — Cléo" },
   { name: "La Villa Bleue Ocean (Biarritz)", slug: "demo-biarritz", tag: "Plage — Cléo" },
@@ -17,6 +16,15 @@ const demosList = [
 export default function SeedPage() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [purging, setPurging] = useState(false);
+  const [purgeResult, setPurgeResult] = useState<{
+    hebergementsSupprimes: number;
+    commandesSupprimees: number;
+    devisSupprimes: number;
+    rappelsSupprimes: number;
+    signalementsSupprimes: number;
+    emailsSupprimes: number;
+  } | null>(null);
 
   const handleSeed = async () => {
     setLoading(true);
@@ -29,6 +37,23 @@ export default function SeedPage() {
       alert("Erreur lors de la génération des démos: " + String(e));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePurge = async () => {
+    if (!confirm("Attention : cette action va supprimer de Firestore tous les hébergements, commandes, devis, rappels, signalements et logs créés avant le 07/09/2026 (les démos officielles sont conservées). Confirmer ?")) {
+      return;
+    }
+    setPurging(true);
+    setPurgeResult(null);
+    try {
+      const res = await nettoyerDonneesTestsAdmin();
+      setPurgeResult(res);
+    } catch (e) {
+      console.error(e);
+      alert("Erreur lors du nettoyage: " + String(e));
+    } finally {
+      setPurging(false);
     }
   };
 
@@ -96,6 +121,44 @@ export default function SeedPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Carte Grand Ménage de Lancement */}
+      <div className="bg-white rounded-3xl p-6 border border-red-200 shadow-sm">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="text-red-500" size={20} />
+              <h2 className="font-semibold text-lg text-[#2A2016]">Grand Ménage de Lancement (07/09/2026)</h2>
+            </div>
+            <p className="text-xs text-[#6B5D4E] mt-1 max-w-xl">
+              Supprime définitivement de Firestore toutes les données de test antérieures au lancement officiel (07/09/2026 00h00) : hébergements de test, commandes de plaques, devis, rappels, signalements et logs d&apos;e-mails. Les 6 livrets de démo sont préservés.
+            </p>
+          </div>
+          <button
+            onClick={handlePurge}
+            disabled={purging}
+            className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl shadow-sm transition-all disabled:opacity-50 shrink-0"
+          >
+            <Trash2 size={16} />
+            {purging ? "Nettoyage en cours..." : "Purger les données de test"}
+          </button>
+        </div>
+
+        {purgeResult && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-xs text-red-800 space-y-1">
+            <div className="font-bold flex items-center gap-2 mb-2">
+              <CheckCircle size={16} className="text-red-600" />
+              Nettoyage terminé avec succès :
+            </div>
+            <p>• {purgeResult.hebergementsSupprimes} hébergement(s) de test supprimé(s)</p>
+            <p>• {purgeResult.commandesSupprimees} commande(s) de test supprimée(s)</p>
+            <p>• {purgeResult.devisSupprimes} demande(s) de devis supprimée(s)</p>
+            <p>• {purgeResult.rappelsSupprimes} demande(s) de rappel supprimée(s)</p>
+            <p>• {purgeResult.signalementsSupprimes} signalement(s) supprimé(s)</p>
+            <p>• {purgeResult.emailsSupprimes} log(s) d&apos;e-mails supprimé(s)</p>
+          </div>
+        )}
       </div>
     </div>
   );

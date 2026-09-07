@@ -3,9 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   experimental: {
     // Les photos de couverture transitent par une Server Action ; la limite
-    // par défaut (1 Mo) rejetterait toute photo prise au téléphone.
-    // Les images sont malgré tout compressées côté client avant l'envoi.
-    serverActions: { bodySizeLimit: "8mb" },
+    // par défaut (1 Mo) rejetterait les photos haute résolution d'ordinateur (Mac/PC) ou téléphone.
+    serverActions: { bodySizeLimit: "50mb" },
   },
   images: {
     remotePatterns: [

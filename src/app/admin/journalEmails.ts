@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { adminDb } from "@/lib/firebase/admin";
+import { DATE_LANCEMENT } from "@/lib/lancement";
 
 /**
  * Le registre des e-mails partis, et ce qu'ils sont devenus.
@@ -144,8 +145,10 @@ export async function listerEnvois(limite = 300): Promise<LigneJournal[]> {
     evenementsBrevo(),
   ]);
 
-  return snap.docs.map((d) => {
-    const data = d.data() as Omit<LigneJournal, "id" | "acheminement">;
+  return snap.docs
+    .filter((d) => (d.data().envoyeLe || 0) >= DATE_LANCEMENT)
+    .map((d) => {
+      const data = d.data() as Omit<LigneJournal, "id" | "acheminement">;
     const suivi = data.messageId ? evenements.get(data.messageId) : undefined;
 
     return {

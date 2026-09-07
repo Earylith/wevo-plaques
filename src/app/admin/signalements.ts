@@ -4,6 +4,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { MotifSignalement } from "@/lib/signalement";
+import { DATE_LANCEMENT } from "@/lib/lancement";
 
 /**
  * Lecture et traitement des signalements.
@@ -43,6 +44,7 @@ export async function listerSignalements(): Promise<Signalement[]> {
 
   const snap = await adminDb.collection(SIGNALEMENTS).get();
   return snap.docs
+    .filter((d) => (d.data().createdAt || 0) >= DATE_LANCEMENT)
     .map((d) => ({ ...(d.data() as Omit<Signalement, "id">), id: d.id }))
     /*
      * Les non traités d'abord, puis du plus récent au plus ancien. Un
@@ -97,5 +99,5 @@ export async function signalementsEnAttente(): Promise<number> {
     .collection(SIGNALEMENTS)
     .where("statut", "==", "nouveau")
     .get();
-  return snap.size;
+  return snap.docs.filter((d) => (d.data().createdAt || 0) >= DATE_LANCEMENT).length;
 }

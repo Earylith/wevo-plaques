@@ -81,6 +81,9 @@ export async function lireTextesEmails(): Promise<TextesEmails> {
     return {
       bienvenue: valide(enregistre.bienvenue) ? enregistre.bienvenue : TEXTES_PAR_DEFAUT.bienvenue,
       commande: valide(enregistre.commande) ? enregistre.commande : TEXTES_PAR_DEFAUT.commande,
+      commande_admin: valide(enregistre.commande_admin)
+        ? enregistre.commande_admin
+        : TEXTES_PAR_DEFAUT.commande_admin,
       expedition: valide(enregistre.expedition) ? enregistre.expedition : TEXTES_PAR_DEFAUT.expedition,
       devis: valide(enregistre.devis) ? enregistre.devis : TEXTES_PAR_DEFAUT.devis,
       resiliation: valide(enregistre.resiliation)

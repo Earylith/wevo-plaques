@@ -1,6 +1,7 @@
 "use client";
 
 import { GABARIT_URL } from "@/lib/plaqueGabarit";
+import { GABARIT_SVG_RAW } from "@/lib/plaqueGabaritSvg";
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { PlaqueWood } from "@/lib/types/accommodation";
@@ -130,12 +131,13 @@ export default function PlaquePreview({ wood, tagline, qrValue, variante = "cadr
 
   const cadreRef = useRef<HTMLDivElement>(null);
   const phraseRef = useRef<HTMLDivElement>(null);
-  const [gabarit, setGabarit] = useState<string | null>(null);
+  const [gabarit, setGabarit] = useState<string | null>(GABARIT_SVG_RAW);
   const [erreur, setErreur] = useState(false);
   /** Facteur de réduction appliqué à la phrase pour qu'elle tienne. */
   const [echelle, setEchelle] = useState(1);
 
   useEffect(() => {
+    if (gabarit) return;
     let annule = false;
     fetch(GABARIT)
       .then((r) => (r.ok ? r.text() : Promise.reject(new Error(String(r.status)))))
@@ -150,7 +152,7 @@ export default function PlaquePreview({ wood, tagline, qrValue, variante = "cadr
     return () => {
       annule = true;
     };
-  }, []);
+  }, [gabarit]);
 
 
   const svg = useMemo(() => {
@@ -269,6 +271,7 @@ export default function PlaquePreview({ wood, tagline, qrValue, variante = "cadr
           <div
             className="absolute"
             style={{ left: `${QR.gauche}%`, top: `${QR.haut}%`, width: `${QR.largeur}%` }}
+            suppressHydrationWarning
           >
             <QRCodeSVG
               value={qrValue}

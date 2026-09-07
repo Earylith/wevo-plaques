@@ -73,8 +73,15 @@ export default function PhotoManager({ photos, onChange, city, allowUpload = tru
 
   const uploadFiles = useCallback(
     async (files: File[]) => {
-      const images = files.filter((f) => f.type.startsWith("image/"));
-      if (images.length === 0) return;
+      const images = files.filter(
+        (f) => f.type.startsWith("image/") || /\.(jpe?g|png|webp|avif|heic|heif|bmp|tiff?)$/i.test(f.name)
+      );
+      if (images.length === 0) {
+        if (files.length > 0) {
+          setError("Le fichier sélectionné n’a pas été reconnu comme une image (JPEG, PNG, WebP requis).");
+        }
+        return;
+      }
       setError(null);
       setUploading((n) => n + images.length);
       const uploaded: string[] = [];
@@ -168,9 +175,10 @@ export default function PhotoManager({ photos, onChange, city, allowUpload = tru
         <input
           ref={fileInput}
           type="file"
-          accept="image/*"
+          accept="image/*,.heic,.heif,.HEIC,.HEIF"
           multiple
           className="hidden"
+          onClick={(e) => e.stopPropagation()}
           onChange={(e) => {
             void uploadFiles(Array.from(e.target.files || []));
             e.target.value = "";

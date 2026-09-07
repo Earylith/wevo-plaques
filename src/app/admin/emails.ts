@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import {
   messageBienvenue, messageCommande, messageExpedition, messageDevis,
-  messageResiliation, Message,
+  messageResiliation, messageCommandeAdmin, Message,
 } from "@/lib/server/emails/messages";
 import {
   lireTextesEmails, ecrireTexteEmail, retablirTexteEmail,
@@ -66,6 +66,29 @@ export async function exempleMessage(
         phraseGravee: "Profitez pleinement de votre séjour !",
         adresse: ADRESSE,
         destinataire: "Sami Peyri",
+      },
+      textes
+    );
+  }
+  if (type === "commande_admin") {
+    return messageCommandeAdmin(
+      {
+        reference: "GUIDZ-1042",
+        nomLogement: "Le Mas des Oliviers",
+        slug: "le-mas-des-oliviers",
+        formule: "comfort",
+        rythmeAbonnement: "mensuel",
+        montantTotal: "49,00 €",
+        nomClient: prenom ? `${prenom} Peyri` : "Sami Peyri",
+        emailClient: "sami@exemple.fr",
+        telephoneClient: "06 12 34 56 78",
+        essence: "Noyer massif",
+        phraseGravee: "Profitez pleinement de votre séjour !",
+        urlPermanente: "https://guidzme.fr/p/gz-mas-oliviers",
+        destinataireLivraison: "Sami Peyri",
+        adresse: ADRESSE,
+        telephoneLivraison: "06 12 34 56 78",
+        dateCommande: "7 septembre 2026 à 18:15",
       },
       textes
     );
@@ -141,6 +164,7 @@ export async function envoyerEssai(
     destinataire: adresse,
     html: message.html,
     texte: message.texte,
+    repondreA: type === "commande_admin" ? { email: "sami@exemple.fr", nom: "Sami Peyri" } : undefined,
     etiquette: `essai-${type}`,
   });
 
@@ -148,6 +172,74 @@ export async function envoyerEssai(
     return {
       ok: true,
       detail: `Envoyé à ${adresse}${envoi.id ? ` (${envoi.id})` : ""}. Regardez aussi vos indésirables.`,
+    };
+  }
+
+  return {
+    ok: false,
+    detail:
+      envoi.raison === "refuse"
+        ? `Brevo a refusé l’envoi : ${envoi.detail || "sans détail"}. L’expéditeur est-il validé dans Brevo ?`
+        : `Brevo injoignable : ${envoi.detail || "sans détail"}.`,
+  };
+}
+
+/** Exemple représentatif de la notification interne envoyée à contact@guidzme.fr */
+export async function exempleCommandeAdmin(): Promise<Message> {
+  return messageCommandeAdmin({
+    reference: "GUIDZ-1042",
+    nomLogement: "Le Mas des Oliviers",
+    slug: "le-mas-des-oliviers",
+    formule: "comfort",
+    rythmeAbonnement: "mensuel",
+    montantTotal: "49,00 €",
+    nomClient: "Sami Peyri",
+    emailClient: "sami@exemple.fr",
+    telephoneClient: "06 12 34 56 78",
+    essence: "Noyer massif",
+    phraseGravee: "Profitez pleinement de votre séjour !",
+    urlPermanente: "https://guidzme.fr/p/gz-mas-oliviers",
+    destinataireLivraison: "Sami Peyri",
+    adresse: ADRESSE,
+    telephoneLivraison: "06 12 34 56 78",
+    dateCommande: "7 septembre 2026 à 18:15",
+  });
+}
+
+/** Permet à l'administrateur d'envoyer un essai de la notification interne admin. */
+export async function envoyerEssaiCommandeAdmin(
+  destinataire = "contact@guidzme.fr"
+): Promise<{ ok: boolean; detail: string }> {
+  await exigerAdmin();
+
+  const adresse = (destinataire || "").trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(adresse)) {
+    return { ok: false, detail: "Cette adresse e-mail ne semble pas valide." };
+  }
+
+  if (!messagerieConfiguree()) {
+    return {
+      ok: false,
+      detail:
+        "BREVO_API_KEY n’est pas configurée : aucun envoi n’est tenté. Ajoutez-la dans .env.local, puis relancez le serveur.",
+    };
+  }
+
+  const message = await exempleCommandeAdmin();
+
+  const envoi = await envoyerCourriel({
+    sujet: `[ESSAI ADMIN] ${message.sujet}`,
+    destinataire: adresse,
+    html: message.html,
+    texte: message.texte,
+    repondreA: { email: "sami@exemple.fr", nom: "Sami Peyri" },
+    etiquette: "essai-commande-admin",
+  });
+
+  if (envoi.envoye) {
+    return {
+      ok: true,
+      detail: `E-mail de notification admin envoyé à ${adresse}${envoi.id ? ` (${envoi.id})` : ""}.`,
     };
   }
 

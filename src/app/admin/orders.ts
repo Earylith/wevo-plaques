@@ -11,6 +11,7 @@ import { generatePermanentId, permanentUrl } from "@/lib/permanentId";
 import { adresseExpediable, adresseNettoyee } from "@/lib/adressePostale";
 import { envoyerCourriel } from "@/lib/server/email";
 import { messageExpedition } from "@/lib/server/emails/messages";
+import { DATE_LANCEMENT } from "@/lib/lancement";
 
 const ACCOMMODATIONS = "accommodations";
 const ORDERS = "orders";
@@ -150,6 +151,7 @@ export async function getPlaqueOrders(): Promise<PlaqueOrder[]> {
   await requireAdminAuth();
   const snapshot = await withTimeout(adminDb.collection(ORDERS).get(), "liste des commandes");
   return snapshot.docs
+    .filter((d) => (d.data().createdAt || 0) >= DATE_LANCEMENT)
     .map((d) => ({ ...d.data(), id: d.id }) as PlaqueOrder)
     .sort((a, b) => b.createdAt - a.createdAt);
 }
@@ -161,6 +163,7 @@ export async function getOrdersForAccommodation(accommodationId: string): Promis
     "commandes du livret"
   );
   return snapshot.docs
+    .filter((d) => (d.data().createdAt || 0) >= DATE_LANCEMENT)
     .map((d) => ({ ...d.data(), id: d.id }) as PlaqueOrder)
     .sort((a, b) => b.createdAt - a.createdAt);
 }

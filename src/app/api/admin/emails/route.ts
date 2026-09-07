@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { exempleMessage } from "@/app/admin/emails";
+import { exempleMessage, exempleCommandeAdmin } from "@/app/admin/emails";
 import { CleMessage } from "@/lib/emailsTextes";
 
 /**
@@ -24,14 +24,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Accès réservé." }, { status: 403 });
   }
 
-  const type = (request.nextUrl.searchParams.get("type") || "bienvenue") as CleMessage;
-  if (!["bienvenue", "commande", "expedition", "devis", "resiliation"].includes(type)) {
+  const typeParam = request.nextUrl.searchParams.get("type") || "bienvenue";
+
+  let message;
+  if (typeParam === "commande_admin" || typeParam === "commande-admin") {
+    message = await exempleCommandeAdmin();
+  } else if (["bienvenue", "commande", "expedition", "devis", "resiliation"].includes(typeParam)) {
+    // Le texte en vigueur, pas le texte d’origine : l’aperçu doit montrer ce
+    // qui partira réellement, modifications de l’administration comprises.
+    message = await exempleMessage(typeParam as CleMessage);
+  } else {
     return NextResponse.json({ error: "Type inconnu." }, { status: 400 });
   }
-
-  // Le texte en vigueur, pas le texte d’origine : l’aperçu doit montrer ce
-  // qui partira réellement, modifications de l’administration comprises.
-  const message = await exempleMessage(type);
 
   // La version texte se relit aussi : c'est elle que verront certains.
   if (request.nextUrl.searchParams.get("format") === "texte") {

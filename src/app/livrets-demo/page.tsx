@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import CarteLivretDemo from "@/components/CarteLivretDemo";
-import { LIVRETS_DEMO } from "@/lib/livretsDemo";
+import { chargerVitrines } from "@/lib/server/vitrines";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 /**
  * Tous les livrets de démonstration, réunis.
@@ -19,9 +22,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/livrets-demo" },
 };
 
-export default function LivretsDemoPage() {
-  const confort = LIVRETS_DEMO.filter((l) => l.formule === "Confort");
-  const essentielle = LIVRETS_DEMO.filter((l) => l.formule === "Essentielle");
+export default async function LivretsDemoPage() {
+  const vitrines = await chargerVitrines();
+  const confort = vitrines.filter((l) => l.formule === "Confort");
+  const essentielle = vitrines.filter((l) => l.formule === "Essentielle");
+
 
   return (
     <main className="min-h-screen bg-[#FBF5EC]">

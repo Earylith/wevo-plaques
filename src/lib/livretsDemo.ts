@@ -48,7 +48,7 @@ export const LIVRETS_DEMO: LivretDemo[] = [
     resume:
       "Moulures, parquet point de Hongrie et balcon filant, entre l'Opéra Garnier et les Grands Boulevards.",
     image:
-      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=75",
+      "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=900&q=80",
     icone: "immeuble",
     accent: "#2B5F75",
     accentPale: "#E4EEF3",
@@ -64,7 +64,7 @@ export const LIVRETS_DEMO: LivretDemo[] = [
     resume:
       "Au bout de la route, à l'entrée des calanques : sentiers, navette maritime et le bus 20 toutes les 40 minutes.",
     image:
-      "https://images.unsplash.com/photo-1507652313519-d4e9174996dd?auto=format&fit=crop&w=900&q=75",
+      "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=900&q=80",
     icone: "soleil",
     accent: "#C4714A",
     accentPale: "#F7EBE4",
@@ -110,7 +110,7 @@ export const LIVRETS_DEMO: LivretDemo[] = [
     resume:
       "Surplombant la Côte des Basques, jardin suspendu et spots de surf à trois minutes à pied.",
     image:
-      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=900&q=75",
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80",
     icone: "vagues",
     accent: "#4A849E",
     accentPale: "#E4EEF3",
@@ -125,7 +125,7 @@ export const LIVRETS_DEMO: LivretDemo[] = [
     resume:
       "Vue sur la chaîne du Mont-Blanc, sauna privatif et ski room chauffé pour rentrer les skis au sec.",
     image:
-      "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=900&q=75",
+      "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=900&q=80",
     icone: "montagne",
     accent: "#5A7A4E",
     accentPale: "#EBF0E6",

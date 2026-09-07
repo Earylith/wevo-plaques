@@ -1,8 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
-import { Check, Translate, Warning, Sparkle, Spinner } from "@phosphor-icons/react";
-import { translateTexts, TargetLang } from "@/app/admin/translate";
+import React, { useEffect, useState } from "react";
+import { Check, Translate, Warning, Sparkle, Spinner, Info } from "@phosphor-icons/react";
+import {
+  translateTexts,
+  TargetLang,
+  lancerTraductionEnArrierePlan,
+  obtenirStatutTraduction,
+} from "@/app/admin/translate";
 import { Accommodation } from "@/lib/types/accommodation";
 import { LANGS, TranslatableLang, TranslationLayer, Translations } from "@/lib/i18n";
 
@@ -317,7 +322,10 @@ export default function TranslationsTab({
   contactEmail,
 }: TranslationsTabProps) {
   const [enCours, setEnCours] = useState<TranslatableLang | null>(null);
-  const [message, setMessage] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
+  const [jobEnCours, setJobEnCours] = useState<boolean>(() => {
+    return data.translationJob?.status === "in_progress";
+  });
+  const [message, setMessage] = useState<{ tone: "ok" | "warn" | "info"; text: string } | null>(null);
   /** Retraduire ce qui est déjà traduit, ou ne remplir que les vides. */
   const [ecraser, setEcraser] = useState(false);
 
@@ -332,20 +340,113 @@ export default function TranslationsTab({
     return { total: champs.length, faits: champs.filter((f) => has(f.value)).length };
   };
 
+  // Synchronise si un job en cours est détecté sur le livret
+  useEffect(() => {
+    if (data.translationJob?.status === "in_progress") {
+      setJobEnCours(true);
+    }
+  }, [data.translationJob?.status]);
+
+  // Suivi en arrière-plan : met à jour l'interface automatiquement quand le serveur termine
+  useEffect(() => {
+    if (!jobEnCours || !data.id) return;
+
+    let actif = true;
+    const timer = setInterval(async () => {
+      try {
+        const { auth } = await import("@/lib/firebase/config");
+        const jeton = await auth.currentUser?.getIdToken();
+        const res = await obtenirStatutTraduction(data.id!, jeton);
+
+        if (!actif) return;
+
+        if (res.translations) {
+          for (const [code, layer] of Object.entries(res.translations)) {
+            if (layer && typeof layer === "object") {
+              onLayerChange(code as TranslatableLang, () => layer as TranslationLayer);
+            }
+          }
+        }
+
+        if (res.job?.status === "completed") {
+          setJobEnCours(false);
+          setMessage({
+            tone: "ok",
+            text: `Vos traductions sont terminées et sauvegardées (${res.job.totalTranslated} champ${res.job.totalTranslated > 1 ? "s traduits" : " traduit"}).`,
+          });
+          clearInterval(timer);
+        } else if (res.job?.status === "warning") {
+          setJobEnCours(false);
+          setMessage({
+            tone: "warn",
+            text: res.job.warning || "Traductions terminées avec des avertissements.",
+          });
+          clearInterval(timer);
+        } else if (res.job?.status === "error") {
+          setJobEnCours(false);
+          setMessage({
+            tone: "warn",
+            text: res.job.error || "Une erreur est survenue lors de la traduction.",
+          });
+          clearInterval(timer);
+        }
+      } catch (err) {
+        console.warn("[traduction-poll]", err);
+      }
+    }, 3500);
+
+    return () => {
+      actif = false;
+      clearInterval(timer);
+    };
+  }, [jobEnCours, data.id, onLayerChange]);
+
   /**
-   * Traduit tout le livret dans les langues choisies.
+   * Lance la traduction automatique du livret.
    *
-   * Langue par langue, et non tout d'un bloc : le service impose un quota
-   * journalier, et s'arrêter proprement après l'anglais vaut mieux que
-   * d'échouer partout à la fois.
+   * S'exécute en tâche de fond sur le serveur afin de libérer l'utilisateur :
+   * il peut continuer ses modifications ou fermer l'onglet, les résultats
+   * sont écrits directement dans Firestore au fur et à mesure.
    */
   const traduire = async () => {
-    if (choisies.length === 0 || enCours) return;
+    if (choisies.length === 0 || jobEnCours || enCours !== null) return;
     setMessage(null);
 
     const { auth } = await import("@/lib/firebase/config");
     const jeton = await auth.currentUser?.getIdToken();
 
+    // 1. Si le livret existe en base, on lance la tâche en tâche de fond serveur
+    if (data.id) {
+      setJobEnCours(true);
+      setMessage({
+        tone: "info",
+        text: "Vos traductions sont en cours en arrière-plan. Vous pouvez continuer à modifier votre livret, naviguer ou revenir plus tard : les traductions sont enregistrées automatiquement !",
+      });
+
+      try {
+        const res = await lancerTraductionEnArrierePlan({
+          accommodationId: data.id,
+          targetLangs: choisies.map((l) => l.code as TargetLang),
+          contactEmail,
+          ecraser,
+          jetonHote: jeton,
+        });
+
+        if (!res.ok) {
+          setJobEnCours(false);
+          setMessage({ tone: "warn", text: res.message });
+        }
+      } catch (err) {
+        setJobEnCours(false);
+        setMessage({
+          tone: "warn",
+          text: err instanceof Error ? err.message : "Impossible de lancer la traduction en arrière-plan.",
+        });
+      }
+      return;
+    }
+
+    // 2. Repli client si le document n'a pas encore été sauvegardé en base
     let totalApplique = 0;
     let alerte: string | null = null;
 
@@ -353,8 +454,6 @@ export default function TranslationsTab({
       const code = langue.code as TranslatableLang;
       setEnCours(code);
       try {
-        // Les champs sont reconstruits POUR cette langue : leurs `onChange`
-        // écrivent dans le bon calque, sans changer d'onglet.
         const groupes = buildGroups(
           data,
           (layers[code] || {}) as TranslationLayer,
@@ -459,10 +558,15 @@ export default function TranslationsTab({
         <button
           type="button"
           onClick={() => void traduire()}
-          disabled={choisies.length === 0 || enCours !== null}
+          disabled={choisies.length === 0 || jobEnCours || enCours !== null}
           className="w-full py-2.5 rounded-xl bg-[#C4714A] hover:bg-[#A35A38] text-white text-xs font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
         >
-          {enCours ? (
+          {jobEnCours ? (
+            <>
+              <Spinner size={14} className="animate-spin" />
+              Traductions en cours en arrière-plan…
+            </>
+          ) : enCours ? (
             <>
               <Spinner size={14} className="animate-spin" />
               Traduction en {LANGS.find((l) => l.code === enCours)?.label}…
@@ -477,16 +581,34 @@ export default function TranslationsTab({
           )}
         </button>
 
+        {jobEnCours && (
+          <div className="rounded-2xl border border-[#EDD9A3] bg-[#FDFBF7] p-3.5 flex items-start gap-2.5 shadow-sm">
+            <Spinner className="animate-spin text-[#C4714A] mt-0.5 shrink-0" size={16} />
+            <div>
+              <p className="text-[12px] font-bold text-[#2A2016]">
+                Vos traductions sont en cours en arrière-plan…
+              </p>
+              <p className="text-[11px] text-[#6B5D4E] mt-0.5 leading-relaxed">
+                Le serveur s&apos;occupe de traduire l&apos;ensemble du livret. Vous pouvez quitter cette page, fermer votre navigateur ou continuer vos modifications en toute sérénité : revenez plus tard pour voir le résultat déjà enregistré !
+              </p>
+            </div>
+          </div>
+        )}
+
         {message && (
           <p
             className={`text-[11px] leading-relaxed flex items-start gap-1.5 rounded-xl px-3 py-2.5 border ${
               message.tone === "ok"
                 ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                : message.tone === "info"
+                ? "bg-amber-50/90 border-[#EDD9A3] text-[#5C3D2E]"
                 : "bg-amber-50 border-amber-200 text-amber-800"
             }`}
           >
             {message.tone === "ok" ? (
               <Check size={13} weight="bold" className="shrink-0 mt-0.5" />
+            ) : message.tone === "info" ? (
+              <Info size={13} weight="bold" className="shrink-0 mt-0.5 text-[#C4714A]" />
             ) : (
               <Warning size={13} weight="fill" className="shrink-0 mt-0.5" />
             )}

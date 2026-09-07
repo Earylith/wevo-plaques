@@ -160,11 +160,11 @@ export const demoConfortMarseille: Accommodation = {
     latitude: 43.2419,
     longitude: 5.3733,
     welcomeMessage: "Votre guide pour profiter du 8e, entre la mer et la Bonne mère",
-    mainImageUrl: "https://images.unsplash.com/photo-1507652313519-d4e9174996dd?auto=format&fit=crop&w=1600&q=80",
+    mainImageUrl: "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=1600&q=80",
     logoUrl: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=200&q=70",
     gallery: [
-      "https://images.unsplash.com/photo-1507652313519-d4e9174996dd?auto=format&fit=crop&w=1200&q=80",
-      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80"
+      "https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80"
     ]
   },
   wifi: {
@@ -1060,11 +1060,11 @@ export const demoParis: Accommodation = {
     latitude: 48.8719,
     longitude: 2.3316,
     welcomeMessage: "Bienvenue au cœur du 9e arrondissement, entre l'Opéra Garnier et les Grands Boulevards. Profitez du charme haussmannien avec moulures, parquet point de Hongrie et balcon filant.",
-    mainImageUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=80",
+    mainImageUrl: "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=1600&q=80",
     logoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=70",
     gallery: [
-      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1200&q=80"
     ]
   },
@@ -1363,11 +1363,11 @@ export const demoBiarritz: Accommodation = {
     latitude: 43.4832,
     longitude: -1.5586,
     welcomeMessage: "Bienvenue à La Villa Bleue, surplombant la mythique Côte des Basques. Réveillez-vous au son de l'océan, profitez du jardin suspendu et rejoignez les spots de surf en 3 minutes à pied.",
-    mainImageUrl: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1600&q=80",
+    mainImageUrl: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80",
     logoUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=70",
     gallery: [
-      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1613490900233-0fa4cb4be562?auto=format&fit=crop&w=1200&q=80"
     ]
   },
@@ -1650,11 +1650,11 @@ export const demoChamonix: Accommodation = {
     latitude: 45.9237,
     longitude: 6.8694,
     welcomeMessage: "Bienvenue au Chalet Altitude 2000. Profitez d'une vue époustouflante sur la chaîne du Mont-Blanc, détendez-vous dans notre sauna privé après une journée de ski et vivez l'expérience alpine ultime.",
-    mainImageUrl: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1600&q=80",
+    mainImageUrl: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1600&q=80",
     logoUrl: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=70",
     gallery: [
-      "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1548625149-fc4a29cf7092?auto=format&fit=crop&w=1200&q=80"
     ]
   },

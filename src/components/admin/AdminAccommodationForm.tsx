@@ -303,7 +303,7 @@ export default function AdminAccommodationForm({ initialData, onSubmit, isLoadin
               )}
               <input
                 type="file"
-                accept="image/*"
+                accept="image/*,.heic,.heif,.HEIC,.HEIF"
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (file) {
@@ -576,7 +576,7 @@ export default function AdminAccommodationForm({ initialData, onSubmit, isLoadin
                         )}
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="image/*,.heic,.heif,.HEIC,.HEIF"
                           onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
@@ -654,7 +654,7 @@ export default function AdminAccommodationForm({ initialData, onSubmit, isLoadin
                 )}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.heic,.heif,.HEIC,.HEIF"
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (file) {

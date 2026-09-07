@@ -10,6 +10,7 @@
 export type CleMessage =
   | "bienvenue"
   | "commande"
+  | "commande_admin"
   | "expedition"
   | "devis"
   | "resiliation";
@@ -41,6 +42,17 @@ export const VARIABLES: Record<CleMessage, { cle: string; sens: string }[]> = {
     { cle: "{logement}", sens: "Le nom du logement" },
     { cle: "{formule}", sens: "Confort ou Essentielle" },
     { cle: "{lien_page}", sens: "L’adresse publique du livret" },
+  ],
+  commande_admin: [
+    { cle: "{reference}", sens: "GUIDZ-1042" },
+    { cle: "{logement}", sens: "Le nom du logement" },
+    { cle: "{formule}", sens: "Confort ou Essentielle" },
+    { cle: "{client}", sens: "Le nom de l’acheteur" },
+    { cle: "{email}", sens: "L’adresse e-mail de l’acheteur" },
+    { cle: "{telephone}", sens: "Le téléphone de l’acheteur" },
+    { cle: "{essence}", sens: "L’essence de bois choisie" },
+    { cle: "{gravure}", sens: "La mention gravée" },
+    { cle: "{montant}", sens: "Le montant réglé" },
   ],
   expedition: [
     { cle: "{prenom}", sens: "Le prénom de l’hôte" },
@@ -84,6 +96,17 @@ export const TEXTES_PAR_DEFAUT: TextesEmails = {
     ],
     postScriptum:
       "Chaque plaque est gravée à la main, une par une : comptez quelques jours. Nous vous écrirons dès que la vôtre part, avec son numéro de suivi.",
+  },
+  commande_admin: {
+    sujet: "[GUIDZ] Nouvelle commande {reference} — {logement}",
+    titre: "Nouvelle commande : {reference}",
+    paragraphes: [
+      "Une nouvelle commande vient d’être payée et confirmée sur Guidz.",
+      "Retrouvez ci-dessous toutes les informations nécessaires à la gravure de la plaque et à son expédition.",
+      "Vous pouvez répondre directement à cet e-mail pour contacter l’acheteur.",
+    ],
+    postScriptum:
+      "Retrouvez toutes les commandes dans l'onglet Commandes de l'administration Guidz.",
   },
   expedition: {
     sujet: "Votre plaque est en route — {reference}",

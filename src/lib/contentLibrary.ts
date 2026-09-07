@@ -19,6 +19,8 @@ export interface LocalizedText {
   en: string;
   es: string;
   it: string;
+  de?: string;
+  [key: string]: string | undefined;
 }
 
 export interface LibraryEquipment {

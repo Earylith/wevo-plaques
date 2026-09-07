@@ -467,5 +467,139 @@ export async function messageResiliation(
   });
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   6. COMMANDE (ADMIN) — notification interne de nouvelle commande
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Notification interne envoyée à l'équipe sur contact@guidzme.fr lorsqu'un
+ * client valide et paie une commande de plaque.
+ *
+ * Elle centralise l'intégralité des détails de la commande pour l'atelier
+ * et la gestion :
+ *  - Référence de commande, date, logement et lien public
+ *  - Formule choisie, montant encaissé et rythme d'abonnement
+ *  - Coordonnées complètes du client (nom, e-mail, téléphone)
+ *  - Spécifications de fabrication de la plaque (essence de bois, phrase gravée, QR)
+ *  - Coordonnées et adresse de livraison complètes
+ *  - Bouton direct d'accès à l'administration des commandes
+ *
+ * L'adresse e-mail de réponse (Reply-To) est automatiquement configurée sur
+ * celle du client pour permettre un contact direct d'un simple clic.
+ */
+export async function messageCommandeAdmin(
+  donnees: {
+    reference: string;
+    nomLogement: string;
+    slug: string;
+    formule: "comfort" | "essential";
+    rythmeAbonnement?: "mensuel" | "annuel" | null;
+    montantTotal?: string | null;
+    nomClient: string;
+    emailClient: string;
+    telephoneClient?: string | null;
+    essence: string;
+    phraseGravee?: string | null;
+    urlPermanente?: string | null;
+    destinataireLivraison?: string | null;
+    adresse?: AdressePostale | null;
+    telephoneLivraison?: string | null;
+    dateCommande?: string | null;
+    stripeSessionId?: string | null;
+  },
+  textes?: TextesEmails
+): Promise<Message> {
+  const formuleTexte =
+    donnees.formule === "comfort"
+      ? `Confort${donnees.rythmeAbonnement ? ` (${donnees.rythmeAbonnement === "annuel" ? "19 € / an" : "1,99 € / mois"})` : ""}`
+      : "Essentielle (achat unique)";
+
+  const modele = rendre(await texteDe("commande_admin", textes), {
+    reference: donnees.reference,
+    logement: donnees.nomLogement,
+    formule: formuleTexte,
+    client: donnees.nomClient,
+    email: donnees.emailClient,
+    telephone: donnees.telephoneClient || "—",
+    essence: donnees.essence,
+    gravure: donnees.phraseGravee || "— (standard)",
+    montant: donnees.montantTotal || "—",
+  });
+
+  const faits: Fait[] = [
+    { intitule: "N° Commande", valeur: donnees.reference, fort: true },
+    { intitule: "Logement", valeur: donnees.nomLogement },
+    { intitule: "Page publique", valeur: `/h/${donnees.slug}` },
+    { intitule: "Formule", valeur: formuleTexte, fort: true },
+  ];
+
+  if (donnees.montantTotal) {
+    faits.push({ intitule: "Montant réglé", valeur: donnees.montantTotal, fort: true });
+  }
+
+  faits.push(
+    { intitule: "Client", valeur: donnees.nomClient.trim() || "—" },
+    { intitule: "E-mail client", valeur: donnees.emailClient.trim() || "—" },
+    { intitule: "Tél. client", valeur: donnees.telephoneClient?.trim() || "—" },
+    { intitule: "Finition bois", valeur: donnees.essence, fort: true },
+    {
+      intitule: "Phrase gravée",
+      valeur: donnees.phraseGravee?.trim() || "— (standard)",
+    }
+  );
+
+  if (donnees.urlPermanente) {
+    faits.push({ intitule: "QR permanent", valeur: donnees.urlPermanente });
+  }
+
+  faits.push({
+    intitule: "Destinataire colis",
+    valeur: donnees.destinataireLivraison?.trim() || donnees.nomClient.trim() || "—",
+  });
+
+  const adresse = lignesAdresse(donnees.adresse, donnees.destinataireLivraison || undefined);
+  if (adresse.length) {
+    faits.push({ intitule: "Adresse livraison", valeur: adresse.join(", ") });
+  } else {
+    faits.push({
+      intitule: "Adresse livraison",
+      valeur: "⚠️ MANQUANTE — À réclamer au client",
+      fort: true,
+    });
+  }
+
+  if (donnees.telephoneLivraison?.trim()) {
+    faits.push({ intitule: "Tél. livraison", valeur: donnees.telephoneLivraison.trim() });
+  }
+
+  if (donnees.dateCommande) {
+    faits.push({ intitule: "Date commande", valeur: donnees.dateCommande });
+  }
+
+  const corps = [...modele.paragraphes];
+
+  if (!adresse.length) {
+    corps.push(
+      `⚠️ ATTENTION : Aucune adresse de livraison n'a été transmise par le client. Pensez à lui réclamer avant de procéder à l'envoi.`
+    );
+  }
+
+  corps.push(
+    `Répondez directement à ce courriel pour contacter le client (${donnees.emailClient}).`
+  );
+
+  return composer({
+    sujet: modele.sujet,
+    apercu: `Nouvelle commande ${donnees.reference} pour « ${donnees.nomLogement} » (${formuleTexte}).`,
+    titre: modele.titre,
+    corps,
+    titreFaits: "Détails complets de la commande",
+    faits,
+    bouton: { libelle: "Gérer la commande dans l’administration", href: urlAbsolue("/admin/commandes") },
+    postScriptum: modele.postScriptum,
+  });
+}
+
 /** Les textes d'origine, pour l'administration. */
 export { TEXTES_PAR_DEFAUT };
+

@@ -96,6 +96,19 @@ export default function RootLayout({
   return (
     <html lang="fr" className="h-full antialiased" suppressHydrationWarning>
       <head>
+        {/* Préchargement prioritaire de la plaque 3D pour affichage instantané sur mobile */}
+        <link
+          rel="preload"
+          href="/images/plaques/baseplaquesfinale.svg"
+          as="fetch"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preload"
+          href="/images/plaques/bois-noyer.png"
+          as="image"
+        />
+
         {/* Google tag (gtag.js) */}
         <Script
           async

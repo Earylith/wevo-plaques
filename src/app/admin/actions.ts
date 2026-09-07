@@ -89,6 +89,8 @@ function revalidateAccommodation(id: string, slug?: string) {
   }
 }
 
+import { DATE_LANCEMENT, estLivretDemo } from "@/lib/lancement";
+
 export async function getAdminAccommodations(): Promise<Accommodation[]> {
   await requireAdminAuth();
   try {
@@ -98,8 +100,29 @@ export async function getAdminAccommodations(): Promise<Accommodation[]> {
       id: doc.id,
     })) as Accommodation[];
 
-    const { demoConfortMarseille, demoParis, demoBiarritz, demoChamonix } = await import("@/lib/demoData");
+    // On supprime et exclut formellement l'ancienne démo demo-confort (Cannes)
+    for (const doc of snapshot.docs) {
+      if (doc.id === "demo-confort" || (doc.data() as Accommodation).slug === "demo-confort") {
+        void adminDb.collection(COLLECTION_NAME).doc(doc.id).delete().catch(() => {});
+      }
+    }
+
+    // On ne conserve que les démos officielles ou les vrais hébergements créés à partir du lancement (07/09/2026)
+    const filtres = items.filter((item) => {
+      if (item.id === "demo-confort" || item.slug === "demo-confort") return false;
+      if (estLivretDemo(item.id) || estLivretDemo(item.slug)) return true;
+      return (item.createdAt || 0) >= DATE_LANCEMENT;
+    });
+
+    const {
+      demoEssentielle,
+      demoConfortMarseille,
+      demoParis,
+      demoBiarritz,
+      demoChamonix,
+    } = await import("@/lib/demoData");
     const demosToCheck = [
+      { slug: "demo-essentielle", data: demoEssentielle },
       { slug: "demo-confort2", data: demoConfortMarseille },
       { slug: "demo-paris", data: demoParis },
       { slug: "demo-biarritz", data: demoBiarritz },
@@ -107,12 +130,12 @@ export async function getAdminAccommodations(): Promise<Accommodation[]> {
     ];
 
     for (const demoItem of demosToCheck) {
-      const exists = items.some(item => item.id === demoItem.slug || item.slug === demoItem.slug);
+      const exists = filtres.some(item => item.id === demoItem.slug || item.slug === demoItem.slug);
       if (!exists) {
-        items.push(demoItem.data);
+        filtres.push(demoItem.data);
       }
     }
-    return items;
+    return filtres;
   } catch (error) {
     console.error("Error fetching admin accommodations", error);
     throw new Error(
@@ -122,6 +145,7 @@ export async function getAdminAccommodations(): Promise<Accommodation[]> {
     );
   }
 }
+
 
 export async function toggleAccommodationStatus(id: string, currentStatus: boolean) {
   await requireAdminAuth();
@@ -270,7 +294,6 @@ export async function seedDemos(
     
     const seedList: { slug: string; defaultData: DemoSeed; providedData?: DemoSeed }[] = [
       { slug: "demo-essentielle", defaultData: demosModule.demoEssentielle, providedData: demoEssentielle },
-      { slug: "demo-confort", defaultData: demosModule.demoConfort, providedData: demoConfort },
       { slug: "demo-confort2", defaultData: demosModule.demoConfortMarseille, providedData: demoConfort2 },
       { slug: "demo-paris", defaultData: demosModule.demoParis, providedData: demoParisSeed },
       { slug: "demo-biarritz", defaultData: demosModule.demoBiarritz, providedData: demoBiarritzSeed },
@@ -303,7 +326,6 @@ export async function getAdminAccommodationById(id: string): Promise<Accommodati
       if (id === "demo-biarritz") return demosModule.demoBiarritz;
       if (id === "demo-chamonix") return demosModule.demoChamonix;
       if (id === "demo-essentielle") return demosModule.demoEssentielle;
-      if (id === "demo-confort") return demosModule.demoConfort;
       return null;
     }
     return { ...doc.data(), id: doc.id } as Accommodation;
@@ -506,21 +528,20 @@ export async function uploadAdminImageAction(
   formData: FormData,
   folder: string,
   jetonHote?: string
-) {
-  await autoriserEnvoiImage(jetonHote);
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   try {
+    await autoriserEnvoiImage(jetonHote);
     const file = formData.get("file") as File;
-    if (!file) throw new Error("No file provided");
+    if (!file) return { ok: false, error: "Aucun fichier d'image fourni." };
     
     const buffer = Buffer.from(await file.arrayBuffer());
-    const fileExtension = file.name.split('.').pop();
+    const rawExt = file.name ? file.name.split('.').pop() || "jpg" : "jpg";
+    const fileExtension = rawExt.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
     const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
     const fileName = `${uniqueId}.${fileExtension}`;
     const filePath = `${folder}/${fileName}`;
 
-    // On utilise uuid de Node pour le token (on installe uuid si nécessaire ou on fait un simple math random mais un uuid est mieux)
-    // Pour simplifier et éviter une dépendance, on génère un UUID simple
-    const token = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
+    const token = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
     
     const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "plaques-digital.firebasestorage.app";
     const bucket = (await import("@/lib/firebase/admin")).adminStorage.bucket(bucketName);
@@ -528,23 +549,21 @@ export async function uploadAdminImageAction(
     
     await fileRef.save(buffer, {
       metadata: {
-        contentType: file.type,
+        contentType: file.type || "image/jpeg",
         metadata: {
           firebaseStorageDownloadTokens: token
         }
       }
     });
     
-    return `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filePath)}?alt=media&token=${token}`;
+    return {
+      ok: true,
+      url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(filePath)}?alt=media&token=${token}`
+    };
   } catch (error) {
-    /*
-     * La cause réelle remonte à l'écran. « Failed to upload image » ne
-     * distinguait pas un stockage éteint d'un droit refusé ou d'un fichier
-     * trop lourd — on cherchait le problème du mauvais côté.
-     */
     console.error("Error uploading image via admin", error);
     const cause = error instanceof Error ? error.message : String(error);
-    throw new Error(`Envoi impossible : ${cause}`);
+    return { ok: false, error: cause };
   }
 }
 
@@ -606,7 +625,7 @@ export async function getIndicateursLivrets(): Promise<Record<string, Indicateur
    */
   const commandes = (ordersSnap?.docs || [])
     .map((d) => d.data() as PlaqueOrder)
-    .filter((o) => o.accommodationId)
+    .filter((o) => o.accommodationId && (o.createdAt || 0) >= DATE_LANCEMENT)
     .sort((a, b) => a.createdAt - b.createdAt);
 
   for (const commande of commandes) {
@@ -628,3 +647,119 @@ export async function getIndicateursLivrets(): Promise<Record<string, Indicateur
 
   return indicateurs;
 }
+
+/**
+ * Nettoyage complet des données de test avant lancement (07/09/2026).
+ * Supprime les enregistrements antérieurs créés durant la phase de développement.
+ */
+export async function nettoyerDonneesTestsAdmin(): Promise<{
+  hebergementsSupprimes: number;
+  commandesSupprimees: number;
+  devisSupprimes: number;
+  rappelsSupprimes: number;
+  signalementsSupprimes: number;
+  emailsSupprimes: number;
+}> {
+  await requireAdminAuth();
+
+  let hebergementsSupprimes = 0;
+  let commandesSupprimees = 0;
+  let devisSupprimes = 0;
+  let rappelsSupprimes = 0;
+  let signalementsSupprimes = 0;
+  let emailsSupprimes = 0;
+
+  try {
+    // 1. Hébergements de test (non-démos) antérieurs au lancement
+    const accSnap = await adminDb.collection(COLLECTION_NAME).get();
+    const batchAcc = adminDb.batch();
+    for (const doc of accSnap.docs) {
+      const data = doc.data() as Accommodation;
+      const isDemo = estLivretDemo(doc.id) || estLivretDemo(data.slug);
+      if (!isDemo && (data.createdAt || 0) < DATE_LANCEMENT) {
+        batchAcc.delete(doc.ref);
+        hebergementsSupprimes++;
+      }
+    }
+    if (hebergementsSupprimes > 0) await batchAcc.commit();
+
+    // 2. Commandes de test antérieures au lancement
+    const ordSnap = await adminDb.collection("orders").get();
+    const batchOrd = adminDb.batch();
+    for (const doc of ordSnap.docs) {
+      const data = doc.data() as PlaqueOrder;
+      if ((data.createdAt || 0) < DATE_LANCEMENT) {
+        batchOrd.delete(doc.ref);
+        commandesSupprimees++;
+      }
+    }
+    if (commandesSupprimees > 0) await batchOrd.commit();
+
+    // 3. Devis de test antérieurs au lancement
+    const devSnap = await adminDb.collection("quote_requests").get();
+    const batchDev = adminDb.batch();
+    for (const doc of devSnap.docs) {
+      const data = doc.data();
+      if ((data.createdAt || 0) < DATE_LANCEMENT) {
+        batchDev.delete(doc.ref);
+        devisSupprimes++;
+      }
+    }
+    if (devisSupprimes > 0) await batchDev.commit();
+
+    // 4. Demandes de rappel antérieures au lancement
+    const rapSnap = await adminDb.collection("callbacks").get();
+    const batchRap = adminDb.batch();
+    for (const doc of rapSnap.docs) {
+      const data = doc.data();
+      if ((data.createdAt || 0) < DATE_LANCEMENT) {
+        batchRap.delete(doc.ref);
+        rappelsSupprimes++;
+      }
+    }
+    if (rappelsSupprimes > 0) await batchRap.commit();
+
+    // 5. Signalements antérieurs au lancement
+    const sigSnap = await adminDb.collection("reports").get();
+    const batchSig = adminDb.batch();
+    for (const doc of sigSnap.docs) {
+      const data = doc.data();
+      if ((data.createdAt || 0) < DATE_LANCEMENT) {
+        batchSig.delete(doc.ref);
+        signalementsSupprimes++;
+      }
+    }
+    if (signalementsSupprimes > 0) await batchSig.commit();
+
+    // 6. Logs emails antérieurs au lancement
+    const emlSnap = await adminDb.collection("email_log").get();
+    const batchEml = adminDb.batch();
+    for (const doc of emlSnap.docs) {
+      const data = doc.data();
+      if ((data.envoyeLe || 0) < DATE_LANCEMENT) {
+        batchEml.delete(doc.ref);
+        emailsSupprimes++;
+      }
+    }
+    if (emailsSupprimes > 0) await batchEml.commit();
+
+    revalidatePath("/admin/hebergements");
+    revalidatePath("/admin/commandes");
+    revalidatePath("/admin/devis");
+    revalidatePath("/admin/rappels");
+    revalidatePath("/admin/signalements");
+    revalidatePath("/admin/logs-emails");
+  } catch (error) {
+    console.error("[nettoyerDonneesTestsAdmin]", error);
+  }
+
+  return {
+    hebergementsSupprimes,
+    commandesSupprimees,
+    devisSupprimes,
+    rappelsSupprimes,
+    signalementsSupprimes,
+    emailsSupprimes,
+  };
+}
+

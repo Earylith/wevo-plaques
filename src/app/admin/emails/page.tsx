@@ -7,6 +7,7 @@ import {
 } from "@phosphor-icons/react";
 import {
   envoyerEssai, etatMessagerie, chargerTextes, enregistrerTexte, retablirTexte,
+  envoyerEssaiCommandeAdmin,
 } from "../emails";
 import { CleMessage, TexteMessage, TextesEmails, VARIABLES } from "@/lib/emailsTextes";
 
@@ -31,7 +32,14 @@ const MESSAGES: { cle: CleMessage; titre: string; quand: string }[] = [
   {
     cle: "commande",
     titre: "Commande confirmée",
-    quand: "À l’encaissement, depuis le webhook Stripe et lui seul.",
+    quand:
+      "À l’encaissement, depuis le webhook Stripe. Envoyé au client avec le récapitulatif et l’accès immédiat à son livret.",
+  },
+  {
+    cle: "commande_admin",
+    titre: "Nouvelle commande (Guidz)",
+    quand:
+      "À l’encaissement, depuis le webhook Stripe. Envoyé à contact@guidzme.fr avec tous les détails de fabrication (essence, gravure, QR, adresse, coordonnées client).",
   },
   {
     cle: "expedition",
@@ -96,7 +104,8 @@ export default function EmailsPage() {
     setEnCours(true);
     setEnvoi(null);
     try {
-      setEnvoi(await envoyerEssai(actif, adresse));
+      const cible = adresse.trim() || (actif === "commande_admin" ? "contact@guidzme.fr" : "");
+      setEnvoi(await envoyerEssai(actif, cible));
     } catch (e) {
       setEnvoi({ ok: false, detail: e instanceof Error ? e.message : "Envoi impossible." });
     } finally {
@@ -147,10 +156,10 @@ export default function EmailsPage() {
     <div>
       <div className="mb-6">
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-[#2A2016]">
-          E-mails clients
+          E-mails transactionnels
         </h1>
         <p className="mt-1 text-sm text-[#6B5D4E]">
-          Les cinq messages transactionnels : relisez-les, modifiez le texte, essayez-les.
+          Messages clients et alertes internes : relisez-les, modifiez le texte, essayez-les.
         </p>
       </div>
 
@@ -384,17 +393,21 @@ export default function EmailsPage() {
               type="email"
               value={adresse}
               onChange={(e) => setAdresse(e.target.value)}
-              placeholder="votre@adresse.fr"
+              placeholder={actif === "commande_admin" ? "contact@guidzme.fr (par défaut)" : "votre@adresse.fr"}
               className={champ}
             />
 
             <button
               type="button"
               onClick={() => void essayer()}
-              disabled={enCours || !adresse.trim()}
+              disabled={enCours || (!adresse.trim() && actif !== "commande_admin")}
               className="mt-3 w-full rounded-full bg-[#C4714A] px-4 py-2.5 text-[12px] font-bold text-white transition-colors hover:bg-[#A35A38] disabled:opacity-50"
             >
-              {enCours ? "Envoi…" : `Envoyer « ${courant.titre} »`}
+              {enCours
+                ? "Envoi…"
+                : actif === "commande_admin" && !adresse.trim()
+                ? "Envoyer l’essai à contact@guidzme.fr"
+                : `Envoyer « ${courant.titre} »`}
             </button>
 
             {envoi && (
@@ -417,6 +430,26 @@ export default function EmailsPage() {
               <ArrowSquareOut size={11} />
             </a>
           </div>
+
+          {/* ─── Notification interne Admin (contact@guidzme.fr) ───── */}
+          {actif === "commande_admin" && (
+            <div className="rounded-3xl border border-[#5A7A4E]/30 bg-[#FAF7F2] p-5 shadow-sm space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="flex h-2 w-2 rounded-full bg-[#5A7A4E]" />
+                <p className="text-[12px] font-bold text-[#2A2016]">
+                  Notification interne automatique
+                </p>
+              </div>
+              <p className="text-[11px] leading-relaxed text-[#6B5D4E]">
+                Ce courriel est automatiquement transmis à <strong>contact@guidzme.fr</strong> à chaque validation de commande par Stripe.
+              </p>
+              <ul className="text-[11px] leading-relaxed text-[#6B5D4E] list-disc list-inside space-y-0.5">
+                <li>Récapitulatif précis pour l&apos;atelier (essence de bois, gravure, QR code permanent)</li>
+                <li>Adresse postale et coordonnées complètes du destinataire</li>
+                <li>Adresse de réponse (Reply-To) calée sur l&apos;e-mail du client pour lui répondre directement</li>
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>

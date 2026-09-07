@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { adminDb } from "@/lib/firebase/admin";
 import { DemandeDevis } from "@/app/devis-actions";
+import { DATE_LANCEMENT } from "@/lib/lancement";
 
 /**
  * Lecture des demandes de devis, réservée à Guidz.
@@ -40,6 +41,7 @@ export async function listerDemandesDevis(): Promise<DemandeEnregistree[]> {
    * ici se compte en dizaines.
    */
   return snapshot.docs
+    .filter((d) => (d.data().createdAt || 0) >= DATE_LANCEMENT)
     .map((d) => ({ id: d.id, ...(d.data() as Omit<DemandeEnregistree, "id">) }))
     .sort((a, b) => {
       // Les demandes en attente passent devant, puis la plus récente d'abord.

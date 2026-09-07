@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { Accommodation, PlaqueOrder, OfferType } from "@/lib/types/accommodation";
+import { DATE_LANCEMENT } from "@/lib/lancement";
 
 /**
  * Qui s'est inscrit, et où il en est.
@@ -94,6 +95,13 @@ export async function listerInscrits(): Promise<Inscrit[]> {
   const enMs = (v?: string) => (v ? new Date(v).getTime() : null);
 
   return comptes.users
+    .filter((u) => {
+      const dateInscr = enMs(u.metadata.creationTime);
+      if (dateInscr && dateInscr >= DATE_LANCEMENT) return true;
+      const livret = parProprietaire.get(u.uid);
+      if (livret && (livret.createdAt || 0) >= DATE_LANCEMENT) return true;
+      return false;
+    })
     .map((u): Inscrit => {
       const livret = parProprietaire.get(u.uid) || null;
       const commande = livret ? commandeParLivret.get(livret.id) : undefined;

@@ -22,6 +22,7 @@ import {
   X,
   CaretRight,
 } from "@phosphor-icons/react";
+import { GABARIT_SVG_RAW } from "@/lib/plaqueGabaritSvg";
 
 /* ── Gabarit et textures ── */
 const GABARIT_URL = "/images/plaques/baseplaquesfinale.svg";
@@ -136,20 +137,16 @@ export default function PlaqueShowcaseSection() {
   const motifBois = `plaque-bois-pattern-${instance}`;
   const motifBoisBack = `plaque-bois-pattern-back-${instance}`;
 
-  /* État du SVG chargé */
-  const [svgOriginal, setSvgOriginal] = useState<string | null>(null);
-
   /* Phrase personnalisable en direct */
   const [customTagline, setCustomTagline] = useState("Bienvenue chez vous");
   const [activeHotspot, setActiveHotspot] = useState<Hotspot | null>(null);
 
   /* Transformation 3D */
-  const [rotX, setRotX] = useState(10);
-  const [rotY, setRotY] = useState(-16);
+  const [rotX, setRotX] = useState(8);
+  const [rotY, setRotY] = useState(-14);
   const [zoom, setZoom] = useState(1);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
-  const [isAutoRotate, setIsAutoRotate] = useState(true);
   const [isInteracting, setIsInteracting] = useState(false);
 
   /* Détection mobile pour bloquer le zoom à 100% et fiabiliser la manipulation tactile */
@@ -206,27 +203,12 @@ export default function PlaqueShowcaseSection() {
     isPanning: false,
   });
 
-  /* Chargement fiable du gabarit vectoriel */
-  useEffect(() => {
-    let cancel = false;
-    fetch(GABARIT_URL)
-      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(String(r.status)))))
-      .then((text) => {
-        if (!cancel) setSvgOriginal(text);
-      })
-      .catch((err) => console.error("Échec chargement SVG plaque:", err));
-    return () => {
-      cancel = true;
-    };
-  }, []);
-
   /* 
-   * Préparation du SVG vectoriel habillé avec la texture bois :
-   * Exactement comme PlaquePreview.tsx pour une compatibilité à 100%
+   * Préparation SYNCHRONE et IMMÉDIATE du SVG vectoriel habillé avec la texture bois :
+   * Rendu instantané en UN SEUL TEMPS dès la première frame (zéro décalage, zéro gravure qui pop-in)
    */
   const svgPlaque = useMemo(() => {
-    if (!svgOriginal) return null;
-    let s = svgOriginal.replace(/xlink:href=/g, "href=");
+    let s = GABARIT_SVG_RAW.replace(/xlink:href=/g, "href=");
 
     // Injection du motif bois
     s = s.replace(
@@ -258,19 +240,7 @@ export default function PlaqueShowcaseSection() {
     s = s.replace(/\sheight="[^"]+"/, ' height="100%"');
 
     return s;
-  }, [svgOriginal, instance, motifBois]);
-
-  /* Auto-rotation douce quand l'utilisateur ne manipule pas */
-  useEffect(() => {
-    if (!isAutoRotate || isInteracting) return;
-    let frameId: number;
-    const animate = () => {
-      setRotY((y) => (y + 0.16) % 360);
-      frameId = requestAnimationFrame(animate);
-    };
-    frameId = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frameId);
-  }, [isAutoRotate, isInteracting]);
+  }, [instance, motifBois]);
 
   /* Manipulation tactile & souris (Pointer Events) avec rotation 3D dans tous les axes */
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -282,7 +252,6 @@ export default function PlaqueShowcaseSection() {
 
     setHasInteracted(true);
     setIsInteracting(true);
-    setIsAutoRotate(false);
 
     try {
       stageRef.current?.setPointerCapture(e.pointerId);
@@ -407,25 +376,26 @@ export default function PlaqueShowcaseSection() {
 
   /* Appliquer un préréglage */
   const applyPreset = (preset: (typeof PRESETS)[number]) => {
-    setIsAutoRotate(false);
     setActiveHotspot(null);
     setRotX(preset.rotX);
     setRotY(preset.rotY);
     setZoom(isMobile ? 1 : preset.zoom);
     setPanX(isMobile ? 0 : preset.panX);
     setPanY(isMobile ? 0 : preset.panY);
+    if (preset === PRESETS[0]) {
+      setHasInteracted(false);
+    }
   };
 
   /* Sélection d'un détail depuis la liste de droite */
   const selectHotspot = (hs: Hotspot) => {
     // Désactivé sur mobile (< 768px) pour bloquer le zoom à 100% et éviter tout déplacement imprévu
     if (isMobile || (typeof window !== "undefined" && window.innerWidth < 768)) return;
-    setIsAutoRotate(false);
     if (activeHotspot?.id === hs.id) {
       // Désélection : retour à la vue globale
       setActiveHotspot(null);
-      setRotX(10);
-      setRotY(-16);
+      setRotX(8);
+      setRotY(-14);
       setZoom(1);
       setPanX(0);
       setPanY(0);
@@ -479,7 +449,7 @@ export default function PlaqueShowcaseSection() {
               <div className="flex items-center justify-between w-full mb-2 px-2 text-[11px] font-medium text-[#6B5D4E]">
                 <span className="flex items-center gap-1.5">
                   <HandPointing size={15} className="text-[#C4714A] animate-pulse" />
-                  <span>Glissez pour orienter la plaque en 3D à 360°</span>
+                  <span>Faites pivoter la plaque en 3D avec la souris ou au doigt</span>
                 </span>
                 <span className="hidden md:inline-flex bg-white/80 border border-[#EDD9A3] px-2 py-0.5 rounded-full text-[10px] text-[#5C3D2E] font-mono shadow-xs">
                   Zoom: {Math.round(currentZoom * 100)}%
@@ -500,11 +470,11 @@ export default function PlaqueShowcaseSection() {
                 className="relative w-full aspect-square max-w-[460px] rounded-3xl bg-white/40 border border-[#EDD9A3]/60 shadow-[0_12px_36px_rgba(42,32,22,0.04)] flex items-center justify-center cursor-grab active:cursor-grabbing select-none touch-none"
                 style={{ perspective: "1300px", touchAction: "none" }}
               >
-                {/* ── GUIDAGE TACTILE MOBILE (disparaît dès le premier contact) ── */}
+                {/* ── MESSAGE D'INVITATION 3D (disparaît dès le premier contact tactile ou souris) ── */}
                 {!hasInteracted && (
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 pointer-events-none z-20 px-3.5 py-1.5 rounded-full bg-white/95 backdrop-blur-sm border border-[#EDD9A3] shadow-[0_4px_16px_rgba(74,38,23,0.12)] text-[11px] font-semibold text-[#5C3D2E] flex items-center gap-1.5 animate-bounce transition-opacity duration-300">
-                    <HandPointing size={15} weight="fill" className="text-[#C4714A]" />
-                    <span>Touchez & faites tourner en 3D</span>
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none z-20 px-4 py-2 rounded-full bg-white/95 backdrop-blur-md border border-[#EDD9A3] shadow-[0_6px_20px_rgba(74,38,23,0.12)] text-xs font-semibold text-[#5C3D2E] flex items-center gap-2 animate-bounce transition-opacity duration-300">
+                    <HandPointing size={16} weight="fill" className="text-[#C4714A]" />
+                    <span>Faites bouger en 3D</span>
                   </div>
                 )}
                 {/* ── OMBRE PORTÉE NATURELLE AU SOL (forme ovale douce, reste centrée sous la plaque) ── */}
@@ -598,21 +568,15 @@ export default function PlaqueShowcaseSection() {
                       opacity: isFrontFacing ? 1 : 0,
                     }}
                   >
-                    {/* Tracé vectoriel du gabarit avec texture noyer */}
-                    {svgPlaque ? (
-                      <div
-                        className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
-                        style={{
-                          WebkitBackfaceVisibility: "hidden",
-                          backfaceVisibility: "hidden",
-                        }}
-                        dangerouslySetInnerHTML={{ __html: svgPlaque }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-[#4A2818]/10 rounded-2xl">
-                        <span className="text-xs text-[#8A7868]">Chargement de la gravure…</span>
-                      </div>
-                    )}
+                    {/* Tracé vectoriel du gabarit complet avec gravures et texture noyer dès la 1ère frame */}
+                    <div
+                      className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
+                      style={{
+                        WebkitBackfaceVisibility: "hidden",
+                        backfaceVisibility: "hidden",
+                      }}
+                      dangerouslySetInnerHTML={{ __html: svgPlaque }}
+                    />
 
                     {/* Vrai QR Code lisible gravé */}
                     <div
@@ -732,46 +696,30 @@ export default function PlaqueShowcaseSection() {
                   ))}
                 </div>
 
-                {/* Ligne 2 : Outils tactiles rapides (Zoom bureau + 360° Auto) */}
-                <div className="flex items-center gap-2">
-                  <div className="hidden md:flex items-center gap-1 bg-white border border-[#EDD9A3] rounded-full p-0.5 shadow-xs">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setZoom((z) => Math.max(0.85, parseFloat((z - 0.25).toFixed(2))))
-                      }
-                      className="p-2 rounded-full hover:bg-[#FBF5EC] active:scale-95 text-[#5C3D2E] transition-transform cursor-pointer touch-manipulation"
-                      title="Dézoomer"
-                    >
-                      <MagnifyingGlassMinus size={15} />
-                    </button>
-                    <span className="text-[10px] font-mono text-[#8A7868] px-1 select-none">
-                      {Math.round(currentZoom * 100)}%
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setZoom((z) => Math.min(2.5, parseFloat((z + 0.25).toFixed(2))))
-                      }
-                      className="p-2 rounded-full hover:bg-[#FBF5EC] active:scale-95 text-[#5C3D2E] transition-transform cursor-pointer touch-manipulation"
-                      title="Zoomer"
-                    >
-                      <MagnifyingGlassPlus size={15} />
-                    </button>
-                  </div>
-
+                {/* Ligne 2 : Outils tactiles rapides (Zoom bureau) */}
+                <div className="hidden md:flex items-center gap-1 bg-white border border-[#EDD9A3] rounded-full p-0.5 shadow-xs">
                   <button
                     type="button"
-                    onClick={() => setIsAutoRotate(!isAutoRotate)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer touch-manipulation shadow-xs active:scale-95 min-h-[34px] ${
-                      isAutoRotate
-                        ? "bg-[#C4714A] text-white border border-[#C4714A]"
-                        : "bg-white text-[#6B5D4E] border border-[#EDD9A3] hover:bg-[#FBF5EC]"
-                    }`}
-                    title="Rotation automatique 360°"
+                    onClick={() =>
+                      setZoom((z) => Math.max(0.85, parseFloat((z - 0.25).toFixed(2))))
+                    }
+                    className="p-2 rounded-full hover:bg-[#FBF5EC] active:scale-95 text-[#5C3D2E] transition-transform cursor-pointer touch-manipulation"
+                    title="Dézoomer"
                   >
-                    <ArrowsClockwise size={13} className={isAutoRotate ? "animate-spin" : ""} />
-                    <span>360° Auto</span>
+                    <MagnifyingGlassMinus size={15} />
+                  </button>
+                  <span className="text-[10px] font-mono text-[#8A7868] px-1 select-none">
+                    {Math.round(currentZoom * 100)}%
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setZoom((z) => Math.min(2.5, parseFloat((z + 0.25).toFixed(2))))
+                    }
+                    className="p-2 rounded-full hover:bg-[#FBF5EC] active:scale-95 text-[#5C3D2E] transition-transform cursor-pointer touch-manipulation"
+                    title="Zoomer"
+                  >
+                    <MagnifyingGlassPlus size={15} />
                   </button>
                 </div>
               </div>

@@ -18,17 +18,38 @@ const SKIP_BELOW_BYTES = 300 * 1024;
 const canvasToBlob = (canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> =>
   new Promise((resolve) => canvas.toBlob(resolve, type, quality));
 
+function estFichierImage(file: File): boolean {
+  if (file.type && file.type.startsWith("image/")) return true;
+  return /\.(jpe?g|png|webp|avif|heic|heif|bmp|tiff?)$/i.test(file.name);
+}
+
+function chargerViaElementImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = (err) => {
+      URL.revokeObjectURL(url);
+      reject(err);
+    };
+    img.src = url;
+  });
+}
+
 export async function compressImage(file: File): Promise<File> {
   if (typeof window === "undefined") return file;
   // Les formats vectoriels et animés se dégradent à la rastérisation.
   if (file.type === "image/svg+xml" || file.type === "image/gif") return file;
-  if (!file.type.startsWith("image/")) return file;
+  if (!estFichierImage(file)) return file;
 
+  // 1. Tenter le décodage moderne via createImageBitmap
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
     const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
 
-    // Déjà à la bonne taille et légère : on ne touche à rien.
     if (scale === 1 && file.size < SKIP_BELOW_BYTES) {
       bitmap.close();
       return file;
@@ -56,12 +77,42 @@ export async function compressImage(file: File): Promise<File> {
 
     const baseName = file.name.replace(/\.[^.]+$/, "") || "photo";
     return new File([blob], `${baseName}.${extension}`, { type: blob.type, lastModified: Date.now() });
-  } catch (error) {
-    // Navigateur sans createImageBitmap, image corrompue… on envoie l'original.
-    console.warn("Compression impossible, envoi du fichier d'origine", error);
-    return file;
+  } catch {
+    // 2. Repli éprouvé : chargement via HTMLImageElement (Safari Mac décodant HEIC/JPEG haute def)
+    try {
+      const img = await chargerViaElementImage(file);
+      const w = img.naturalWidth || img.width;
+      const h = img.naturalHeight || img.height;
+      if (!w || !h) return file;
+
+      const scale = Math.min(1, MAX_EDGE / Math.max(w, h));
+      if (scale === 1 && file.size < SKIP_BELOW_BYTES) return file;
+
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return file;
+
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      let blob = await canvasToBlob(canvas, "image/webp", WEBP_QUALITY);
+      let extension = "webp";
+      if (!blob) {
+        blob = await canvasToBlob(canvas, "image/jpeg", JPEG_QUALITY);
+        extension = "jpg";
+      }
+      if (!blob || blob.size >= file.size) return file;
+
+      const baseName = file.name.replace(/\.[^.]+$/, "") || "photo";
+      return new File([blob], `${baseName}.${extension}`, { type: blob.type, lastModified: Date.now() });
+    } catch (fallbackError) {
+      console.warn("Compression impossible, envoi du fichier d'origine", fallbackError);
+      return file;
+    }
   }
 }
 
-/** Taille maximale acceptée après compression (garde-fou côté client). */
-export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+/** Taille maximale acceptée après compression (25 Mo pour accueillir les fichiers bruts Mac). */
+export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
