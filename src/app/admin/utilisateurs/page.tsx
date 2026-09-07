@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  UsersThree, Warning, MagnifyingGlass, ArrowSquareOut, EnvelopeSimple,
+  UsersThree, Warning, MagnifyingGlass, ArrowSquareOut, EnvelopeSimple, Phone,
 } from "@phosphor-icons/react";
 import { listerInscrits, Inscrit } from "../utilisateurs";
 import { Indicateur, Filtre, Pastille, jour, depuis } from "@/components/admin/pilotage";
@@ -112,7 +112,7 @@ export default function UtilisateursPage() {
       })
       .filter((i) => {
         if (!q) return true;
-        return [i.email, i.nom, i.livretNom, i.slug]
+        return [i.email, i.nom, i.telephone, i.livretNom, i.slug]
           .filter(Boolean)
           .some((c) => String(c).toLowerCase().includes(q));
       });
@@ -246,10 +246,21 @@ export default function UtilisateursPage() {
                       </div>
                       <a
                         href={`mailto:${i.email}`}
-                        className="text-[11px] text-[#6B5D4E] underline decoration-[#EDD9A3] underline-offset-2 hover:text-[#C4714A]"
+                        className="text-[11px] text-[#6B5D4E] underline decoration-[#EDD9A3] underline-offset-2 hover:text-[#C4714A] block"
                       >
                         {i.email}
                       </a>
+                      {i.telephone && (
+                        <div className="mt-0.5">
+                          <a
+                            href={`tel:${i.telephone}`}
+                            className="inline-flex items-center gap-1 text-[10px] font-medium text-[#A35A38] hover:text-[#C4714A]"
+                          >
+                            <Phone size={10} weight="fill" />
+                            {i.telephone}
+                          </a>
+                        </div>
+                      )}
                       <div className="mt-1 text-[10px] text-[#A8998A]">{i.fournisseur}</div>
                     </td>
 

@@ -32,6 +32,7 @@ export interface Inscrit {
   uid: string;
   email: string;
   nom: string;
+  telephone: string | null;
   /** Comment il s'est inscrit : mot de passe, Google… */
   fournisseur: string;
   inscritLe: number | null;
@@ -110,6 +111,7 @@ export async function listerInscrits(): Promise<Inscrit[]> {
         uid: u.uid,
         email: u.email || "",
         nom: u.displayName || livret?.owner?.name || "",
+        telephone: u.phoneNumber || livret?.owner?.phone || commande?.shippingPhone || null,
         fournisseur:
           u.providerData[0]?.providerId === "google.com"
             ? "Google"

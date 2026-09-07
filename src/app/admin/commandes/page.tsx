@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Package, Warning, ArrowSquareOut, Copy, Check, PencilSimple, Download,
-  MagnifyingGlass,
+  MagnifyingGlass, Phone,
 } from "@phosphor-icons/react";
 import { getPlaqueOrders, updateOrderStatus } from "../orders";
 import PanneauExpedition, { Champ, dateCourte } from "@/components/admin/PanneauExpedition";
@@ -187,6 +187,7 @@ export default function OrdersPage() {
           o.reference, o.accommodationName, o.ownerName, o.ownerEmail,
           o.accommodationSlug, o.trackingNumber, o.carrier,
           o.shippingAddress?.city, o.shippingAddress?.postalCode,
+          o.shippingPhone, o.shippingName,
         ]
           .filter(Boolean)
           .some((champ) => String(champ).toLowerCase().includes(q));
@@ -359,9 +360,28 @@ export default function OrdersPage() {
                   <p className="text-sm font-semibold text-[#2A2016] mt-1.5">
                     {order.accommodationName}
                   </p>
-                  <p className="text-xs text-[#6B5D4E]">
-                    {order.ownerName || "—"}
-                    {order.ownerEmail && ` · ${order.ownerEmail}`}
+                  <p className="text-xs text-[#6B5D4E] flex items-center gap-1.5 flex-wrap">
+                    <span>{order.ownerName || "—"}</span>
+                    {order.ownerEmail && (
+                      <>
+                        <span>·</span>
+                        <a href={`mailto:${order.ownerEmail}`} className="underline decoration-[#EDD9A3] hover:text-[#C4714A]">
+                          {order.ownerEmail}
+                        </a>
+                      </>
+                    )}
+                    {order.shippingPhone && (
+                      <>
+                        <span>·</span>
+                        <a
+                          href={`tel:${order.shippingPhone}`}
+                          className="inline-flex items-center gap-1 font-semibold text-[#A35A38] hover:text-[#C4714A]"
+                        >
+                          <Phone size={12} weight="fill" />
+                          {order.shippingPhone}
+                        </a>
+                      </>
+                    )}
                   </p>
                   <p className="text-[11px] text-[#A8998A] mt-0.5">
                     {WOOD_LABEL[order.plaque?.wood] || "—"} · commandé le{" "}
@@ -437,14 +457,29 @@ export default function OrdersPage() {
                     /h/{order.accommodationSlug}
                   </a>
                 </Champ>
-                <Champ intitule="Contact">
-                  {order.ownerEmail ? (
-                    <a href={`mailto:${order.ownerEmail}`} className="underline decoration-[#EDD9A3] underline-offset-2 hover:text-[#C4714A]">
-                      {order.ownerEmail}
-                    </a>
-                  ) : (
-                    "—"
-                  )}
+                <Champ intitule="Contact client">
+                  <div className="space-y-1">
+                    {order.ownerEmail ? (
+                      <div>
+                        <a href={`mailto:${order.ownerEmail}`} className="underline decoration-[#EDD9A3] underline-offset-2 hover:text-[#C4714A]">
+                          {order.ownerEmail}
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="text-[#A8998A]">—</div>
+                    )}
+                    {order.shippingPhone && (
+                      <div>
+                        <a
+                          href={`tel:${order.shippingPhone}`}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#A35A38] hover:text-[#C4714A]"
+                        >
+                          <Phone size={12} weight="fill" className="text-[#C4714A]" />
+                          {order.shippingPhone}
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </Champ>
                 <Champ intitule="Paiement">
                   {order.stripeSessionId ? (

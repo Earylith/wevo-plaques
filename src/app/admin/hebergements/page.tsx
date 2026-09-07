@@ -12,7 +12,7 @@ import { ORDER_STATUS_LABELS } from "@/lib/types/accommodation";
 import Link from "next/link";
 import {
   Plus, PencilSimple, Trash, Link as LinkIcon, Copy, Warning,
-  MagnifyingGlass, ArrowSquareOut,
+  MagnifyingGlass, ArrowSquareOut, Phone,
 } from "@phosphor-icons/react";
 import { Indicateur, Filtre, Pastille, jour, depuis, euros } from "@/components/admin/pilotage";
 
@@ -397,10 +397,21 @@ export default function AccommodationsList() {
                         {acc.owner.email && (
                           <a
                             href={`mailto:${acc.owner.email}`}
-                            className="text-[10px] text-[#6B5D4E] underline decoration-[#EDD9A3] underline-offset-2 hover:text-[#C4714A]"
+                            className="text-[10px] text-[#6B5D4E] underline decoration-[#EDD9A3] underline-offset-2 hover:text-[#C4714A] block"
                           >
                             {acc.owner.email}
                           </a>
+                        )}
+                        {acc.owner.phone && (
+                          <div className="mt-0.5">
+                            <a
+                              href={`tel:${acc.owner.phone}`}
+                              className="inline-flex items-center gap-1 text-[10px] font-medium text-[#A35A38] hover:text-[#C4714A]"
+                            >
+                              <Phone size={10} weight="fill" />
+                              {acc.owner.phone}
+                            </a>
+                          </div>
                         )}
                         <div className="mt-1">
                           {acc.ownerUid ? (

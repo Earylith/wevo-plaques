@@ -115,7 +115,8 @@ export async function ouvrirPaiement(
      * formulaire supplémentaire à franchir.
      */
     shipping_address_collection: { allowed_countries: [...PAYS_LIVRES] },
-    // Les transporteurs réclament un numéro pour annoncer la livraison.
+    // Les transporteurs et le suivi réclament un numéro de portable.
+    phone_number_collection: { enabled: true },
     success_url: `${origin}/commande/merci?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: jetonHote
       ? `${origin}/proprietaire/dashboard/${accommodationId}/edit`
@@ -186,6 +187,7 @@ export async function ouvrirBasculeConfort(
       slug: livret.slug || "",
       rythme,
     },
+    phone_number_collection: { enabled: true },
     success_url: `${origin}/proprietaire/dashboard?bascule=ok`,
     cancel_url: `${origin}/proprietaire/dashboard`,
     locale: "fr",

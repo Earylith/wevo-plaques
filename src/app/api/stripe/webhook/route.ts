@@ -250,7 +250,12 @@ async function lireLivraison(session: Stripe.Checkout.Session): Promise<{
 }> {
   let source = session;
 
-  if (!source.collected_information?.shipping_details?.address) {
+  const telInitial =
+    source.customer_details?.phone ||
+    (source.collected_information?.shipping_details as unknown as { phone?: string })?.phone ||
+    "";
+
+  if (!source.collected_information?.shipping_details?.address || !telInitial) {
     try {
       source = await stripe().checkout.sessions.retrieve(session.id);
     } catch (error) {
@@ -258,11 +263,19 @@ async function lireLivraison(session: Stripe.Checkout.Session): Promise<{
     }
   }
 
-  const details = source.collected_information?.shipping_details;
+  const details =
+    source.collected_information?.shipping_details ||
+    (source as unknown as { shipping_details?: { address?: Stripe.Address; name?: string; phone?: string } }).shipping_details;
+
+  const telephone =
+    source.customer_details?.phone ||
+    (details as unknown as { phone?: string })?.phone ||
+    "";
+
   return {
     adresse: adresseDepuisStripe(details?.address),
     nom: details?.name || source.customer_details?.name || "",
-    telephone: source.customer_details?.phone || "",
+    telephone,
   };
 }
 
@@ -347,6 +360,16 @@ async function traiterPaiement(session: Stripe.Checkout.Session, origin: string)
   if (livraison.telephone) maj.shippingPhone = livraison.telephone;
 
   await adminDb.collection("orders").doc(commande.id!).update(maj);
+
+  // Mettre à jour le téléphone de l'hôte sur le livret si non renseigné
+  if (livraison.telephone && !livret.owner?.phone) {
+    await docRef
+      .update({
+        "owner.phone": livraison.telephone,
+        updatedAt: maintenant,
+      })
+      .catch((e) => console.error("[stripe] mise à jour owner.phone", e));
+  }
 
   if (!livraison.adresse) {
     // Signalé fort : une plaque sans adresse ne peut pas partir, et l'équipe
