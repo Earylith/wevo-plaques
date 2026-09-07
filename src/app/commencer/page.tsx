@@ -74,7 +74,8 @@ function Formulaire() {
    * La formule vient de l'adresse. Sans elle, on ouvre un Confort : c'est la
    * formule mise en avant, et l'admin pourra toujours corriger.
    */
-  const offre: OfferType = parametres.get("offre") === "essentiel" ? "essential" : "comfort";
+  const paramOffre = parametres.get("offre");
+  const offre: OfferType = (paramOffre === "essentiel" || paramOffre === "essentielle") ? "essential" : "comfort";
   const { user, loading } = useAuth();
   const [mode, setMode] = useState<Mode>("inscription");
   const [nom, setNom] = useState("");

@@ -17,7 +17,6 @@ import {
   MagnifyingGlassPlus,
   MagnifyingGlassMinus,
   HandPointing,
-  Check,
   ArrowRight,
   Eye,
   X,
@@ -905,26 +904,15 @@ export default function PlaqueShowcaseSection() {
                 <span className="text-[11px] text-[#6B5D4E]">Format généreux</span>
               </div>
               <div className="p-3 rounded-2xl bg-white border border-[#EDD9A3] text-center shadow-xs">
-                <span className="block text-base font-bold text-[#2A2016]">3 mm</span>
-                <span className="text-[11px] text-[#6B5D4E]">Épaisseur bois</span>
+                <span className="block text-base font-bold text-[#2A2016]">Fixation</span>
+                <span className="text-[11px] text-[#6B5D4E]">Invisible incluse</span>
               </div>
               <div className="p-3 rounded-2xl bg-white border border-[#EDD9A3] text-center shadow-xs">
-                <span className="block text-base font-bold text-[#2A2016]">100% France</span>
-                <span className="text-[11px] text-[#6B5D4E]">Atelier artisanal</span>
+                <span className="block text-base font-bold text-[#2A2016]">Livraison</span>
+                <span className="text-[11px] text-[#6B5D4E]">Offerte en France</span>
               </div>
             </div>
 
-            {/* Inclus dans chaque commande */}
-            <div className="space-y-2 pt-1 text-xs text-[#5C3D2E]">
-              <div className="flex items-center gap-2">
-                <Check size={16} weight="bold" className="text-[#5A7A4E] shrink-0" />
-                <span>Fixation murale invisible (adhésif pro 3M haute tenue ou vis) incluse</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Check size={16} weight="bold" className="text-[#5A7A4E] shrink-0" />
-                <span>Livraison soignée avec suivi partout en France</span>
-              </div>
-            </div>
 
             {/* CTAs */}
             <div className="pt-2 flex flex-col sm:flex-row gap-3">

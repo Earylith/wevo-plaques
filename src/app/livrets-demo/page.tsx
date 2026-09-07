@@ -44,7 +44,7 @@ export default function LivretsDemoPage() {
 
         {/*
           Les deux formules sont séparées et nommées. Mélangées, le visiteur
-          attribuait à l'Essentielle des rubriques qu'elle ne comprend pas — et
+          attribuait à l'Essentiel des rubriques qu'elle ne comprend pas — et
           découvrait la différence après avoir payé.
         */}
         <section className="mt-14">

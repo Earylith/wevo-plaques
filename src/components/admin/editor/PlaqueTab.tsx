@@ -1,12 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Check, Warning, Spinner, ArrowSquareOut, Package, Lock, ArrowsOut,
 } from "@phosphor-icons/react";
 import { Accommodation, PlaqueConfig, PlaqueWood, PlaqueOrder, ORDER_STATUS_LABELS } from "@/lib/types/accommodation";
 import VerrouConfort from "@/components/admin/editor/VerrouConfort";
-import { taglineGravee } from "@/lib/plaque";
 
 /**
  * Onglet « Plaque » de l'éditeur.
@@ -114,13 +113,29 @@ export default function PlaqueTab({
   const [confirming, setConfirming] = useState(false);
 
   const plaque: PlaqueConfig = data.plaque || { wood: "noyer" };
-  // La personnalisation de la phrase est une option Confort : en Essentielle,
-  // l’aperçu doit montrer ce qui sera RÉELLEMENT gravé, pas ce qui reste en
-  // base d’un passage par le Confort.
-  const tagline = taglineGravee(plaque, data.offerType);
   const wood = WOODS.find((w) => w.id === plaque.wood) || WOODS[0];
 
   const lastOrder = orders[0];
+
+  // Gestion de la saisie fluide sur mobile (Android / iOS) sans blocage de l'espace
+  const [currentTagline, setCurrentTagline] = useState<string>(() => plaque.engravedTagline ?? TAGLINE_PAR_DEFAUT);
+
+  useEffect(() => {
+    if (plaque.engravedTagline !== undefined && plaque.engravedTagline !== currentTagline) {
+      setCurrentTagline(plaque.engravedTagline);
+    }
+  }, [plaque.engravedTagline]);
+
+  const handleTaglineChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setCurrentTagline(val);
+    onChange({ engravedTagline: val });
+  };
+
+  const handleResetTagline = () => {
+    setCurrentTagline(TAGLINE_PAR_DEFAUT);
+    onChange({ engravedTagline: TAGLINE_PAR_DEFAUT });
+  };
 
   return (
     <div className="space-y-5">
@@ -198,48 +213,52 @@ export default function PlaqueTab({
         verrouille={data.offerType !== "comfort"}
         argument="Faites graver votre propre phrase au bas de la plaque, à la place du texte standard."
       >
-      <div className="space-y-2 pt-4 border-t border-[#EDD9A3]/60">
-        <h3 className="font-[family-name:var(--font-display)] text-[15px] font-bold text-[#5C3D2E]">
-          Votre phrase
-        </h3>
-        <p className="text-[11px] text-[#6B5D4E] leading-relaxed">
-          Votre signature, gravée en bas de la plaque. C’est le mot qui vous
-          ressemble — le reste de la mise en page est composé pour lui laisser
-          toute la place.
-        </p>
-        {orders.some((o) => o.status !== "annulee") && (
-          <p className="text-[11px] text-[#6B5D4E] bg-[#FDF9F2] border border-[#EDD9A3] rounded-xl px-3 py-2.5">
-            La plaque déjà commandée garde la phrase qu’elle portait : elle est
-            figée dans la commande. Ce que vous écrivez ici vaut pour vos
-            prochaines commandes.
+        <div className="space-y-2 pt-4 border-t border-[#EDD9A3]/60">
+          <h3 className="font-[family-name:var(--font-display)] text-[15px] font-bold text-[#5C3D2E]">
+            Votre phrase
+          </h3>
+          <p className="text-[11px] text-[#6B5D4E] leading-relaxed">
+            Votre signature, gravée en bas de la plaque. C’est le mot qui vous
+            ressemble — le reste de la mise en page est composé pour lui laisser
+            toute la place.
           </p>
-        )}
-        <input
-          type="text"
-          value={tagline}
-          maxLength={TAGLINE_MAX}
-          onChange={(e) => onChange({ engravedTagline: e.target.value })}
-          placeholder={TAGLINE_PAR_DEFAUT}
-          className="w-full px-3 py-2.5 rounded-xl border border-[#EDD9A3] bg-white text-xs outline-none focus:border-[#C4714A]"
-        />
-        <div className="flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => onChange({ engravedTagline: TAGLINE_PAR_DEFAUT })}
-            disabled={tagline === TAGLINE_PAR_DEFAUT}
-            className="text-[10px] font-bold text-[#A8998A] hover:text-[#C4714A] transition-colors disabled:opacity-40 disabled:hover:text-[#A8998A]"
-          >
-            Rétablir la phrase d’origine
-          </button>
-          <span
-            className={`text-[10px] tabular-nums ${
-              tagline.length > TAGLINE_MAX - 5 ? "text-[#C4714A] font-bold" : "text-[#A8998A]"
-            }`}
-          >
-            {tagline.length}/{TAGLINE_MAX}
-          </span>
+          {orders.some((o) => o.status !== "annulee") && (
+            <p className="text-[11px] text-[#6B5D4E] bg-[#FDF9F2] border border-[#EDD9A3] rounded-xl px-3 py-2.5">
+              La plaque déjà commandée garde la phrase qu’elle portait : elle est
+              figée dans la commande. Ce que vous écrivez ici vaut pour vos
+              prochaines commandes.
+            </p>
+          )}
+          <input
+            type="text"
+            value={currentTagline}
+            maxLength={TAGLINE_MAX}
+            onChange={handleTaglineChange}
+            placeholder={TAGLINE_PAR_DEFAUT}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="sentences"
+            spellCheck={false}
+            className="w-full px-3 py-2.5 rounded-xl border border-[#EDD9A3] bg-white text-xs outline-none focus:border-[#C4714A]"
+          />
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={handleResetTagline}
+              disabled={currentTagline === TAGLINE_PAR_DEFAUT}
+              className="text-[10px] font-bold text-[#A8998A] hover:text-[#C4714A] transition-colors disabled:opacity-40 disabled:hover:text-[#A8998A]"
+            >
+              Rétablir la phrase d’origine
+            </button>
+            <span
+              className={`text-[10px] tabular-nums ${
+                currentTagline.length > TAGLINE_MAX - 5 ? "text-[#C4714A] font-bold" : "text-[#A8998A]"
+              }`}
+            >
+              {currentTagline.length}/{TAGLINE_MAX}
+            </span>
+          </div>
         </div>
-      </div>
       </VerrouConfort>
 
 

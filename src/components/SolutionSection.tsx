@@ -5,27 +5,27 @@ import AnimateOnScroll from "./AnimateOnScroll";
 
 const steps = [
   {
-    Icon: ShoppingBag,
+    Icon: PencilLine,
     step: "01",
-    title: "Choisissez votre formule",
+    title: "Configurez dans l’éditeur",
     description:
-      "Essentiel, Confort, Multi-biens, Signature : sélectionnez l'offre adaptée à votre hébergement.",
+      "Renseignez vos accès et recommandations, personnalisez votre plaque et visualisez l’aperçu en direct avant de payer.",
     accent: { bg: "bg-[#F7EBE4]", icon: "#C4714A" },
   },
   {
-    Icon: PencilLine,
+    Icon: ShoppingBag,
     step: "02",
-    title: "Nous préparons votre Guidz",
+    title: "Validez et commandez",
     description:
-      "Nous créons votre support gravé, le QR code et la page web avec les informations utiles de votre logement.",
+      "Choisissez votre formule (Essentielle ou Confort) et validez votre commande. Nous gravons votre plaque artisanale en France.",
     accent: { bg: "bg-[#EBF0E6]", icon: "#5A7A4E" },
   },
   {
     Icon: QrCode,
     step: "03",
-    title: "Vos locataires scannent",
+    title: "Vos voyageurs scannent",
     description:
-      "Placez votre Guidz dans le logement. Vos voyageurs accèdent au Wi‑Fi, aux consignes, aux contacts et aux recommandations sans application.",
+      "Installez votre plaque dans le logement. Vos voyageurs accèdent instantanément au Wi‑Fi, consignes et adresses locales sans application.",
     accent: { bg: "bg-[#FDF3DC]", icon: "#D4A34A" },
   },
 ];
@@ -49,7 +49,7 @@ export default function SolutionSection() {
               <em className="not-italic text-gradient-terra">en 3 étapes</em>
             </h2>
             <p className="text-lg text-[#6B5D4E] leading-relaxed">
-              Vous choisissez votre formule, vous nous transmettez vos informations, nous préparons votre support et sa page digitale.
+              Configurez votre livret d’accueil, visualisez l’aperçu en direct avant de payer et recevez votre plaque en bois gravée prête à poser.
             </p>
           </div>
         </AnimateOnScroll>

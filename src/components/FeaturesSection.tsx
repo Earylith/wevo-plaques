@@ -11,19 +11,20 @@ import {
   Bus,
   Question,
   ArrowSquareOut,
+  Sparkle,
 } from "@phosphor-icons/react";
 import AnimateOnScroll from "./AnimateOnScroll";
 
 const features = [
-  { Icon: WifiHigh,       title: "Wi‑Fi",                 desc: "Réseau et mot de passe accessibles en un scan.",           accent: { bg: "bg-[#E4EEF3]", color: "#2B5F75" }, span: "md:col-span-2 md:row-span-2" },
-  { Icon: Clock,          title: "Arrivée / départ",      desc: "Horaires, accès au logement et consignes de sortie.",      accent: { bg: "bg-[#FDF3DC]", color: "#D4A34A" }, span: "md:col-span-2 md:row-span-1" },
-  { Icon: TelevisionSimple, title: "Équipements du logement", desc: "Notices d'utilisation, chauffage, climatisation, électroménager, jacuzzi…", accent: { bg: "bg-[#F7EBE4]", color: "#C4714A" }, span: "md:col-span-1 md:row-span-1" },
-  { Icon: BookOpen,       title: "Règles du logement",    desc: "Les règles importantes présentées clairement.",            accent: { bg: "bg-[#EBF0E6]", color: "#5A7A4E" }, span: "md:col-span-1 md:row-span-1" },
-  { Icon: Phone,          title: "Contacts & Urgences",   desc: "Propriétaires, prestataires et numéros d'urgence en cas de problème.", accent: { bg: "bg-red-50", color: "#EF4444" }, span: "md:col-span-2 md:row-span-1" },
-  { Icon: MapPin,         title: "Bonnes adresses",       desc: "Restaurants, activités, commerces.",                       accent: { bg: "bg-[#EBF0E6]", color: "#5A7A4E" }, span: "md:col-span-1 md:row-span-1" },
-  { Icon: Bus,            title: "Accès / Transports",    desc: "Parking, gare, accès, transports et itinéraires.",         accent: { bg: "bg-[#FDF3DC]", color: "#D4A34A" }, span: "md:col-span-1 md:row-span-1" },
-  { Icon: Question,       title: "FAQ",                   desc: "Réponses aux questions fréquentes pour vos voyageurs.",    accent: { bg: "bg-[#E4EEF3]", color: "#2B5F75" }, span: "md:col-span-2 md:row-span-1" },
-  { Icon: ArrowSquareOut, title: "Liens utiles",          desc: "Maps, réservations, sites utiles et services locaux.",     accent: { bg: "bg-[#F7EBE4]", color: "#C4714A" }, span: "md:col-span-2 md:row-span-1" },
+  { Icon: WifiHigh,         title: "Wi‑Fi",                   desc: "Réseau et mot de passe accessibles en un scan.",           accent: { bg: "bg-[#E4EEF3]", color: "#2B5F75" }, span: "md:col-span-2 md:row-span-2" },
+  { Icon: Clock,            title: "Arrivée / départ",        desc: "Horaires, accès au logement et consignes de sortie.",      accent: { bg: "bg-[#FDF3DC]", color: "#D4A34A" }, span: "md:col-span-2 md:row-span-1" },
+  { Icon: TelevisionSimple, title: "Équipements du logement", desc: "Notices d'utilisation, chauffage, climatisation, électroménager, jacuzzi…", accent: { bg: "bg-[#F7EBE4]", color: "#C4714A" }, span: "md:col-span-1 md:row-span-1", confortOnly: true },
+  { Icon: BookOpen,         title: "Règles du logement",      desc: "Les règles importantes présentées clairement.",            accent: { bg: "bg-[#EBF0E6]", color: "#5A7A4E" }, span: "md:col-span-1 md:row-span-1" },
+  { Icon: Phone,            title: "Contacts & Urgences",     desc: "Propriétaires, prestataires et numéros d'urgence en cas de problème.", accent: { bg: "bg-red-50", color: "#EF4444" }, span: "md:col-span-2 md:row-span-1" },
+  { Icon: MapPin,           title: "Bonnes adresses",         desc: "Restaurants, activités, commerces.",                       accent: { bg: "bg-[#EBF0E6]", color: "#5A7A4E" }, span: "md:col-span-1 md:row-span-1", confortOnly: true },
+  { Icon: Bus,              title: "Accès / Transports",      desc: "Parking, gare, accès, transports et itinéraires.",         accent: { bg: "bg-[#FDF3DC]", color: "#D4A34A" }, span: "md:col-span-1 md:row-span-1", confortOnly: true },
+  { Icon: Question,         title: "FAQ",                     desc: "Réponses aux questions fréquentes pour vos voyageurs.",    accent: { bg: "bg-[#E4EEF3]", color: "#2B5F75" }, span: "md:col-span-2 md:row-span-1", confortOnly: true },
+  { Icon: ArrowSquareOut,   title: "Liens utiles",            desc: "Maps, réservations, sites utiles et services locaux.",     accent: { bg: "bg-[#F7EBE4]", color: "#C4714A" }, span: "md:col-span-2 md:row-span-1", confortOnly: true },
 ];
 
 export default function FeaturesSection() {
@@ -60,7 +61,7 @@ export default function FeaturesSection() {
               <em className="not-italic text-gradient-ocean">au même endroit</em>
             </h2>
             <p className="text-lg text-[#6B5D4E] leading-relaxed max-w-2xl mx-auto">
-              Votre Guidz regroupe les informations dont vos locataires ont besoin, de l&apos;arrivée au départ.
+              Votre Guidz regroupe les informations dont vos voyageurs ont besoin, de l&apos;arrivée au départ.
             </p>
           </div>
         </AnimateOnScroll>
@@ -74,13 +75,19 @@ export default function FeaturesSection() {
             return (
               <AnimateOnScroll key={f.title} delay={i * 0.05} className={`${f.span} flex`}>
                 <div
-                  className={`group rounded-[32px] p-8 border border-transparent w-full flex transition-all duration-500 bg-[#FBF5EC]/60 backdrop-blur-sm hover:bg-white hover:shadow-[0_20px_40px_rgba(0,0,0,0.05)] hover:border-[#EDD9A3]/80 ${
+                  className={`group relative rounded-[32px] p-8 border border-transparent w-full flex transition-all duration-500 bg-[#FBF5EC]/60 backdrop-blur-sm hover:bg-white hover:shadow-[0_20px_40px_rgba(0,0,0,0.05)] hover:border-[#EDD9A3]/80 ${
                     isLarge ? "flex-col justify-center items-center text-center p-12" : 
                     isWide ? "flex-col sm:flex-row items-start sm:items-center text-left gap-6" : 
                     isTall ? "flex-col items-start text-left" : 
                     "flex-col items-start text-left"
                   }`}
                 >
+                  {f.confortOnly && (
+                    <span className="absolute top-4 right-4 sm:top-5 sm:right-5 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-tight bg-[#C4714A] text-white shadow-xs z-10">
+                      <Sparkle size={11} weight="fill" className="text-[#FDF3DC]" />
+                      Confort
+                    </span>
+                  )}
                   <div
                     className={`rounded-2xl ${f.accent.bg} flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500 ${
                       isLarge ? "w-24 h-24 mb-8" : 

@@ -25,7 +25,7 @@ export interface LivretDemo {
   /**
    * Photo de couverture — Confort uniquement.
    *
-   * L'Essentielle n'a pas de photo : sa page n'en affiche aucune. En mettre
+   * L'Essentiel n'a pas de photo : sa page n'en affiche aucune. En mettre
    * une sur la vignette promettrait ce que la formule ne livre pas.
    */
   image?: string;

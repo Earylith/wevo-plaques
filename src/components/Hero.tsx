@@ -54,7 +54,7 @@ export default function Hero() {
           {/* Headline */}
           <AnimateOnScroll delay={0.2}>
             <h1 className="font-[family-name:var(--font-display)] text-4xl sm:text-6xl lg:text-7xl leading-[1.05] font-bold text-white mb-6">
-              Guidz, le livret d’accueil&nbsp;
+              Votre livret d’accueil sur&nbsp;
               <span
                 style={{
                   background: "linear-gradient(135deg, #E8BE72, #C4714A)",
@@ -63,21 +63,16 @@ export default function Hero() {
                   backgroundClip: "text",
                 }}
               >
-                réinventé.
+                plaque en bois avec QR code.
               </span>
             </h1>
           </AnimateOnScroll>
 
           <AnimateOnScroll delay={0.3}>
             <p className="text-lg sm:text-xl text-white/75 leading-relaxed mb-6 lg:mb-10 max-w-2xl">
-              Remplacez votre livret papier par une élégante{" "}
-              <strong className="text-white font-semibold">
-                plaque en bois personnalisée
-              </strong>
-              . Vos voyageurs retrouvent le Wi-Fi, les consignes, les équipements et vos recommandations{" "}
-              <strong className="text-white font-semibold">
-                en un scan.
-              </strong>
+              Remplacez les livrets papier par une authentique plaque en bois avec QR code. Livret numérique{" "}
+              <strong className="text-white font-semibold">accessible sans application</strong> : vos voyageurs retrouvent le Wi-Fi, les consignes et vos recommandations{" "}
+              <strong className="text-white font-semibold">en un scan</strong>.
             </p>
           </AnimateOnScroll>
         </div>
@@ -119,7 +114,7 @@ export default function Hero() {
                 href="#offres"
                 className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-[#C4714A] text-white font-semibold text-base hover:bg-[#D4866A] transition-all btn-press shadow-lg hover:shadow-xl group"
               >
-                Voir les formules
+                Découvrir les formules
                 <ArrowRight
                   size={18}
                   className="group-hover:translate-x-1 transition-transform"
@@ -130,7 +125,7 @@ export default function Hero() {
                 className="inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full bg-white/10 backdrop-blur-sm border border-white/25 text-white font-medium text-base hover:bg-white/20 transition-all btn-press"
               >
                 <Eye size={18} />
-                Voir une démo
+                Voir un exemple de livret
               </a>
             </div>
           </AnimateOnScroll>
@@ -138,7 +133,7 @@ export default function Hero() {
           {/* Trust line */}
           <AnimateOnScroll delay={0.6}>
             <p className="text-sm text-white/60 mt-8 font-medium">
-              À partir de 49 € TTC · Installation simple · Sans application pour vos locataires
+              À partir de 49 € TTC · Plaque en bois incluse · Accessible sans application
             </p>
           </AnimateOnScroll>
         </div>

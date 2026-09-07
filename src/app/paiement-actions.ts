@@ -101,9 +101,8 @@ export async function ouvrirPaiement(
       offre: livret.offerType,
       slug: livret.slug || "",
       plaqueWood: livret.plaque?.wood || "noyer",
-      // La phrase personnalisée est une option Confort : une Essentielle part
-      // avec la phrase par défaut, quoi qu’il reste en base d’un essayage.
-      plaqueTagline: taglineGravee(livret.plaque, livret.offerType),
+      // Phrase personnalisée gravée sur la plaque
+      plaqueTagline: taglineGravee(livret.plaque, livret.offerType).trim(),
       rythme,
     },
     /*

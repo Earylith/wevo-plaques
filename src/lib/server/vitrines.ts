@@ -31,7 +31,7 @@ import { LIVRETS_DEMO, VitrineGarnie } from "@/lib/livretsDemo";
 function accueilEssentiel(livret: Accommodation): string {
   const ecrit = livret.property?.welcomeMessage?.trim();
   if (ecrit) return ecrit;
-  return `Bienvenue à ${livret.property?.name || "votre logement"} — vous trouverez ici toutes les informations utiles pour votre séjour.`;
+  return `${livret.property?.name || "Votre logement"} — vous trouverez ici toutes les informations utiles pour votre séjour.`;
 }
 
 export async function chargerVitrines(): Promise<VitrineGarnie[]> {

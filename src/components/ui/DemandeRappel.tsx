@@ -93,7 +93,7 @@ export default function DemandeRappel({ className = "" }: { className?: string }
                 </h2>
                 <p className="mt-1 text-[13px] leading-relaxed text-[#6B5D4E]">
                   {envoye
-                    ? "Nous vous appellerons au moment que vous avez choisi. Aucun automate : c’est une vraie personne qui vous rappelle."
+                    ? "Un membre de l’équipe Guidzme vous recontactera dans les meilleurs délais."
                     : "Laissez votre numéro, nous vous appelons. Pas de formulaire à rallonge, pas de démarchage ensuite."}
                 </p>
               </div>
@@ -108,10 +108,10 @@ export default function DemandeRappel({ className = "" }: { className?: string }
             </div>
 
             {envoye ? (
-              <div className="flex items-center gap-2.5 rounded-2xl border border-[#5A7A4E]/30 bg-[#EBF0E6] px-4 py-3">
-                <Check size={17} weight="bold" className="shrink-0 text-[#3F5836]" />
+              <div className="flex items-center gap-2.5 rounded-2xl border border-[#5A7A4E]/30 bg-[#EBF0E6] px-4 py-3.5">
+                <Check size={18} weight="bold" className="shrink-0 text-[#3F5836]" />
                 <p className="text-[13px] font-semibold text-[#3F5836]">
-                  Votre demande est bien arrivée.
+                  Un membre de l’équipe Guidzme vous recontactera dans les meilleurs délais.
                 </p>
               </div>
             ) : (

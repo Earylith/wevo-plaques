@@ -19,7 +19,6 @@ const navLinks = [
   { label: "Démo", href: "/#demo" },
   { label: "Fonctionnalités", href: "/#fonctionnalites" },
   { label: "Formules", href: "/#offres" },
-  { label: "Blog", href: "/blog" },
   { label: "Pro", href: "/#pro" },
   { label: "FAQ", href: "/#faq" },
 ];

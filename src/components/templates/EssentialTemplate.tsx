@@ -353,7 +353,7 @@ export default function EssentialTemplate({
       <div className="px-4 @2xl:px-6 pt-8 @2xl:pt-12">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="font-[family-name:var(--font-display)] text-2xl @2xl:text-4xl font-bold leading-tight">
-            Bienvenue à {data.property?.name}
+            {data.property?.name}
           </h2>
           <p className="text-[#6B5D4E] text-sm @2xl:text-[15px] leading-relaxed mt-3 max-w-lg mx-auto">
             Vous trouverez ici toutes les informations utiles pour votre séjour.
@@ -640,17 +640,43 @@ export default function EssentialTemplate({
         )}
       </main>
 
-      <footer className="border-t border-[#EDD9A3]/40 py-8 text-center">
+      <footer className="border-t border-[#EDD9A3]/40 py-10 px-4 text-center space-y-6">
         <p className="text-sm font-medium text-[#6B5D4E] flex items-center justify-center gap-1.5">
           <Clock size={14} weight="duotone" />
           Bon séjour à {data.property?.name} !
         </p>
-        {/*
-          Côté voyageur uniquement : `trackingId` est absent dans l'éditeur,
-          où ce lien n'aurait aucun sens.
-        */}
-        {trackingId && !onModuleClick && (
-          <SignalerLivret livretId={trackingId} slug={data.slug} />
+
+        {/* Branding Guidzme.fr et découverte sur la formule Essentiel */}
+        <div className="max-w-md mx-auto p-4 rounded-2xl bg-[#FDFBF7] border border-[#EDD9A3]/60 shadow-sm text-center">
+          <p className="text-xs font-semibold text-[#2A2016]">
+            Livret d’accueil créé avec{" "}
+            <a
+              href="https://guidzme.fr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#C4714A] hover:underline font-bold"
+            >
+              Guidzme.fr
+            </a>
+          </p>
+          <p className="mt-1 text-[11.5px] text-[#6B5D4E] leading-relaxed">
+            Vous gérez un logement touristique ? Découvrez nos livrets d’accueil connectés sur plaque en bois gravée.
+          </p>
+          <a
+            href="https://guidzme.fr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block mt-2 text-[11.5px] font-semibold text-[#C4714A] hover:underline"
+          >
+            Découvrir Guidzme.fr →
+          </a>
+        </div>
+
+        {/* Bouton de signalement accessible sur les livrets Essentiel */}
+        {!onModuleClick && (
+          <div className="pt-1">
+            <SignalerLivret livretId={trackingId || (data as any).id || "demo"} slug={data.slug || "demo"} />
+          </div>
         )}
       </footer>
     </div>

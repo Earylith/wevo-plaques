@@ -49,16 +49,10 @@ export default function LivretsDemoSection({ vitrines }: { vitrines: VitrineGarn
               Côté voyageurs
             </span>
             <h2 className="mb-5 mt-5 font-[family-name:var(--font-display)] text-4xl font-bold leading-tight text-[#2A2016] sm:text-5xl">
-              Ouvrez un <em className="not-italic text-gradient-terra">vrai livret</em>
+              Découvrez nos <em className="not-italic text-gradient-terra">exemples de livrets</em>
             </h2>
             <p className="text-lg leading-relaxed text-[#6B5D4E]">
-              {/*
-                Le nombre se compte, il ne s'écrit pas : la page annonçait
-                « quatre » alors qu'il y en avait six. Une phrase qui contredit
-                ce qu'on a sous les yeux coûte plus cher que pas de phrase.
-              */}
-              Parcourez {NOMBRES[vedettes.length] ?? vedettes.length} livrets de
-              présentation, dans les deux formules. Ce sont des pages en ligne, pas des maquettes :
+              Parcourez nos exemples de livrets de démonstration, dans les deux formules. Ce sont des pages en conditions réelles :
               exactement ce que vos voyageurs découvrent après avoir scanné la plaque.
             </p>
           </div>

@@ -98,7 +98,7 @@ export default function CarteLivretDemo({ livret }: { livret: VitrineGarnie }) {
             >
               {livret.accueil
                 ? livret.accueil.split(/[.—]/)[0].trim()
-                : `Bienvenue à ${livret.nom}`}
+                : livret.nom}
             </p>
             <Icone size={30} className="shrink-0" style={{ color: livret.accent, opacity: 0.3 }} />
           </div>
@@ -124,7 +124,7 @@ export default function CarteLivretDemo({ livret }: { livret: VitrineGarnie }) {
             className="text-[13px] font-semibold tracking-tight"
             style={{ color: livret.accent }}
           >
-            Ouvrir le livret
+            Exemple de livret
           </span>
           <span
             className="relative flex h-9 w-9 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-105"

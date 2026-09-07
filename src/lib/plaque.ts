@@ -89,8 +89,12 @@ export function sansUndefined<T>(valeur: T): T {
  */
 export function taglineGravee(
   plaque: Partial<PlaqueConfig> | null | undefined,
-  offre: "comfort" | "essential" | undefined
+  offre?: "comfort" | "essential" | undefined
 ): string {
   if (offre !== "comfort") return TAGLINE_PAR_DEFAUT;
-  return plaque?.engravedTagline?.trim() || TAGLINE_PAR_DEFAUT;
+  const phrase = plaque?.engravedTagline;
+  if (typeof phrase === "string" && phrase.length > 0) {
+    return phrase;
+  }
+  return TAGLINE_PAR_DEFAUT;
 }

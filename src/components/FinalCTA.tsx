@@ -77,15 +77,6 @@ export default function FinalCTA() {
                 </a>
                 <DemandeRappel />
               </div>
-
-              {/* Social proof */}
-              <div className="mt-14 flex items-center justify-center gap-3">
-                <div className="h-px w-8 bg-[#6B5D4E]/20" />
-                <p className="text-sm font-medium text-[#6B5D4E]/80 tracking-wide">
-                  Artisanat français · Livraison rapide · Sans engagement
-                </p>
-                <div className="h-px w-8 bg-[#6B5D4E]/20" />
-              </div>
             </div>
           </div>
         </AnimateOnScroll>
