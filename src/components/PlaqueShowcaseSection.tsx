@@ -89,8 +89,8 @@ const HOTSPOTS: Hotspot[] = [
   {
     id: "laser",
     num: 3,
-    shortLabel: "Découpe 3 mm",
-    title: "Découpe & Finition 3 mm",
+    shortLabel: "Épaisseur 3 mm",
+    title: "Épaisseur & Finition 3 mm",
     badge: "Fabrication Française",
     desc: "Épaisseur soignée de 3 mm en bois de noyer. Biseau net et tranches délicatement brunies par le faisceau laser pour un toucher velouté.",
     x: 12,
@@ -232,8 +232,8 @@ export default function PlaqueShowcaseSection() {
     s = s.replace(
       "<defs",
       `<defs id="defs-${instance}">
-        <pattern id="${motifBois}" patternUnits="userSpaceOnUse" x="0" y="0" width="489.84" height="525.37">
-          <image href="${TEXTURE_NOYER}" x="0" y="0" width="489.84" height="525.37" preserveAspectRatio="xMidYMid slice" />
+        <pattern id="${motifBois}" patternUnits="userSpaceOnUse" x="0" y="0" width="489.84466" height="525.37183">
+          <image href="${TEXTURE_NOYER}" x="0" y="0" width="489.84466" height="525.37183" preserveAspectRatio="xMidYMid slice" />
         </pattern>
       </defs><defs`
     );
@@ -248,7 +248,7 @@ export default function PlaqueShowcaseSection() {
     s = s.replace(
       "<defs",
       `<style>
-        #${CORPS} { fill: #4A2818 !important; fill: url(#${motifBois}) !important; }
+        #${CORPS} { fill: #4A2818 !important; fill: url(#${motifBois}) #4A2818 !important; }
         ${QR_GABARIT.map((id) => "#" + id).join(", ")}, #${TEXTE} { display: none !important; }
       </style><defs`
     );
@@ -529,7 +529,6 @@ export default function PlaqueShowcaseSection() {
                     WebkitTransformStyle: "preserve-3d",
                     transform: `translate3d(${currentPanX}px, ${currentPanY}px, 0) scale(${currentZoom}) rotateX(${rotX}deg) rotateY(${rotY}deg)`,
                     WebkitTransform: `translate3d(${currentPanX}px, ${currentPanY}px, 0) scale(${currentZoom}) rotateX(${rotX}deg) rotateY(${rotY}deg)`,
-                    willChange: "transform",
                   }}
                 >
                   {/* 
@@ -543,13 +542,17 @@ export default function PlaqueShowcaseSection() {
                       WebkitTransform: "rotateY(180deg) translateZ(1.5px)",
                       backfaceVisibility: "hidden",
                       WebkitBackfaceVisibility: "hidden",
-                      display: !isFrontFacing ? "block" : "none",
+                      opacity: !isFrontFacing ? 1 : 0,
                     }}
                   >
                     <svg
                       viewBox="0 0 489.84466 525.37183"
                       preserveAspectRatio="xMidYMid meet"
                       className="w-full h-full"
+                      style={{
+                        WebkitBackfaceVisibility: "hidden",
+                        backfaceVisibility: "hidden",
+                      }}
                     >
                       <defs>
                         <pattern
@@ -557,15 +560,15 @@ export default function PlaqueShowcaseSection() {
                           patternUnits="userSpaceOnUse"
                           x="0"
                           y="0"
-                          width="489.84"
-                          height="525.37"
+                          width="489.84466"
+                          height="525.37183"
                         >
                           <image
                             href={TEXTURE_NOYER}
                             x="0"
                             y="0"
-                            width="489.84"
-                            height="525.37"
+                            width="489.84466"
+                            height="525.37183"
                             preserveAspectRatio="xMidYMid slice"
                           />
                         </pattern>
@@ -574,7 +577,7 @@ export default function PlaqueShowcaseSection() {
                         <path
                           d="m 143.30206,195.34023 c -1.05223,-0.1218 -4.10127,-0.68842 -6.77566,-1.25918 -6.67529,-1.42457 -7.59577,-1.55206 -11.92175,-1.65107 -4.02968,-0.0922 -4.78344,-0.0362 -11.27492,0.83806 -9.98436,1.34468 -13.504176,1.15327 -23.595248,-1.28305 -7.394715,-1.78533 -11.711655,-2.13468 -19.450134,-1.57398 -5.528672,0.40057 -11.587479,0.40424 -13.471608,0.008 -4.926426,-1.03572 -8.64048,-3.68192 -11.41896,-8.13584 -2.06165,-3.30481 -2.962364,-6.0419 -5.856842,-17.79774 -3.154064,-12.81015 -3.910027,-18.41674 -3.718869,-27.58095 0.09552,-4.57929 0.330449,-7.43794 0.995751,-12.11647 0.801472,-5.6361 1.361992,-8.48255 3.280704,-16.66017 2.305973,-9.828127 2.505738,-11.078806 2.639901,-16.527704 0.170051,-6.90641 -0.416729,-11.163574 -2.754284,-19.982689 -1.539372,-5.807732 -1.728039,-7.066414 -1.732277,-11.556946 -0.0032,-3.325394 0.03765,-3.934715 0.362968,-5.420532 1.225971,-5.599583 4.133442,-10.370358 7.809319,-12.814083 2.893535,-1.923615 5.102051,-2.586704 9.356315,-2.809143 5.503125,-0.287739 6.240063,-0.403843 10.242325,-1.613686 5.478943,-1.656223 8.677788,-2.164654 12.555786,-1.995621 3.571205,0.155663 5.782608,0.545674 11.080201,1.954155 7.051597,1.874821 14.429932,2.642807 21.963152,2.286064 6.94142,-0.328716 11.37195,-1.13113 19.80681,-3.5872 3.84415,-1.119342 5.66924,-1.411937 8.7685,-1.405731 3.16627,0.0063 4.615,0.269127 9.04754,1.641197 3.89112,1.204468 5.4739,1.545792 8.56304,1.846619 3.58384,0.348995 5.1131,0.710953 7.02095,1.661755 5.22375,2.60334 8.66231,7.426906 10.03123,14.07175 0.66857,3.245239 0.83333,6.234123 0.51499,9.342339 -0.30112,2.94004 -1.11492,7.165359 -1.96216,10.18782 -1.9794,7.061211 -2.55164,11.181534 -2.39604,17.252564 0.12295,4.79718 0.6139,8.268051 2.02,14.280522 3.01666,12.89921 4.1601,19.74432 4.70047,28.13893 0.2841,4.41346 0.30115,6.65306 0.0819,10.76133 -0.26859,5.03205 -0.96566,10.54029 -1.91672,15.1456 -1.77724,8.60597 -3.06632,14.10508 -4.40998,18.81243 -1.49812,5.2485 -4.65716,10.15458 -8.41531,13.06921 -2.95557,2.29221 -5.82755,3.50871 -9.96628,4.22156 -2.59242,0.4465 -7.1181,0.56268 -9.80478,0.25169 z"
                           fill="#4A2818"
-                          style={{ fill: `url(#${motifBoisBack})` }}
+                          style={{ fill: `url(#${motifBoisBack}) #4A2818` }}
                           transform="matrix(11.952365,0,0,11.952861,-280.54471,-366.51779)"
                         />
                       </g>
@@ -592,17 +595,21 @@ export default function PlaqueShowcaseSection() {
                       WebkitTransform: "translateZ(1.5px)",
                       backfaceVisibility: "hidden",
                       WebkitBackfaceVisibility: "hidden",
-                      display: isFrontFacing ? "block" : "none",
+                      opacity: isFrontFacing ? 1 : 0,
                     }}
                   >
                     {/* Tracé vectoriel du gabarit avec texture noyer */}
                     {svgPlaque ? (
                       <div
                         className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
+                        style={{
+                          WebkitBackfaceVisibility: "hidden",
+                          backfaceVisibility: "hidden",
+                        }}
                         dangerouslySetInnerHTML={{ __html: svgPlaque }}
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
+                      <div className="w-full h-full flex items-center justify-center bg-[#4A2818]/10 rounded-2xl">
                         <span className="text-xs text-[#8A7868]">Chargement de la gravure…</span>
                       </div>
                     )}

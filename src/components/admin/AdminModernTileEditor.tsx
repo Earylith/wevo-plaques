@@ -190,7 +190,8 @@ export default function AdminModernTileEditor({
    * hôte qui cliquait « Retour au tableau de bord » atterrissait sur la
    * connexion Guidz, sans comprendre pourquoi.
    */
-  const retour = estAdmin ? "/admin/hebergements" : "/proprietaire/dashboard";
+  const idLivret = initialData.id || initialData.slug;
+  const retour = estAdmin ? "/admin/hebergements" : `/proprietaire/dashboard?livret=${idLivret}`;
 
   /*
    * L'adresse publique se fige dès qu'elle circule : une plaque commandée la

@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   PencilSimple, Copy, Check, ArrowSquareOut, ArrowRight, Lock,
-  Eye, QrCode, Package, Warning, Sparkle, House,
+  Eye, QrCode, Package, Warning, Sparkle, House, Plus, X, CaretDown, CreditCard,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { chargerEspaceClient, EspaceClient } from "@/app/espace-actions";
+import { chargerEspaceClient, creerNouveauLivret, EspaceClient } from "@/app/espace-actions";
 import { ouvrirBasculeConfort, ouvrirSessionModification } from "@/app/paiement-actions";
 import { RythmeAbonnement } from "@/lib/stripe";
+import { OfferType } from "@/lib/types/accommodation";
 import PartagerLivret from "@/components/proprietaire/PartagerLivret";
 import GererAbonnement from "@/components/proprietaire/GererAbonnement";
 import { rankedModules, buildInsights, HOUR_LABELS } from "@/lib/stats";
@@ -152,6 +153,68 @@ export default function EspaceClientPage() {
   const [rythme, setRythme] = useState<RythmeAbonnement>("mensuel");
   const [sessionEnCours, setSessionEnCours] = useState(false);
 
+  /* Multi-livrets */
+  const [livretIdCible, setLivretIdCible] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return new URLSearchParams(window.location.search).get("livret");
+    }
+    return null;
+  });
+  const [rechargementLivret, setRechargementLivret] = useState(false);
+  const [modaleNouveauLivret, setModaleNouveauLivret] = useState(false);
+  const [nouveauNom, setNouveauNom] = useState("");
+  const [nouvelleFormule, setNouvelleFormule] = useState<OfferType>("comfort");
+  const [creationEnCours, setCreationEnCours] = useState(false);
+  const [erreurCreation, setErreurCreation] = useState<string | null>(null);
+
+  const chargerPourId = async (idCible?: string) => {
+    if (!user) return;
+    const jeton = await user.getIdToken();
+    const donnees = await chargerEspaceClient(jeton, idCible);
+    setEspace(donnees);
+  };
+
+  const changerDeLivret = async (id: string) => {
+    setLivretIdCible(id);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("livret", id);
+      window.history.pushState({}, "", url.toString());
+    }
+    setRechargementLivret(true);
+    try {
+      await chargerPourId(id);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRechargementLivret(false);
+    }
+  };
+
+  const handleCreerNouveauLivret = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    const nom = nouveauNom.trim();
+    if (!nom) {
+      setErreurCreation("Veuillez indiquer le nom de votre hébergement.");
+      return;
+    }
+    setCreationEnCours(true);
+    setErreurCreation(null);
+    try {
+      const jeton = await user.getIdToken();
+      const nouveau = await creerNouveauLivret(jeton, nom, nouvelleFormule);
+      setModaleNouveauLivret(false);
+      router.push(`/proprietaire/dashboard/${nouveau.id}/edit`);
+    } catch (err) {
+      console.error(err);
+      setErreurCreation(
+        err instanceof Error ? err.message : "La création du livret a échoué."
+      );
+      setCreationEnCours(false);
+    }
+  };
+
   useEffect(() => {
     if (loading) return;
     if (!user) {
@@ -162,7 +225,7 @@ export default function EspaceClientPage() {
     let annule = false;
     user
       .getIdToken()
-      .then((jeton) => chargerEspaceClient(jeton))
+      .then((jeton) => chargerEspaceClient(jeton, livretIdCible || undefined))
       .then((donnees) => {
         if (annule) return;
         setEspace(donnees);
@@ -319,6 +382,81 @@ export default function EspaceClientPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-5 pb-24 pt-10 sm:px-8 sm:pt-16">
+      {/* ── Sélecteur multi-hébergements ──────────────────────────────────── */}
+      {espace.tousLesLivrets && espace.tousLesLivrets.length > 1 && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#F6F3ED] p-2 sm:p-2.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="px-2.5 text-[11px] font-bold uppercase tracking-wider text-[#A8998A]">
+              Vos hébergements :
+            </span>
+            {espace.tousLesLivrets.map((item) => {
+              const estActif = item.id === livret.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => changerDeLivret(item.id)}
+                  disabled={rechargementLivret}
+                  className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-semibold transition-all cursor-pointer ${
+                    estActif
+                      ? "bg-white text-[#2A2016] shadow-xs ring-1 ring-black/[0.04]"
+                      : "text-[#6B5D4E] hover:bg-white/60 hover:text-[#2A2016]"
+                  }`}
+                >
+                  <span className="truncate max-w-[150px] sm:max-w-[200px]">{item.nom}</span>
+                  <span
+                    className={`h-2 w-2 rounded-full shrink-0 ${
+                      item.enLigne ? "bg-emerald-500" : "bg-amber-500"
+                    }`}
+                    title={item.enLigne ? "En ligne" : "Brouillon"}
+                  />
+                </button>
+              );
+            })}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setNouveauNom("");
+              setErreurCreation(null);
+              setModaleNouveauLivret(true);
+            }}
+            className="flex items-center gap-1.5 rounded-xl border border-black/[0.08] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#5C3D2E] transition-all hover:border-[#C4714A] hover:text-[#C4714A] active:scale-[0.98] cursor-pointer shadow-2xs"
+          >
+            <Plus size={13} weight="bold" />
+            <span>Nouveau livret</span>
+          </button>
+        </div>
+      )}
+
+      {/* ── Bandeau pour livret en cours de création (brouillon) ──────────── */}
+      {!livret.enLigne && (
+        <div className="mb-6 rounded-[22px] border border-amber-500/30 bg-gradient-to-r from-amber-50/90 via-[#FFFBF2] to-amber-50/70 p-4.5 sm:p-5 shadow-xs">
+          <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-800">
+                <Package size={20} weight="duotone" />
+              </div>
+              <div>
+                <p className="font-semibold text-amber-950 text-[14.5px]">
+                  Ce livret est un brouillon en cours de création
+                </p>
+                <p className="mt-0.5 text-[13px] text-amber-900/80 leading-relaxed max-w-lg">
+                  Personnalisez vos informations dans l&apos;éditeur, puis commandez votre plaque artisanale en noyer pour mettre votre page en ligne.
+                </p>
+              </div>
+            </div>
+            <Link
+              href={`/proprietaire/dashboard/${livret.id}/edit`}
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#2A2016] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:bg-[#C4714A] active:scale-[0.98]"
+            >
+              <PencilSimple size={14} weight="bold" />
+              <span>Finaliser & Commander la plaque</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* ── Identité ─────────────────────────────────────────────────────── */}
       <header className="guidz-apparait mb-9">
         {/*
@@ -395,6 +533,10 @@ export default function EspaceClientPage() {
         <PartagerLivret
           livretId={livret.id}
           lien={lienPartage}
+          nom={livret.nom}
+          formule={livret.formule}
+          imageCouverture={livret.imageCouverture}
+          ville={livret.ville}
           messageInitial={livret.messagePartage}
           jeton={jetonHote}
         />
@@ -560,6 +702,73 @@ export default function EspaceClientPage() {
             >
               {sessionEnCours ? "Ouverture du paiement…" : "Ouvrir une session — 5 €"}
             </button>
+          </div>
+        </Surface>
+      )}
+
+      {/* ── Nouveau livret & Plaque supplémentaire (Multi-hébergements) ──── */}
+      {estConfort && (
+        <Surface className="mb-4 overflow-hidden border-[#C4714A]/25 bg-gradient-to-br from-white via-[#FCF9F5] to-[#F8EFE2]/60" delai={100}>
+          <div className="p-5 sm:p-7">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#C4714A]/12 text-[#C4714A]">
+                  <Sparkle size={16} weight="fill" />
+                </span>
+                <Intitule>Multi-hébergements</Intitule>
+              </div>
+              <span className="rounded-full bg-[#C4714A]/10 px-3 py-1 text-[11.5px] font-bold text-[#A35A38]">
+                Nouveau logement
+              </span>
+            </div>
+
+            <div className="mt-3.5 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl">
+                <h2 className="font-[family-name:var(--font-display)] text-[24px] font-bold tracking-[-0.015em] text-[#2A2016]">
+                  Vous gérez un autre hébergement ?
+                </h2>
+                <p className="mt-1.5 text-[14.5px] leading-relaxed text-[#6B5D4E]">
+                  Créez un nouveau livret d’accueil avec l’éditeur, puis commandez sa plaque artisanale gravée sur mesure pour équiper votre deuxième bien.
+                </p>
+
+                {/* 3 piliers clairs et rassurants */}
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl bg-white/85 p-3.5 border border-black/[0.04] shadow-xs">
+                    <p className="text-[13px] font-bold text-[#2A2016]">📱 Page dédiée</p>
+                    <p className="mt-1 text-[12px] leading-relaxed text-[#6B5D4E]">
+                      Une URL propre et un QR code unique pour ce logement.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-white/85 p-3.5 border border-black/[0.04] shadow-xs">
+                    <p className="text-[13px] font-bold text-[#2A2016]">🪵 Nouvelle plaque</p>
+                    <p className="mt-1 text-[12px] leading-relaxed text-[#6B5D4E]">
+                      Gravée au micron en noyer véritable et expédiée chez vous.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-white/85 p-3.5 border border-black/[0.04] shadow-xs">
+                    <p className="text-[13px] font-bold text-[#2A2016]">💳 Règlement Stripe</p>
+                    <p className="mt-1 text-[12px] leading-relaxed text-[#6B5D4E]">
+                      Paiement sécurisé par carte lors de la publication depuis l’éditeur.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNouveauNom("");
+                    setErreurCreation(null);
+                    setModaleNouveauLivret(true);
+                  }}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#2A2016] px-6 py-3.5 text-[14px] font-semibold text-white transition-all hover:bg-[#C4714A] active:scale-[0.98] sm:w-auto cursor-pointer shadow-sm"
+                >
+                  <Plus size={16} weight="bold" />
+                  <span>Créer un autre livret</span>
+                </button>
+              </div>
+            </div>
           </div>
         </Surface>
       )}
@@ -786,6 +995,138 @@ export default function EspaceClientPage() {
         finLe={abonnement?.prochaineEcheance ?? null}
         jeton={jetonHote}
       />
+
+      {/* ── Modale de création d'un nouveau livret ───────────────────────── */}
+      {modaleNouveauLivret && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="relative w-full max-w-lg rounded-[28px] bg-white p-6 shadow-2xl sm:p-8 border border-black/[0.06]">
+            <button
+              type="button"
+              onClick={() => !creationEnCours && setModaleNouveauLivret(false)}
+              className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full text-[#A8998A] transition-colors hover:bg-black/[0.05] hover:text-[#2A2016] cursor-pointer"
+            >
+              <X size={18} weight="bold" />
+            </button>
+
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#C4714A]/10 text-[#C4714A]">
+              <House size={26} weight="duotone" />
+            </div>
+
+            <h3 className="mt-4 font-[family-name:var(--font-display)] text-[24px] font-bold tracking-tight text-[#2A2016]">
+              Créer un nouveau livret
+            </h3>
+            <p className="mt-1.5 text-[14px] leading-relaxed text-[#6B5D4E]">
+              Configurez votre nouveau logement dans l’éditeur. Vous pourrez commander sa plaque artisanale en noyer et mettre sa page en ligne au moment de publier.
+            </p>
+
+            <form onSubmit={handleCreerNouveauLivret} className="mt-5 space-y-4">
+              <div>
+                <label className="block text-[12px] font-bold uppercase tracking-wider text-[#A8998A] mb-1.5">
+                  Nom de l&apos;hébergement
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  placeholder="Ex : Villa Miramar, Chalet des Cimes…"
+                  value={nouveauNom}
+                  onChange={(e) => setNouveauNom(e.target.value)}
+                  className="w-full rounded-2xl border border-black/10 bg-[#F6F3ED]/70 px-4 py-3 text-[15px] font-medium text-[#2A2016] placeholder-[#A8998A] outline-none transition-all focus:border-[#C4714A] focus:bg-white focus:ring-2 focus:ring-[#C4714A]/20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[12px] font-bold uppercase tracking-wider text-[#A8998A] mb-1.5">
+                  Formule souhaitée
+                </label>
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setNouvelleFormule("comfort")}
+                    className={`rounded-2xl p-3.5 text-left border transition-all cursor-pointer ${
+                      nouvelleFormule === "comfort"
+                        ? "border-[#C4714A] bg-[#C4714A]/5 ring-1 ring-[#C4714A]"
+                        : "border-black/10 bg-white hover:border-black/20"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13.5px] font-bold text-[#2A2016]">Confort</span>
+                      <span className="rounded-full bg-[#C4714A]/15 px-2 py-0.5 text-[10.5px] font-bold text-[#C4714A]">
+                        Recommandé
+                      </span>
+                    </div>
+                    <p className="mt-1 text-[12.5px] font-semibold text-[#5C3D2E]">69 € à la commande</p>
+                    <p className="text-[11px] text-[#A8998A]">+ abonnement au choix</p>
+                    <p className="mt-1.5 text-[11px] text-[#6B5D4E] leading-snug">
+                      Plaque noyer offerte, modifications illimitées & upsells.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setNouvelleFormule("essential")}
+                    className={`rounded-2xl p-3.5 text-left border transition-all cursor-pointer ${
+                      nouvelleFormule === "essential"
+                        ? "border-[#C4714A] bg-[#C4714A]/5 ring-1 ring-[#C4714A]"
+                        : "border-black/10 bg-white hover:border-black/20"
+                    }`}
+                  >
+                    <span className="text-[13.5px] font-bold text-[#2A2016]">Essentielle</span>
+                    <p className="mt-1 text-[12.5px] font-semibold text-[#5C3D2E]">49 € paiement unique</p>
+                    <p className="text-[11px] text-[#A8998A]">Sans abonnement</p>
+                    <p className="mt-1.5 text-[11px] text-[#6B5D4E] leading-snug">
+                      Plaque noyer offerte, livret épuré composé une fois.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Rappel Stripe */}
+              <div className="rounded-2xl bg-[#F6F3ED] p-3.5 text-[12px] leading-relaxed text-[#6B5D4E]">
+                <p className="font-semibold text-[#2A2016] flex items-center gap-1.5">
+                  <CreditCard size={14} weight="bold" className="text-[#C4714A]" />
+                  <span>Aucun débit immédiat</span>
+                </p>
+                <p className="mt-1">
+                  Votre brouillon est créé gratuitement. Vous pourrez renseigner son contenu à votre rythme dans l&apos;éditeur. Le règlement par carte bancaire sécurisée Stripe n&apos;interviendra qu&apos;au moment de valider la commande de votre plaque.
+                </p>
+              </div>
+
+              {erreurCreation && (
+                <p className="text-[13px] font-medium text-rose-600">{erreurCreation}</p>
+              )}
+
+              <div className="mt-6 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
+                <button
+                  type="button"
+                  disabled={creationEnCours}
+                  onClick={() => setModaleNouveauLivret(false)}
+                  className="rounded-full px-5 py-3 text-[13.5px] font-semibold text-[#6B5D4E] hover:bg-black/[0.04] transition-colors cursor-pointer"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={creationEnCours}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-[#2A2016] px-6 py-3 text-[13.5px] font-semibold text-white hover:bg-[#C4714A] active:scale-[0.98] transition-all disabled:opacity-60 cursor-pointer shadow-sm"
+                >
+                  {creationEnCours ? (
+                    <>
+                      <span className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                      <span>Création du livret…</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Accéder à l&apos;éditeur</span>
+                      <ArrowRight size={14} weight="bold" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

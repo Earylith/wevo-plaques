@@ -116,9 +116,10 @@ export async function ouvrirPaiement(
      */
     shipping_address_collection: { allowed_countries: [...PAYS_LIVRES] },
     // Les transporteurs réclament un numéro pour annoncer la livraison.
-    phone_number_collection: { enabled: true },
     success_url: `${origin}/commande/merci?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/admin/hebergements/${accommodationId}`,
+    cancel_url: jetonHote
+      ? `${origin}/proprietaire/dashboard/${accommodationId}/edit`
+      : `${origin}/admin/hebergements/${accommodationId}`,
     locale: "fr",
     allow_promotion_codes: true,
   });

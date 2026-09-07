@@ -5,6 +5,8 @@ import { adminAuth, adminDb } from "@/lib/firebase/admin";
 import { Accommodation, OfferType, OrderStatus, PlaqueOrder } from "@/lib/types/accommodation";
 import { LivretStats } from "@/lib/stats";
 import { stripe, paiementConfigure } from "@/lib/stripe";
+import { createEmptyAccommodation } from "@/lib/livret";
+import { slugify } from "@/lib/utils";
 
 /**
  * Données de l'espace client.
@@ -29,6 +31,16 @@ export interface Abonnement {
   finProgrammee: boolean;
 }
 
+export interface LivretResume {
+  id: string;
+  nom: string;
+  slug: string;
+  formule: OfferType;
+  enLigne: boolean;
+  imageCouverture: string | null;
+  ville: string | null;
+}
+
 export interface EspaceClient {
   livret: {
     id: string;
@@ -36,6 +48,10 @@ export interface EspaceClient {
     nom: string;
     formule: OfferType;
     enLigne: boolean;
+    /** Image de couverture principale du logement (Confort). */
+    imageCouverture: string | null;
+    /** Ville du logement. */
+    ville: string | null;
     /** Adresse permanente gravée, si une plaque a été commandée. */
     permanentId: string | null;
     /** Message que l'hôte envoie avec son lien, s'il l'a personnalisé. */
@@ -49,6 +65,7 @@ export interface EspaceClient {
     /** Une résiliation est demandée, effective à l'échéance. */
     resiliationDemandee: boolean;
   } | null;
+  tousLesLivrets: LivretResume[];
   stats: LivretStats;
   commande: {
     reference: string;
@@ -132,7 +149,72 @@ async function livretDeLHote(
   return livret;
 }
 
-export async function chargerEspaceClient(jetonHote: string): Promise<EspaceClient> {
+/** Retire les undefined, que Firestore refuse. */
+function nettoyer<T>(valeur: T): T {
+  return JSON.parse(JSON.stringify(valeur)) as T;
+}
+
+/**
+ * Fabrique une adresse publique libre pour un nouveau livret.
+ */
+async function slugDisponible(base: string): Promise<string> {
+  const racine = slugify(base) || "livret";
+  for (let essai = 0; essai < 30; essai++) {
+    const candidat = essai === 0 ? racine : `${racine}-${essai + 1}`;
+    const pris = await adminDb
+      .collection(ACCOMMODATIONS)
+      .where("slug", "==", candidat)
+      .limit(1)
+      .get();
+    if (pris.empty) return candidat;
+  }
+  return `${racine}-${Date.now().toString(36)}`;
+}
+
+/**
+ * Crée un nouveau livret (brouillon) pour un propriétaire connecté.
+ * Permet d'ajouter un logement supplémentaire, de le configurer dans l'éditeur,
+ * et de commander une nouvelle plaque via Stripe lors de la publication.
+ */
+export async function creerNouveauLivret(
+  jetonHote: string,
+  nomLogement: string,
+  formule: OfferType = "comfort"
+): Promise<{ id: string; slug: string }> {
+  if (!jetonHote) throw new Error("Connectez-vous pour créer un nouveau livret.");
+  const jeton = await adminAuth.verifyIdToken(jetonHote);
+  const uid = jeton.uid;
+  const email = jeton.email || "";
+
+  const nomNettoye = (nomLogement || "").trim() || "Nouveau logement";
+  const slug = await slugDisponible(nomNettoye);
+
+  const baseLivret = createEmptyAccommodation(slug);
+  const livret: Accommodation = {
+    ...baseLivret,
+    offerType: formule,
+    template: formule === "comfort" ? "cleo" : "essential",
+    isActive: false,
+    ownerUid: uid,
+    owner: {
+      name: jeton.name || "",
+      email,
+      phone: "",
+    },
+    property: {
+      ...baseLivret.property,
+      name: nomNettoye,
+    },
+  };
+
+  const docCree = await adminDb.collection(ACCOMMODATIONS).add(nettoyer(livret));
+  return { id: docCree.id, slug };
+}
+
+export async function chargerEspaceClient(
+  jetonHote: string,
+  livretIdCible?: string
+): Promise<EspaceClient> {
   if (!jetonHote) throw new Error("Connectez-vous pour accéder à votre espace.");
 
   const jeton = await adminAuth.verifyIdToken(jetonHote);
@@ -140,14 +222,26 @@ export async function chargerEspaceClient(jetonHote: string): Promise<EspaceClie
   const trouves = await adminDb
     .collection(ACCOMMODATIONS)
     .where("ownerUid", "==", jeton.uid)
-    .limit(1)
     .get();
 
   if (trouves.empty) {
-    return { livret: null, stats: {}, commande: null, abonnement: null };
+    return { livret: null, tousLesLivrets: [], stats: {}, commande: null, abonnement: null };
   }
 
-  const doc = trouves.docs[0];
+  const tousLesLivrets: LivretResume[] = trouves.docs.map((d) => {
+    const data = d.data() as Accommodation;
+    return {
+      id: d.id,
+      nom: data.property?.name || data.slug,
+      slug: data.slug,
+      formule: data.offerType,
+      enLigne: Boolean(data.isActive),
+      imageCouverture: data.property?.mainImageUrl || data.property?.gallery?.[0] || null,
+      ville: data.property?.city || null,
+    };
+  });
+
+  const doc = (livretIdCible && trouves.docs.find((d) => d.id === livretIdCible)) || trouves.docs[0];
   const livret = doc.data() as Accommodation;
 
   /*
@@ -172,12 +266,15 @@ export async function chargerEspaceClient(jetonHote: string): Promise<EspaceClie
       nom: livret.property?.name || livret.slug,
       formule: livret.offerType,
       enLigne: Boolean(livret.isActive),
+      imageCouverture: livret.property?.mainImageUrl || livret.property?.gallery?.[0] || null,
+      ville: livret.property?.city || null,
       permanentId: livret.permanentId || null,
       messagePartage: livret.shareMessage || null,
       editionJusquA:
         livret.editionUntil && livret.editionUntil > Date.now() ? livret.editionUntil : null,
       resiliationDemandee: Boolean(livret.cancelAtPeriodEnd),
     },
+    tousLesLivrets,
     stats: (statsSnap?.exists ? statsSnap.data() : {}) as LivretStats,
     commande: commandes[0]
       ? {

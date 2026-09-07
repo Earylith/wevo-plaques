@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import BandeauCookies from "@/components/ui/BandeauCookies";
 import { SITE_URL } from "@/lib/site";
@@ -94,6 +95,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className="h-full antialiased" suppressHydrationWarning>
+      <head>
+        {/* Google tag (gtag.js) */}
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-R21CC2N0JL"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-R21CC2N0JL');
+          `}
+        </Script>
+      </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {children}
         {/*
