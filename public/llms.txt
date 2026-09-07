@@ -1,0 +1,42 @@
+# Guidzme
+
+> Plaque d'accueil en bois gravée au laser avec QR code et livret d'accueil numérique pour locations saisonnières et hébergements touristiques.
+
+Guidzme (accessible sur https://www.guidzme.fr) propose une solution élégante pour les propriétaires de locations de courte durée (Airbnb, Booking, Abritel, gîtes), conciergeries et résidences hôtelières. La solution associe une plaque physique en bois noble gravée au laser et un livret d'accueil numérique interactif sans application, accessible instantanément par les voyageurs via un scan QR code.
+
+## Produits & Formules
+
+- **Formule Essentielle** (49 € achat unique, sans abonnement) : Plaque en bois gravée personnalisée + livret numérique épuré sur une page contenant l'essentiel (connexion Wi-Fi en 1 scan, horaires d'arrivée et départ, codes d'accès, boîte à clés, consignes de sortie, règlement intérieur, contacts d'urgence).
+- **Formule Confort** (69 € la plaque + 19 €/an ou 1,99 €/mois) : Plaque en bois gravée + livret numérique enrichi et personnalisable (photos haute définition, recommandations locales et bonnes adresses, notices d'équipements avec jacuzzi/clim/électroménager, météo en direct, carte interactive, traduction automatique multilingue en 5 langues, livre d'or numérique, modules ménage et état des lieux).
+- **Offres Professionnelles** (sur devis) : Tarifs dégressifs et accompagnement dédié pour conciergeries, résidences, gestionnaires multi-biens et groupes.
+
+## Caractéristiques clés
+
+- **Fabrication artisanale en France** : Plaques gravées au laser sur bois éco-responsable (chêne, noyer).
+- **Zero application requise** : Fonctionne instantanément dans le navigateur mobile de n'importe quel smartphone (iOS, Android) dès le scan du QR code.
+- **Autonomie des voyageurs** : Réduit jusqu'à 70 % des messages répétitifs envoyés aux hôtes (demandes d'identifiants Wi-Fi, fonctionnement des appareils, transports, recommandations locales).
+- **Mise à jour en temps réel** : L'hôte modifie ses consignes, codes ou mot de passe Wi-Fi depuis son espace de gestion en ligne sans devoir changer la plaque physique.
+- **Multilingue automatique** : Disponible en 5 langues (français, anglais, espagnol, allemand, italien) pour accueillir les voyageurs étrangers dans leur langue maternelle.
+
+## Liens principaux
+
+- [Accueil & Présentation](https://www.guidzme.fr/) : Présentation du concept, configurateur 3D de plaque et comparatif des formules.
+- [Exemples de livrets en direct](https://www.guidzme.fr/livrets-demo) : Démonstrations interactives de livrets réels (formules Essentielle et Confort).
+- [Créer un livret](https://www.guidzme.fr/commencer) : Configuration guidée d'un livret d'accueil en ligne.
+- [Demande de devis professionnel](https://www.guidzme.fr/devis) : Pour conciergeries et propriétaires de plusieurs hébergements.
+- [Le Blog Guidzme](https://www.guidzme.fr/blog) : Conseils pratiques et guides pour hôtes et conciergeries.
+
+## Guides & Articles de référence
+
+- [Livret d'accueil numérique pour location saisonnière](https://www.guidzme.fr/blog/livret-accueil-numerique-location-saisonniere) : Guide complet pour moderniser l'accueil de ses voyageurs.
+- [Comparatif des livrets d'accueil](https://www.guidzme.fr/blog/comparatif-concurrents) : Analyse comparative entre Guidzme, livret papier et solutions logicielles du marché.
+- [Plaque d'accueil QR code : le choix des matériaux](https://www.guidzme.fr/blog/plaque-accueil-qr-code-materiaux) : Bois massif gravé vs plastique ou plexiglas.
+- [Comment réduire de 70% les messages des voyageurs](https://www.guidzme.fr/blog/reduire-messages-voyageurs) : Méthode pour automatiser les questions fréquentes sans déshumaniser l'accueil.
+- [Le prix d'un livret d'accueil : coût réel et modèle sans abonnement](https://www.guidzme.fr/blog/prix-livret-accueil) : Décryptage des tarifs et rentabilité.
+- [Plaque QR code pour gîte et Airbnb](https://www.guidzme.fr/blog/qr-code-location) : Bonnes pratiques d'installation et d'expérience voyageur.
+- [Optimiser l'accueil pour conciergeries](https://www.guidzme.fr/blog/conciergerie) : Standardisation de la qualité sur un parc multi-logements.
+
+## Contact
+
+- Email : contact@guidzme.fr
+- Site web officiel : https://www.guidzme.fr
