@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   PencilSimple, Copy, Check, ArrowSquareOut, ArrowRight, Lock,
   Eye, QrCode, Package, Warning, Sparkle, House, Plus, X, CaretDown, CreditCard,
+  ShoppingCart,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { chargerEspaceClient, creerNouveauLivret, EspaceClient } from "@/app/espace-actions";
@@ -14,6 +15,7 @@ import { RythmeAbonnement } from "@/lib/stripe";
 import { OfferType } from "@/lib/types/accommodation";
 import PartagerLivret from "@/components/proprietaire/PartagerLivret";
 import GererAbonnement from "@/components/proprietaire/GererAbonnement";
+import PanierCommande from "@/components/proprietaire/PanierCommande";
 import { rankedModules, buildInsights, HOUR_LABELS } from "@/lib/stats";
 import { ORDER_STATUS_LABELS } from "@/lib/types/accommodation";
 
@@ -167,6 +169,14 @@ export default function EspaceClientPage() {
   const [creationEnCours, setCreationEnCours] = useState(false);
   const [erreurCreation, setErreurCreation] = useState<string | null>(null);
 
+  const [panierOuvert, setPanierOuvert] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return new URLSearchParams(window.location.search).get("panier") === "1";
+    }
+    return false;
+  });
+  const [notificationPanier, setNotificationPanier] = useState<string | null>(null);
+
   const chargerPourId = async (idCible?: string) => {
     if (!user) return;
     const jeton = await user.getIdToken();
@@ -205,12 +215,16 @@ export default function EspaceClientPage() {
       const jeton = await user.getIdToken();
       const nouveau = await creerNouveauLivret(jeton, nom, nouvelleFormule);
       setModaleNouveauLivret(false);
-      router.push(`/proprietaire/dashboard/${nouveau.id}/edit`);
+      setNouveauNom("");
+      await chargerPourId(nouveau.id);
+      setNotificationPanier(`Nouveau livret « ${nom} » ajouté à votre panier de commande !`);
+      setPanierOuvert(true);
     } catch (err) {
       console.error(err);
       setErreurCreation(
         err instanceof Error ? err.message : "La création du livret a échoué."
       );
+    } finally {
       setCreationEnCours(false);
     }
   };
@@ -284,6 +298,9 @@ export default function EspaceClientPage() {
   }
 
   const { livret, stats, commande, abonnement } = espace;
+  const tousLesLivrets = espace.tousLesLivrets || [];
+  const brouillons = tousLesLivrets.filter((l) => !l.enLigne);
+  const nombreBrouillons = brouillons.length;
   const estConfort = livret.formule === "comfort";
   /*
    * Qui peut modifier, et quand.
@@ -382,38 +399,59 @@ export default function EspaceClientPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-5 pb-24 pt-10 sm:px-8 sm:pt-16">
-      {/* ── Sélecteur multi-hébergements ──────────────────────────────────── */}
-      {espace.tousLesLivrets && espace.tousLesLivrets.length > 1 && (
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#F6F3ED] p-2 sm:p-2.5">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="px-2.5 text-[11px] font-bold uppercase tracking-wider text-[#A8998A]">
-              Vos hébergements :
-            </span>
-            {espace.tousLesLivrets.map((item) => {
-              const estActif = item.id === livret.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => changerDeLivret(item.id)}
-                  disabled={rechargementLivret}
-                  className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-semibold transition-all cursor-pointer ${
-                    estActif
-                      ? "bg-white text-[#2A2016] shadow-xs ring-1 ring-black/[0.04]"
-                      : "text-[#6B5D4E] hover:bg-white/60 hover:text-[#2A2016]"
+      {/* ── Sélecteur multi-hébergements & Accès Panier ──────────────────── */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#F6F3ED] p-2 sm:p-2.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="px-2.5 text-[11px] font-bold uppercase tracking-wider text-[#A8998A]">
+            Vos hébergements {tousLesLivrets.length > 1 ? `(${tousLesLivrets.length})` : ""} :
+          </span>
+          {tousLesLivrets.map((item) => {
+            const estActif = item.id === livret.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => changerDeLivret(item.id)}
+                disabled={rechargementLivret}
+                className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-semibold transition-all cursor-pointer ${
+                  estActif
+                    ? "bg-white text-[#2A2016] shadow-xs ring-1 ring-black/[0.04]"
+                    : "text-[#6B5D4E] hover:bg-white/60 hover:text-[#2A2016]"
+                }`}
+              >
+                <span className="truncate max-w-[140px] sm:max-w-[180px]">{item.nom}</span>
+                <span
+                  className={`h-2 w-2 rounded-full shrink-0 ${
+                    item.enLigne ? "bg-emerald-500" : "bg-amber-500"
                   }`}
-                >
-                  <span className="truncate max-w-[150px] sm:max-w-[200px]">{item.nom}</span>
-                  <span
-                    className={`h-2 w-2 rounded-full shrink-0 ${
-                      item.enLigne ? "bg-emerald-500" : "bg-amber-500"
-                    }`}
-                    title={item.enLigne ? "En ligne" : "Brouillon"}
-                  />
-                </button>
-              );
-            })}
-          </div>
+                  title={item.enLigne ? "En ligne" : "Brouillon au panier"}
+                />
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Bouton Panier */}
+          <button
+            type="button"
+            onClick={() => {
+              setNotificationPanier(null);
+              setPanierOuvert(true);
+            }}
+            className="flex items-center gap-2 rounded-xl border border-[#C4714A]/35 bg-white px-3.5 py-2 text-[12.5px] font-bold text-[#2A2016] hover:border-[#C4714A] hover:bg-[#FFFBF5] transition-all cursor-pointer shadow-2xs"
+            title="Ouvrir le panier de commande"
+          >
+            <ShoppingCart size={16} weight="duotone" className="text-[#C4714A]" />
+            <span>Panier</span>
+            {nombreBrouillons > 0 && (
+              <span className="rounded-full bg-[#C4714A] px-2 py-0.2 text-[10.5px] font-bold text-white">
+                {nombreBrouillons}
+              </span>
+            )}
+          </button>
+
+          {/* Bouton Nouveau livret */}
           <button
             type="button"
             onClick={() => {
@@ -421,10 +459,40 @@ export default function EspaceClientPage() {
               setErreurCreation(null);
               setModaleNouveauLivret(true);
             }}
-            className="flex items-center gap-1.5 rounded-xl border border-black/[0.08] bg-white px-3 py-1.5 text-[12px] font-semibold text-[#5C3D2E] transition-all hover:border-[#C4714A] hover:text-[#C4714A] active:scale-[0.98] cursor-pointer shadow-2xs"
+            className="flex items-center gap-1.5 rounded-xl border border-black/[0.08] bg-white px-3 py-2 text-[12px] font-semibold text-[#5C3D2E] transition-all hover:border-[#C4714A] hover:text-[#C4714A] active:scale-[0.98] cursor-pointer shadow-2xs"
           >
             <Plus size={13} weight="bold" />
             <span>Nouveau livret</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── Bandeau panier groupé si plusieurs brouillons sont prêts ───────── */}
+      {nombreBrouillons > 1 && (
+        <div className="mb-6 rounded-[22px] border border-[#C4714A]/35 bg-gradient-to-r from-[#FFFBF7] via-white to-[#FDF8F3] p-4.5 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#C4714A]/10 text-[#C4714A]">
+              <ShoppingCart size={20} weight="duotone" />
+            </div>
+            <div>
+              <p className="font-bold text-[#2A2016] text-[14.5px]">
+                Vous avez {nombreBrouillons} livrets en attente dans votre panier
+              </p>
+              <p className="text-[12.5px] text-[#6B5D4E] mt-0.5">
+                Commandez vos plaques artisanales ensemble en un seul règlement sécurisé et cumulez vos formules.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setNotificationPanier(null);
+              setPanierOuvert(true);
+            }}
+            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#C4714A] px-5 py-2.5 text-[13px] font-bold text-white hover:bg-[#A35A38] transition-all cursor-pointer shadow-xs active:scale-[0.98]"
+          >
+            <span>Commander le panier ({nombreBrouillons} livrets)</span>
+            <ArrowRight size={14} weight="bold" />
           </button>
         </div>
       )}
@@ -442,17 +510,30 @@ export default function EspaceClientPage() {
                   Ce livret est un brouillon en cours de création
                 </p>
                 <p className="mt-0.5 text-[13px] text-amber-900/80 leading-relaxed max-w-lg">
-                  Personnalisez vos informations dans l&apos;éditeur, puis commandez votre plaque artisanale en noyer pour mettre votre page en ligne.
+                  Personnalisez son contenu dans l&apos;éditeur, ou commandez sa plaque artisanale en noyer (seul ou groupé avec vos autres livrets).
                 </p>
               </div>
             </div>
-            <Link
-              href={`/proprietaire/dashboard/${livret.id}/edit`}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#2A2016] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:bg-[#C4714A] active:scale-[0.98]"
-            >
-              <PencilSimple size={14} weight="bold" />
-              <span>Finaliser & Commander la plaque</span>
-            </Link>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setNotificationPanier(null);
+                  setPanierOuvert(true);
+                }}
+                className="inline-flex items-center justify-center gap-1.5 rounded-full border border-[#C4714A] bg-white px-4 py-2.5 text-[12.5px] font-bold text-[#C4714A] hover:bg-[#FFFBF5] transition-all active:scale-[0.98] cursor-pointer shadow-2xs"
+              >
+                <ShoppingCart size={15} weight="duotone" />
+                <span>Panier ({nombreBrouillons})</span>
+              </button>
+              <Link
+                href={`/proprietaire/dashboard/${livret.id}/edit`}
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#2A2016] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:bg-[#C4714A] active:scale-[0.98]"
+              >
+                <PencilSimple size={14} weight="bold" />
+                <span>Éditer ce livret</span>
+              </Link>
+            </div>
           </div>
         </div>
       )}
@@ -970,7 +1051,7 @@ export default function EspaceClientPage() {
               </div>
               {abonnement.prochaineEcheance && (
                 <p className="mt-3 text-[13.5px] leading-relaxed text-[#6B5D4E]">
-                  {abonnement.finProgrammee ? "Se termine le " : "Prochaine échéance le "}
+                  {abonnement.finProgrammee || livret.resiliationDemandee ? "Se termine le " : "Prochaine échéance le "}
                   {dateLongue(abonnement.prochaineEcheance)}
                 </p>
               )}
@@ -1058,7 +1139,7 @@ export default function EspaceClientPage() {
                     <p className="mt-1 text-[12.5px] font-semibold text-[#5C3D2E]">69 € à la commande</p>
                     <p className="text-[11px] text-[#A8998A]">+ abonnement au choix</p>
                     <p className="mt-1.5 text-[11px] text-[#6B5D4E] leading-snug">
-                      Plaque noyer offerte, modifications illimitées & upsells.
+                      Plaque noyer offerte, modifications illimitées & multi-langues.
                     </p>
                   </button>
 
@@ -1075,7 +1156,7 @@ export default function EspaceClientPage() {
                     <p className="mt-1 text-[12.5px] font-semibold text-[#5C3D2E]">49 € paiement unique</p>
                     <p className="text-[11px] text-[#A8998A]">Sans abonnement</p>
                     <p className="mt-1.5 text-[11px] text-[#6B5D4E] leading-snug">
-                      Plaque noyer offerte, livret épuré composé une fois.
+                      Plaque noyer incluse. Arrivée, départ, règles du logement & contacts.
                     </p>
                   </button>
                 </div>
@@ -1088,7 +1169,7 @@ export default function EspaceClientPage() {
                   <span>Aucun débit immédiat</span>
                 </p>
                 <p className="mt-1">
-                  Votre brouillon est créé gratuitement. Vous pourrez renseigner son contenu à votre rythme dans l&apos;éditeur. Le règlement par carte bancaire sécurisée Stripe n&apos;interviendra qu&apos;au moment de valider la commande de votre plaque.
+                  Votre livret est créé gratuitement et ajouté à votre panier. Vous pourrez le personnaliser dans l&apos;éditeur et/ou le commander avec vos autres livrets. Le paiement sécurisé Stripe n&apos;intervient qu&apos;à la validation du panier.
                 </p>
               </div>
 
@@ -1117,8 +1198,8 @@ export default function EspaceClientPage() {
                     </>
                   ) : (
                     <>
-                      <span>Accéder à l&apos;éditeur</span>
-                      <ArrowRight size={14} weight="bold" />
+                      <ShoppingCart size={15} weight="duotone" />
+                      <span>Créer et ajouter au panier</span>
                     </>
                   )}
                 </button>
@@ -1127,6 +1208,21 @@ export default function EspaceClientPage() {
           </div>
         </div>
       )}
+
+      {/* ── Tiroir Panier de Commande Multi-Livrets ───────────────────────── */}
+      <PanierCommande
+        ouvert={panierOuvert}
+        onFermer={() => {
+          setPanierOuvert(false);
+          setNotificationPanier(null);
+        }}
+        livrets={tousLesLivrets}
+        onLivretsChange={async () => {
+          await chargerPourId(livret.id);
+        }}
+        jetonHote={jetonHote}
+        notificationMessage={notificationPanier}
+      />
     </div>
   );
 }

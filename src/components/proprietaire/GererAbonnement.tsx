@@ -89,7 +89,7 @@ export default function GererAbonnement({
           onClick={() => setOuvert(true)}
           className="text-[12.5px] font-medium text-[#A8998A] transition-colors hover:text-[#C4714A]"
         >
-          {aUnAbonnement ? "Résilier mon abonnement" : "Supprimer mon compte"}
+          {aUnAbonnement ? "Résilier l’abonnement de cet hébergement" : "Supprimer cet hébergement"}
         </button>
       </div>
     );
@@ -98,15 +98,15 @@ export default function GererAbonnement({
   return (
     <div className="mt-4 rounded-2xl border border-black/[0.07] bg-[#FDFBF7] p-5">
       <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-[#A8998A]">
-        {aUnAbonnement ? "Résilier votre abonnement" : "Supprimer votre compte"}
+        {aUnAbonnement ? `Abonnement : ${nom}` : `Gestion : ${nom}`}
       </p>
 
       {resiliationDemandee ? (
         <>
           <p className="mt-3 text-[14px] leading-relaxed text-[#5C3D2E]">
-            Votre résiliation est enregistrée. Votre livret repassera en
+            La résiliation de cet hébergement est enregistrée. Votre livret repassera en
             Essentielle{finLe ? ` le ${dateLongue(finLe)}` : " à la fin de la période en cours"} —
-            votre page restera en ligne et votre plaque continuera de fonctionner.
+            sa page restera en ligne et sa plaque continuera de fonctionner. Vos éventuels autres hébergements ne sont pas affectés.
           </p>
           <button
             type="button"
@@ -114,20 +114,19 @@ export default function GererAbonnement({
             disabled={enCours !== null}
             className="mt-4 rounded-full bg-[#2A2016] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:bg-[#C4714A] disabled:opacity-60"
           >
-            {enCours === "reprendre" ? "…" : "Finalement, je garde le Confort"}
+            {enCours === "reprendre" ? "…" : "Finalement, je garde le Confort pour cet hébergement"}
           </button>
         </>
       ) : (
         aUnAbonnement && (
           <div className="mt-3 rounded-2xl bg-white p-4">
             <p className="text-[14.5px] font-semibold text-[#2A2016]">
-              Revenir à la formule Essentielle
+              Revenir à la formule Essentielle pour cet hébergement
             </p>
             <p className="mt-1 text-[13.5px] leading-relaxed text-[#6B5D4E]">
-              Votre abonnement s’arrête à l’échéance. Votre page reste en ligne,
-              votre plaque continue de fonctionner, et tout ce que vous avez
-              écrit est conservé — vous le retrouverez intact si vous revenez au
-              Confort.
+              L’abonnement Confort de cet hébergement s’arrête à l’échéance. Sa page reste en ligne,
+              sa plaque continue de fonctionner, et toutes vos données sont conservées.
+              Vos autres hébergements en formule Confort restent actifs sans aucun changement.
             </p>
             <button
               type="button"
@@ -135,7 +134,7 @@ export default function GererAbonnement({
               disabled={enCours !== null}
               className="mt-3.5 rounded-full bg-[#2A2016] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:bg-[#C4714A] disabled:opacity-60"
             >
-              {enCours === "essentielle" ? "…" : "Revenir à l’Essentielle"}
+              {enCours === "essentielle" ? "…" : "Revenir à l’Essentielle pour ce logement"}
             </button>
           </div>
         )
@@ -149,11 +148,11 @@ export default function GererAbonnement({
       <div className="mt-4 rounded-2xl border border-red-200 bg-red-50/60 p-4">
         <p className="flex items-start gap-2 text-[14.5px] font-semibold text-red-800">
           <Warning size={16} weight="fill" className="mt-0.5 shrink-0" />
-          Supprimer définitivement mon compte
+          Supprimer définitivement cet hébergement
         </p>
         <p className="mt-1.5 text-[13.5px] leading-relaxed text-red-800/80">
-          Immédiat et sans retour. Votre page disparaît, votre compte aussi, et
-          le QR code gravé sur votre plaque ne mènera plus nulle part.
+          Immédiat et sans retour pour <strong>{nom}</strong>. Sa page disparaît et
+          le QR code gravé sur sa plaque ne mènera plus nulle part. Vos éventuels autres hébergements restent intacts.
         </p>
         <label className="mt-3 block">
           <span className="text-[12.5px] text-red-800/80">
@@ -171,7 +170,7 @@ export default function GererAbonnement({
           disabled={enCours !== null || confirmationSuppression.trim() !== nom.trim()}
           className="mt-3 rounded-full bg-red-700 px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {enCours === "suppression" ? "Suppression…" : "Tout supprimer"}
+          {enCours === "suppression" ? "Suppression…" : "Supprimer cet hébergement"}
         </button>
       </div>
 

@@ -7,7 +7,7 @@ import { sessionModificationActive } from "@/lib/livret";
 import { taglineGravee } from "@/lib/plaque";
 import {
   stripe, tarifsFormule, tarifsBascule, tarifSessionModification,
-  paiementConfigure, RythmeAbonnement,
+  paiementConfigure, RythmeAbonnement, tarifAbonnement,
 } from "@/lib/stripe";
 
 /**
@@ -258,6 +258,114 @@ export async function ouvrirSessionModification(
 }
 
 /**
+ * Ouvre le paiement groupé pour un panier de livrets (Confort et/ou Essentielle).
+ *
+ * Permet de régler en une seule transaction Stripe :
+ *  - Les frais de fabrication et mise en service (49 € / livret Essentiel, 69 € / livret Confort)
+ *  - Les abonnements Confort cumulés pour les livrets concernés (1,99 €/m ou 19 €/an par livret Confort)
+ *  - La collecte unique de l'adresse de livraison pour expédier toutes les plaques gravées
+ */
+export async function ouvrirPaiementPanier(
+  accommodationIds: string[],
+  origin: string,
+  jetonHote: string,
+  rythme: RythmeAbonnement = "mensuel"
+): Promise<OuvertureSession> {
+  if (!paiementConfigure()) {
+    throw new Error(
+      "Le paiement n’est pas encore configuré. Ajoutez STRIPE_SECRET_KEY et les identifiants de tarif dans .env.local."
+    );
+  }
+
+  if (!accommodationIds || accommodationIds.length === 0) {
+    throw new Error("Votre panier est vide.");
+  }
+
+  if (!jetonHote) {
+    throw new Error("Connectez-vous pour poursuivre votre commande.");
+  }
+
+  const jeton = await adminAuth.verifyIdToken(jetonHote);
+  const uid = jeton.uid;
+
+  // Récupérer et vérifier chaque livret
+  const docsSnap = await Promise.all(
+    accommodationIds.map((id) => adminDb.collection(ACCOMMODATIONS).doc(id).get())
+  );
+
+  const livrets: (Accommodation & { id: string })[] = [];
+  for (let i = 0; i < docsSnap.length; i++) {
+    const snap = docsSnap[i];
+    if (!snap.exists) {
+      throw new Error(`Le livret ID ${accommodationIds[i]} est introuvable.`);
+    }
+    const data = { ...(snap.data() as Accommodation), id: snap.id };
+    if (!data.ownerUid || data.ownerUid !== uid) {
+      throw new Error(`Le livret « ${data.property?.name || data.slug} » n’est pas rattaché à votre compte.`);
+    }
+    if (data.isActive) {
+      throw new Error(`Le livret « ${data.property?.name || data.slug} » est déjà publié.`);
+    }
+    livrets.push(data);
+  }
+
+  const confortLivrets = livrets.filter((l) => l.offerType === "comfort");
+  const essentielLivrets = livrets.filter((l) => l.offerType !== "comfort");
+
+  const ponctuelConfortId = process.env.STRIPE_PRICE_CONFORT;
+  const ponctuelEssentielId = process.env.STRIPE_PRICE_ESSENTIEL;
+
+  if (confortLivrets.length > 0 && !ponctuelConfortId) {
+    throw new Error("STRIPE_PRICE_CONFORT absente dans .env.local.");
+  }
+  if (essentielLivrets.length > 0 && !ponctuelEssentielId) {
+    throw new Error("STRIPE_PRICE_ESSENTIEL absente dans .env.local.");
+  }
+
+  const lignes: { price: string; quantity: number }[] = [];
+
+  if (confortLivrets.length > 0 && ponctuelConfortId) {
+    lignes.push({ price: ponctuelConfortId, quantity: confortLivrets.length });
+  }
+  if (essentielLivrets.length > 0 && ponctuelEssentielId) {
+    lignes.push({ price: ponctuelEssentielId, quantity: essentielLivrets.length });
+  }
+
+  let priceAbo: string | null = null;
+  if (confortLivrets.length > 0) {
+    priceAbo = tarifAbonnement(rythme);
+    if (priceAbo) {
+      lignes.push({ price: priceAbo, quantity: confortLivrets.length });
+    }
+  }
+
+  const mode = confortLivrets.length > 0 && priceAbo ? "subscription" : "payment";
+
+  const session = await stripe().checkout.sessions.create({
+    mode,
+    line_items: lignes,
+    client_reference_id: uid,
+    customer_email: jeton.email || livrets[0]?.owner?.email || undefined,
+    metadata: {
+      type: "panier",
+      isCart: "true",
+      cartCount: String(livrets.length),
+      cartItemIds: livrets.map((l) => l.id).join(","),
+      rythme,
+    },
+    shipping_address_collection: { allowed_countries: [...PAYS_LIVRES] },
+    phone_number_collection: { enabled: true },
+    success_url: `${origin}/commande/merci?session_id={CHECKOUT_SESSION_ID}&cart=1`,
+    cancel_url: `${origin}/proprietaire/dashboard?panier=1`,
+    locale: "fr",
+    allow_promotion_codes: true,
+  });
+
+  if (!session.url) throw new Error("Stripe n’a pas renvoyé d’adresse de paiement.");
+  return { url: session.url, reference: session.id };
+}
+
+/**
  * État d'une session, pour la page de remerciement.
  *
  * Elle ne DÉCIDE de rien : la publication reste au webhook. Elle sert
@@ -268,17 +376,24 @@ export async function etatPaiement(sessionId: string): Promise<{
   paye: boolean;
   accommodationId: string | null;
   email: string | null;
+  isCart?: boolean;
+  cartCount?: number;
 }> {
   if (!paiementConfigure()) return { paye: false, accommodationId: null, email: null };
   try {
     const session = await stripe().checkout.sessions.retrieve(sessionId);
+    const isCart = session.metadata?.isCart === "true";
+    const cartCount = session.metadata?.cartCount ? parseInt(session.metadata.cartCount, 10) : undefined;
     return {
       paye: session.payment_status === "paid" || session.status === "complete",
       accommodationId: session.client_reference_id || null,
       email: session.customer_details?.email || null,
+      isCart,
+      cartCount,
     };
   } catch (error) {
     console.error("[etatPaiement]", error);
     return { paye: false, accommodationId: null, email: null };
   }
 }
+

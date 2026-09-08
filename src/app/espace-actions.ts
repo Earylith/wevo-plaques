@@ -39,6 +39,10 @@ export interface LivretResume {
   enLigne: boolean;
   imageCouverture: string | null;
   ville: string | null;
+  adresse?: string | null;
+  plaqueWood?: string;
+  plaqueTagline?: string;
+  createdAt?: number;
 }
 
 export interface EspaceClient {
@@ -238,11 +242,38 @@ export async function chargerEspaceClient(
       enLigne: Boolean(data.isActive),
       imageCouverture: data.property?.mainImageUrl || data.property?.gallery?.[0] || null,
       ville: data.property?.city || null,
+      adresse: data.property?.address || null,
+      plaqueWood: data.plaque?.wood || "noyer",
+      plaqueTagline: data.plaque?.engravedTagline || "",
+      createdAt: data.createdAt || 0,
     };
   });
 
   const doc = (livretIdCible && trouves.docs.find((d) => d.id === livretIdCible)) || trouves.docs[0];
   const livret = doc.data() as Accommodation;
+
+  // Si une résiliation individuelle avait été demandée pour cet hébergement et que l'échéance est passée :
+  const dateFin = (livret as { resiliationDateFin?: number }).resiliationDateFin;
+  if (
+    livret.cancelAtPeriodEnd &&
+    livret.offerType === "comfort" &&
+    typeof dateFin === "number" &&
+    dateFin <= Date.now()
+  ) {
+    await adminDb.collection(ACCOMMODATIONS).doc(doc.id).update({
+      offerType: "essential",
+      template: "essential",
+      cancelAtPeriodEnd: false,
+      stripeSubscriptionId: null,
+      abonnementRythme: FieldValue.delete(),
+      resiliationDateFin: FieldValue.delete(),
+      downgradedAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+    livret.offerType = "essential";
+    livret.cancelAtPeriodEnd = false;
+    livret.stripeSubscriptionId = null;
+  }
 
   /*
    * Les trois lectures sont indépendantes : on les mène de front, et une
@@ -294,42 +325,34 @@ export async function chargerEspaceClient(
 }
 
 /**
- * Enregistre le message que l'hôte joint à son lien.
+ * Modifie le mot d'accueil partagé avec le livret.
  *
- * Le lien lui-même n'y figure jamais : il est ajouté au moment de l'envoi.
- * L'adresse d'un livret peut changer tant qu'il n'est pas payé, et un message
- * figé enverrait alors les voyageurs dans le vide.
+ * `null` ou chaîne vide supprime le champ : pas de chaîne vide stockée, pas
+ * de propriété inutile dans le document.
  */
-export async function enregistrerMessagePartage(
+export async function majMessagePartage(
   accommodationId: string,
   message: string,
   jetonHote?: string
 ): Promise<void> {
-  if (!jetonHote) throw new Error("Connectez-vous pour enregistrer votre message.");
-  const jeton = await adminAuth.verifyIdToken(jetonHote);
-
-  const ref = adminDb.collection(ACCOMMODATIONS).doc(accommodationId);
-  const doc = await ref.get();
-  if (!doc.exists) throw new Error("Livret introuvable.");
-
-  const livret = doc.data() as Accommodation;
-  if (!livret.ownerUid || livret.ownerUid !== jeton.uid) {
-    throw new Error("Ce livret n’est pas rattaché à votre compte.");
-  }
-
-  const propre = message.trim().slice(0, 500);
-  await ref.update({
+  await livretDeLHote(accommodationId, jetonHote);
+  const propre = message.trim();
+  await adminDb.collection(ACCOMMODATIONS).doc(accommodationId).update({
     shareMessage: propre || FieldValue.delete(),
     updatedAt: Date.now(),
   });
 }
 
+export const enregistrerMessagePartage = majMessagePartage;
+
 /**
- * Résilie l'abonnement Confort à la fin de la période payée.
+ * Résilie l'abonnement Confort hébergement par hébergement.
  *
- * On ne coupe pas immédiatement : l'hôte a payé son mois ou son année, il en
- * garde le bénéfice. À l'échéance, le webhook fera retomber le livret en
- * Essentielle — sa page reste en ligne et sa plaque continue de fonctionner.
+ * Si l'hôte possède plusieurs hébergements groupés sur le même abonnement Stripe,
+ * la résiliation ne vise QUE cet hébergement :
+ *  - La quantité Stripe est décrémentée pour la prochaine échéance (aucun impact sur les autres).
+ *  - Cet hébergement reste en Confort jusqu'à la fin de la période payée.
+ *  - À l'échéance, seul cet hébergement repasse en Essentielle.
  */
 export async function resilierAbonnement(
   accommodationId: string,
@@ -344,21 +367,51 @@ export async function resilierAbonnement(
     throw new Error("La facturation est momentanément injoignable. Réessayez.");
   }
 
-  const abo = await stripe().subscriptions.update(livret.stripeSubscriptionId, {
-    cancel_at_period_end: true,
-  });
+  // Vérifier combien d'hébergements partagent cet abonnement Stripe
+  const collSnap = await adminDb
+    .collection(ACCOMMODATIONS)
+    .where("stripeSubscriptionId", "==", livret.stripeSubscriptionId)
+    .where("offerType", "==", "comfort")
+    .get();
 
-  const fin = (abo as unknown as { current_period_end?: number }).current_period_end;
+  const autresActifs = collSnap.docs.filter(
+    (d) => d.id !== accommodationId && !d.data().cancelAtPeriodEnd
+  );
+
+  let fin: number | null = null;
+
+  if (autresActifs.length === 0) {
+    // Dernier livret actif sur cet abonnement Stripe : on programme la fin globale
+    const abo = await stripe().subscriptions.update(livret.stripeSubscriptionId, {
+      cancel_at_period_end: true,
+    });
+    const finSec = (abo as unknown as { current_period_end?: number }).current_period_end;
+    fin = typeof finSec === "number" ? finSec * 1000 : null;
+  } else {
+    // D'autres hébergements continuent en Confort : on ajuste la quantité Stripe sans impacter les autres
+    const abo = await stripe().subscriptions.retrieve(livret.stripeSubscriptionId);
+    const finSec = (abo as unknown as { current_period_end?: number }).current_period_end;
+    fin = typeof finSec === "number" ? finSec * 1000 : null;
+
+    const item = abo.items?.data?.[0];
+    if (item && typeof item.quantity === "number" && item.quantity > autresActifs.length) {
+      await stripe().subscriptions.update(livret.stripeSubscriptionId, {
+        proration_behavior: "none",
+        items: [{ id: item.id, quantity: autresActifs.length }],
+      });
+    }
+  }
 
   await adminDb.collection(ACCOMMODATIONS).doc(accommodationId).update({
     cancelAtPeriodEnd: true,
+    resiliationDateFin: fin,
     updatedAt: Date.now(),
   });
 
-  return { finLe: typeof fin === "number" ? fin * 1000 : null };
+  return { finLe: fin };
 }
 
-/** Annule une résiliation demandée, tant qu'elle n'a pas pris effet. */
+/** Annule une résiliation demandée pour cet hébergement, tant qu'elle n'a pas pris effet. */
 export async function reprendreAbonnement(
   accommodationId: string,
   jetonHote?: string
@@ -366,26 +419,38 @@ export async function reprendreAbonnement(
   const livret = await livretDeLHote(accommodationId, jetonHote);
   if (!livret.stripeSubscriptionId) throw new Error("Aucun abonnement en cours.");
 
-  await stripe().subscriptions.update(livret.stripeSubscriptionId, {
-    cancel_at_period_end: false,
-  });
+  const abo = await stripe().subscriptions.retrieve(livret.stripeSubscriptionId);
+
+  if (abo.cancel_at_period_end) {
+    await stripe().subscriptions.update(livret.stripeSubscriptionId, {
+      cancel_at_period_end: false,
+    });
+  } else {
+    // Si l'abonnement Stripe tournait à quantité réduite, réincrémenter pour cet hébergement
+    const item = abo.items?.data?.[0];
+    if (item && typeof item.quantity === "number") {
+      await stripe().subscriptions.update(livret.stripeSubscriptionId, {
+        proration_behavior: "none",
+        items: [{ id: item.id, quantity: item.quantity + 1 }],
+      });
+    }
+  }
+
   await adminDb.collection(ACCOMMODATIONS).doc(accommodationId).update({
     cancelAtPeriodEnd: false,
+    resiliationDateFin: FieldValue.delete(),
     updatedAt: Date.now(),
   });
 }
 
 /**
- * Supprime définitivement le compte et son livret.
+ * Supprime définitivement cet hébergement.
  *
- * Immédiat et sans retour : la page disparaît, le compte aussi, et le QR de la
- * plaque ne mène plus nulle part. C'est la conséquence qu'il faut annoncer
- * AVANT le clic, pas découvrir après.
+ * Immédiat et sans retour pour cet hébergement précis : sa page disparaît,
+ * et le QR de sa plaque ne mène plus nulle part.
  *
- * L'abonnement est résilié sur-le-champ pour ne pas continuer à prélever
- * quelqu'un qui n'a plus rien. Les COMMANDES sont conservées : elles portent
- * la trace d'un objet réellement produit et payé, et notre comptabilité en
- * dépend. Elles ne contiennent que ce qui a été gravé.
+ * Si l'hôte possède d'autres hébergements, son compte et ses autres livrets
+ * restent entièrement préservés et actifs.
  */
 export async function supprimerCompte(
   accommodationId: string,
@@ -395,10 +460,28 @@ export async function supprimerCompte(
 
   if (livret.stripeSubscriptionId && paiementConfigure()) {
     try {
-      await stripe().subscriptions.cancel(livret.stripeSubscriptionId);
+      const autresSnap = await adminDb
+        .collection(ACCOMMODATIONS)
+        .where("stripeSubscriptionId", "==", livret.stripeSubscriptionId)
+        .where("offerType", "==", "comfort")
+        .get();
+
+      const autres = autresSnap.docs.filter((d) => d.id !== accommodationId);
+      if (autres.length === 0) {
+        await stripe().subscriptions.cancel(livret.stripeSubscriptionId);
+      } else {
+        // Décrémenter la quantité Stripe pour que les autres hébergements poursuivent leur abonnement normalement
+        const abo = await stripe().subscriptions.retrieve(livret.stripeSubscriptionId);
+        const item = abo.items?.data?.[0];
+        if (item && typeof item.quantity === "number" && item.quantity > autres.length) {
+          await stripe().subscriptions.update(livret.stripeSubscriptionId, {
+            proration_behavior: "none",
+            items: [{ id: item.id, quantity: autres.length }],
+          });
+        }
+      }
     } catch (e) {
-      // Un abonnement déjà résilié ne doit pas empêcher la suppression.
-      console.error("[supprimerCompte] résiliation", e);
+      console.error("[supprimerCompte] résiliation Stripe", e);
     }
   }
 
@@ -406,9 +489,16 @@ export async function supprimerCompte(
   await adminDb.collection(ACCOMMODATIONS).doc(accommodationId).delete();
 
   if (livret.ownerUid) {
-    await adminAuth.deleteUser(livret.ownerUid).catch((e) => {
-      console.error("[supprimerCompte] compte Firebase", e);
-    });
+    const autresHotes = await adminDb
+      .collection(ACCOMMODATIONS)
+      .where("ownerUid", "==", livret.ownerUid)
+      .get();
+    // Ne supprimer le compte Firebase utilisateur QUE si c'était son tout dernier hébergement
+    if (autresHotes.empty) {
+      await adminAuth.deleteUser(livret.ownerUid).catch((e) => {
+        console.error("[supprimerCompte] compte Firebase", e);
+      });
+    }
   }
 }
 
@@ -443,3 +533,40 @@ export async function marquerVisiteEditeur(
     console.error("[visite éditeur]", error);
   }
 }
+
+/**
+ * Supprime un livret brouillon (non publié) d'un propriétaire.
+ * N'affecte PAS le compte Firebase ni les autres livrets de l'hôte.
+ */
+export async function supprimerLivretBrouillon(
+  accommodationId: string,
+  jetonHote: string
+): Promise<void> {
+  const livret = await livretDeLHote(accommodationId, jetonHote);
+  if (livret.isActive) {
+    throw new Error("Un livret déjà publié ne peut pas être supprimé depuis le panier.");
+  }
+  await adminDb.collection(STATS).doc(accommodationId).delete().catch(() => {});
+  await adminDb.collection(ACCOMMODATIONS).doc(accommodationId).delete();
+}
+
+/**
+ * Met à jour la configuration de plaque d'un livret brouillon depuis le panier.
+ */
+export async function modifierPlaqueBrouillon(
+  accommodationId: string,
+  wood: "noyer" | "clair",
+  phraseGravee: string,
+  jetonHote: string
+): Promise<void> {
+  const livret = await livretDeLHote(accommodationId, jetonHote);
+  if (livret.isActive) {
+    throw new Error("La plaque d'un livret déjà publié est figée.");
+  }
+  await adminDb.collection(ACCOMMODATIONS).doc(accommodationId).update({
+    "plaque.wood": wood,
+    "plaque.engravedTagline": phraseGravee.trim().slice(0, 40),
+    updatedAt: Date.now(),
+  });
+}
+

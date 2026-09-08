@@ -32,10 +32,12 @@ export default async function MerciPage({ searchParams }: Props) {
               <CheckCircle size={28} weight="fill" />
             </div>
             <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold text-[#2A2016]">
-              Merci, c’est validé
+              {etat.isCart ? "Merci, vos livrets sont validés !" : "Merci, c’est validé"}
             </h1>
             <p className="text-sm text-[#6B5D4E] mt-3 leading-relaxed">
-              Votre livret est en ligne et votre plaque part en préparation.
+              {etat.isCart
+                ? `Vos ${etat.cartCount ? `${etat.cartCount} ` : ""}livrets sont en ligne et vos plaques artisanales partent en fabrication.`
+                : "Votre livret est en ligne et votre plaque part en préparation."}
               {etat.email && (
                 <>
                   {" "}Un récapitulatif est disponible sur le compte{" "}
@@ -44,8 +46,9 @@ export default async function MerciPage({ searchParams }: Props) {
               )}
             </p>
             <p className="text-[11px] text-[#A8998A] mt-3 leading-relaxed">
-              L’adresse gravée sur la plaque est désormais définitive. Le contenu
-              du livret, lui, reste modifiable à volonté.
+              {etat.isCart
+                ? "Les adresses gravées sur vos plaques sont désormais définitives. Vous pouvez retrouver tous vos logements dans votre espace propriétaire."
+                : "L’adresse gravée sur la plaque est désormais définitive. Le contenu du livret, lui, reste modifiable à volonté."}
             </p>
           </>
         ) : sessionId ? (

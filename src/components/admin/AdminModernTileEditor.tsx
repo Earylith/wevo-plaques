@@ -44,6 +44,7 @@ import {
   MapPin, Star, Trash, WifiHigh, Phone, DoorOpen, HandWaving,
   ArrowCounterClockwise, ArrowClockwise, CloudCheck, CloudSlash, EyeSlash,
   BookOpen, Medal, Bus, ChatCircleDots, BookBookmark, ArrowsOut, Lock,
+  ShoppingCart,
 } from "@phosphor-icons/react";
 
 interface Props {
@@ -2679,6 +2680,16 @@ export default function AdminModernTileEditor({
                     >
                       {paiement ? "Ouverture du paiement…" : "Valider ma page"}
                     </button>
+
+                    <div className="mt-2 text-center">
+                      <Link
+                        href="/proprietaire/dashboard?panier=1"
+                        className="text-[11.5px] font-medium text-[#6B5D4E] hover:text-[#C4714A] transition-colors inline-flex items-center gap-1.5"
+                      >
+                        <ShoppingCart size={13} weight="duotone" />
+                        <span>Commander avec vos autres livrets dans le panier</span>
+                      </Link>
+                    </div>
 
                     {/*
                       L'échec du paiement n'était affiché que dans l'onglet

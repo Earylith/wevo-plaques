@@ -5,7 +5,7 @@ import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { Accommodation, PlaqueConfig } from "@/lib/types/accommodation";
 import { creerCommandeInterne, commandeDejaPassee } from "@/lib/server/plaqueOrders";
-import { configPlaqueComplete } from "@/lib/plaque";
+import { configPlaqueComplete, taglineGravee } from "@/lib/plaque";
 import { DUREE_SESSION_MODIFICATION_MS } from "@/lib/livret";
 import { adresseDepuisStripe } from "@/lib/adressePostale";
 import { envoyerCourriel } from "@/lib/server/email";
@@ -141,7 +141,6 @@ async function traiterFinAbonnement(abonnement: Stripe.Subscription) {
   const trouves = await adminDb
     .collection(ACCOMMODATIONS)
     .where("stripeSubscriptionId", "==", abonnement.id)
-    .limit(1)
     .get();
 
   if (trouves.empty) {
@@ -149,20 +148,19 @@ async function traiterFinAbonnement(abonnement: Stripe.Subscription) {
     return;
   }
 
-  const doc = trouves.docs[0];
-  await doc.ref.update({
-    offerType: "essential",
-    template: "essential",
-    cancelAtPeriodEnd: false,
-    stripeSubscriptionId: null,
-    // Plus d'abonnement, donc plus de rythme : le laisser gonflerait le
-    // revenu récurrent d'un client qui est parti.
-    abonnementRythme: FieldValue.delete(),
-    downgradedAt: Date.now(),
-    updatedAt: Date.now(),
-  });
-
-  console.info("[stripe] livret", doc.id, "repassé en Essentielle");
+  for (const doc of trouves.docs) {
+    await doc.ref.update({
+      offerType: "essential",
+      template: "essential",
+      cancelAtPeriodEnd: false,
+      stripeSubscriptionId: null,
+      abonnementRythme: FieldValue.delete(),
+      resiliationDateFin: FieldValue.delete(),
+      downgradedAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+    console.info("[stripe] livret", doc.id, "repassé en Essentielle");
+  }
 }
 
 /**
@@ -176,63 +174,47 @@ async function traiterMajAbonnement(abonnement: Stripe.Subscription) {
   const trouves = await adminDb
     .collection(ACCOMMODATIONS)
     .where("stripeSubscriptionId", "==", abonnement.id)
-    .limit(1)
     .get();
 
   if (trouves.empty) return;
 
-  const doc = trouves.docs[0];
-  const livret = doc.data() as Accommodation;
   const demandee = Boolean(abonnement.cancel_at_period_end);
 
-  /*
-   * L'accusé de résiliation ne part qu'au BASCULEMENT.
-   *
-   * Stripe émet `subscription.updated` à chaque changement — renouvellement,
-   * moyen de paiement, montant. Envoyer à chaque fois écrirait dix fois « votre
-   * abonnement prend fin » à quelqu'un qui n'a rien demandé. On compare donc à
-   * ce qu'on savait déjà.
-   */
-  const nouvelleDemande = demandee && !livret.cancelAtPeriodEnd;
+  for (const doc of trouves.docs) {
+    const livret = doc.data() as Accommodation;
+    const nouvelleDemande = demandee && !livret.cancelAtPeriodEnd;
 
-  await doc.ref.update({
-    cancelAtPeriodEnd: demandee,
-    updatedAt: Date.now(),
-  });
+    await doc.ref.update({
+      cancelAtPeriodEnd: demandee,
+      updatedAt: Date.now(),
+    });
 
-  if (!nouvelleDemande) return;
+    if (nouvelleDemande) {
+      const destinataire = livret.owner?.email || "";
+      if (destinataire) {
+        const finSecondes =
+          abonnement.cancel_at ||
+          (abonnement as unknown as { current_period_end?: number }).current_period_end ||
+          null;
 
-  const destinataire = livret.owner?.email || "";
-  if (!destinataire) {
-    console.warn("[stripe] résiliation sans adresse e-mail", doc.id);
-    return;
+        const message = await messageResiliation({
+          prenom: (livret.owner?.name || "").trim().split(/\s+/)[0],
+          nomLogement: livret.property?.name || livret.slug,
+          finLe: finSecondes ? finSecondes * 1000 : null,
+          rythme: livret.abonnementRythme,
+        });
+
+        await envoyerCourriel({
+          destinataire,
+          nomDestinataire: livret.owner?.name || undefined,
+          sujet: message.sujet,
+          html: message.html,
+          texte: message.texte,
+          etiquette: "resiliation",
+        });
+      }
+    }
   }
-
-  /*
-   * `cancel_at` porte la date de fin quand la résiliation est programmée.
-   * `current_period_end` a migré sur l'élément d'abonnement selon les
-   * versions d'API : on le lit en repli, sans se fier au type.
-   */
-  const finSecondes =
-    abonnement.cancel_at ||
-    (abonnement as unknown as { current_period_end?: number }).current_period_end ||
-    null;
-
-  const message = await messageResiliation({
-    prenom: (livret.owner?.name || "").trim().split(/\s+/)[0],
-    nomLogement: livret.property?.name || livret.slug,
-    finLe: finSecondes ? finSecondes * 1000 : null,
-    rythme: livret.abonnementRythme,
-  });
-
-  await envoyerCourriel({
-    destinataire,
-    nomDestinataire: livret.owner?.name || undefined,
-    sujet: message.sujet,
-    html: message.html,
-    texte: message.texte,
-    etiquette: "resiliation",
-  });
 }
 
 /**
@@ -333,7 +315,12 @@ async function traiterPaiement(session: Stripe.Checkout.Session, origin: string)
   const plaque: PlaqueConfig = configPlaqueComplete(
     {
       wood: session.metadata?.plaqueWood as PlaqueConfig["wood"] | undefined,
-      engravedTagline: session.metadata?.plaqueTagline,
+      engravedTagline: taglineGravee(
+        session.metadata?.plaqueTagline
+          ? { engravedTagline: session.metadata.plaqueTagline }
+          : livret.plaque,
+        livret.offerType
+      ),
     },
     livret.plaque
   );
@@ -510,6 +497,204 @@ async function traiterPaiement(session: Stripe.Checkout.Session, origin: string)
   console.info("[stripe] commande", commande.reference, "créée pour", accommodationId);
 }
 
+/**
+ * Encaissement confirmé pour un panier multi-livrets :
+ * Tous les livrets du panier passent en ligne et chaque plaque part en fabrication.
+ */
+async function traiterPaiementPanier(session: Stripe.Checkout.Session, origin: string) {
+  const idsBruts = session.metadata?.cartItemIds || "";
+  const accommodationIds = idsBruts
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (accommodationIds.length === 0) {
+    console.error("[stripe] panier sans identifiants de livret", session.id);
+    return;
+  }
+
+  const maintenant = Date.now();
+  const livraison = await lireLivraison(session);
+
+  let montantFormate: string | null = null;
+  if (typeof session.amount_total === "number") {
+    montantFormate = (session.amount_total / 100).toLocaleString("fr-FR", {
+      style: "currency",
+      currency: (session.currency || "EUR").toUpperCase(),
+    });
+  }
+
+  const emailAdmin =
+    process.env.ADMIN_EMAIL || process.env.COMMANDE_EMAIL || "contact@guidzme.fr";
+
+  for (const accommodationId of accommodationIds) {
+    try {
+      const docRef = adminDb.collection(ACCOMMODATIONS).doc(accommodationId);
+      const doc = await docRef.get();
+      if (!doc.exists) {
+        console.error("[stripe] panier : livret introuvable", accommodationId);
+        continue;
+      }
+      const livret = doc.data() as Accommodation;
+
+      // 1. Mise en ligne du livret
+      const estConfort = livret.offerType === "comfort";
+      await docRef.update({
+        isActive: true,
+        publishedAt: livret.publishedAt || maintenant,
+        updatedAt: maintenant,
+        stripeCustomerId: typeof session.customer === "string" ? session.customer : null,
+        stripeSubscriptionId:
+          estConfort && typeof session.subscription === "string"
+            ? session.subscription
+            : null,
+        abonnementRythme:
+          estConfort && session.subscription
+            ? session.metadata?.rythme === "annuel"
+              ? "annuel"
+              : "mensuel"
+            : FieldValue.delete(),
+        paidAt: maintenant,
+      });
+
+      // 2. Commande de plaque si non existante
+      const existante = await commandeDejaPassee(accommodationId);
+      if (existante) {
+        console.info("[stripe] panier : commande déjà passée pour", accommodationId);
+        continue;
+      }
+
+      const plaque: PlaqueConfig = configPlaqueComplete(
+        {
+          engravedTagline: taglineGravee(livret.plaque, livret.offerType),
+        },
+        livret.plaque
+      );
+      const commande = await creerCommandeInterne(accommodationId, plaque, origin);
+
+      const maj: Record<string, unknown> = {
+        status: "payee",
+        stripeSessionId: session.id,
+        updatedAt: Date.now(),
+      };
+      if (livraison.adresse) maj.shippingAddress = livraison.adresse;
+      if (livraison.nom) maj.shippingName = livraison.nom;
+      if (livraison.telephone) maj.shippingPhone = livraison.telephone;
+
+      await adminDb.collection("orders").doc(commande.id!).update(maj);
+
+      if (livraison.telephone && !livret.owner?.phone) {
+        await docRef
+          .update({
+            "owner.phone": livraison.telephone,
+            updatedAt: maintenant,
+          })
+          .catch((e) => console.error("[stripe] mise à jour owner.phone panier", e));
+      }
+
+      // 3. Email client pour ce livret
+      const destinataireEmail =
+        livret.owner?.email || session.customer_details?.email || "";
+
+      if (destinataireEmail) {
+        const message = await messageCommande({
+          prenom: (livret.owner?.name || livraison.nom || "").trim().split(/\s+/)[0],
+          reference: commande.reference,
+          nomLogement: commande.accommodationName,
+          formule: livret.offerType,
+          slug: commande.accommodationSlug,
+          essence: plaque.wood === "clair" ? "Bois clair" : "Noyer",
+          phraseGravee: plaque.engravedTagline,
+          adresse: livraison.adresse,
+          destinataire: livraison.nom || livret.owner?.name,
+        });
+
+        const envoi = await envoyerCourriel({
+          destinataire: destinataireEmail,
+          nomDestinataire: livret.owner?.name || livraison.nom || undefined,
+          sujet: message.sujet,
+          html: message.html,
+          texte: message.texte,
+          etiquette: "commande",
+        });
+
+        if (envoi.envoye) {
+          await adminDb
+            .collection("orders")
+            .doc(commande.id!)
+            .update({ confirmationEnvoyeeLe: Date.now() })
+            .catch(() => {});
+        }
+      }
+
+      // 4. Notification admin atelier
+      const clientNom =
+        (livret.owner?.name || session.customer_details?.name || livraison.nom || "").trim();
+      const clientEmail =
+        (livret.owner?.email || session.customer_details?.email || "").trim();
+      const clientTelephone =
+        (livret.owner?.phone || session.customer_details?.phone || livraison.telephone || "").trim();
+
+      const messageAdmin = await messageCommandeAdmin({
+        reference: commande.reference,
+        nomLogement: commande.accommodationName,
+        slug: commande.accommodationSlug,
+        formule: livret.offerType,
+        rythmeAbonnement:
+          estConfort && session.subscription
+            ? session.metadata?.rythme === "annuel"
+              ? "annuel"
+              : "mensuel"
+            : null,
+        montantTotal: montantFormate ? `${montantFormate} (Panier groupé)` : null,
+        nomClient: clientNom,
+        emailClient: clientEmail,
+        telephoneClient: clientTelephone,
+        essence: plaque.wood === "clair" ? "Bois clair (bouleau)" : "Noyer massif",
+        phraseGravee: plaque.engravedTagline,
+        urlPermanente: commande.permanentUrl,
+        destinataireLivraison: livraison.nom || clientNom,
+        adresse: livraison.adresse,
+        telephoneLivraison: livraison.telephone || clientTelephone,
+        dateCommande: new Date().toLocaleDateString("fr-FR", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        stripeSessionId: session.id,
+      });
+
+      try {
+        const envoiAdmin = await envoyerCourriel({
+          destinataire: emailAdmin,
+          nomDestinataire: "Guidz Administration",
+          sujet: `[Panier ${accommodationIds.length} livrets] ${messageAdmin.sujet}`,
+          html: messageAdmin.html,
+          texte: messageAdmin.texte,
+          repondreA: clientEmail ? { email: clientEmail, nom: clientNom || undefined } : undefined,
+          etiquette: "commande-admin-panier",
+        });
+
+        if (envoiAdmin.envoye) {
+          await adminDb
+            .collection("orders")
+            .doc(commande.id!)
+            .update({ notificationAdminEnvoyeeLe: Date.now() })
+            .catch(() => {});
+        }
+      } catch (err) {
+        console.error("[stripe] erreur notification admin panier", err);
+      }
+
+      console.info("[stripe] panier : commande", commande.reference, "créée pour", accommodationId);
+    } catch (itemError) {
+      console.error("[stripe] erreur traitement livret panier", accommodationId, itemError);
+    }
+  }
+}
+
 export async function POST(request: NextRequest) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) {
@@ -545,14 +730,17 @@ export async function POST(request: NextRequest) {
       const session = evenement.data.object as Stripe.Checkout.Session;
       if (session.payment_status === "paid" || session.status === "complete") {
         /*
-         * Deux natures d'encaissement passent par ici. Les confondre ferait
-         * graver une seconde plaque à un hôte qui en a déjà une : la session
-         * porte donc son intention, posée à sa création.
+         * Plusieurs natures d'encaissement passent par ici.
+         * La session porte donc son intention, posée à sa création.
          */
         if (session.metadata?.type === "bascule-confort") {
           await traiterBascule(session);
         } else if (session.metadata?.type === "session-modification") {
           await traiterSessionModification(session);
+        } else if (session.metadata?.type === "panier" || session.metadata?.isCart === "true") {
+          const origin =
+            process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
+          await traiterPaiementPanier(session, origin);
         } else {
           const origin =
             process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
