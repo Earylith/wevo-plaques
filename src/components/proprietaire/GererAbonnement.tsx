@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Warning, Check } from "@phosphor-icons/react";
+import { Warning, Check, CreditCard, CaretRight, X, ArrowCounterClockwise } from "@phosphor-icons/react";
 import { resilierAbonnement, reprendreAbonnement, supprimerCompte } from "@/app/espace-actions";
 
 /**
@@ -83,23 +83,57 @@ export default function GererAbonnement({
 
   if (!ouvert) {
     return (
-      <div className="mt-4 text-center">
+      <div className="mt-5 flex flex-col gap-3 rounded-[22px] border border-black/[0.055] bg-white/70 p-4 shadow-[0_8px_28px_-24px_rgba(42,32,22,.35)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#C4714A]/10 text-[#A35A38]">
+            <CreditCard size={19} weight="duotone" />
+          </span>
+          <div>
+            <p className="text-[13.5px] font-semibold text-[#2A2016]">
+              {aUnAbonnement ? "Gérer votre formule Confort" : "Gestion de l’hébergement"}
+            </p>
+            <p className="mt-0.5 text-[12px] text-[#8A7968]">
+              {aUnAbonnement ? "Facturation, changement de formule et résiliation" : "Suppression définitive du livret"}
+            </p>
+          </div>
+        </div>
         <button
           type="button"
           onClick={() => setOuvert(true)}
-          className="text-[12.5px] font-medium text-[#A8998A] transition-colors hover:text-[#C4714A]"
+          className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full border border-black/[0.08] bg-white px-4 text-[12.5px] font-semibold text-[#5C3D2E] transition-all hover:border-[#C4714A]/40 hover:text-[#A35A38] active:scale-[0.98]"
         >
-          {aUnAbonnement ? "Résilier l’abonnement de cet hébergement" : "Supprimer cet hébergement"}
+          {aUnAbonnement ? "Gérer l’abonnement" : "Gérer"}
+          <CaretRight size={13} weight="bold" />
         </button>
       </div>
     );
   }
 
   return (
-    <div className="mt-4 rounded-2xl border border-black/[0.07] bg-[#FDFBF7] p-5">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-[#A8998A]">
-        {aUnAbonnement ? `Abonnement : ${nom}` : `Gestion : ${nom}`}
-      </p>
+    <div className="mt-5 overflow-hidden rounded-[26px] border border-black/[0.06] bg-white shadow-[0_12px_34px_-24px_rgba(42,32,22,.35)]">
+      <div className="flex items-center justify-between border-b border-black/[0.05] px-5 py-4 sm:px-6">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#C4714A]/10 text-[#A35A38]">
+            <CreditCard size={19} weight="duotone" />
+          </span>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.13em] text-[#A8998A]">Votre formule</p>
+            <p className="mt-0.5 text-[14px] font-semibold text-[#2A2016]">
+              {aUnAbonnement ? `Abonnement Confort · ${nom}` : `Gestion · ${nom}`}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOuvert(false)}
+          aria-label="Fermer la gestion de l’abonnement"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-[#A8998A] transition-colors hover:bg-black/[0.045] hover:text-[#2A2016]"
+        >
+          <X size={16} weight="bold" />
+        </button>
+      </div>
+
+      <div className="p-5 sm:p-6">
 
       {resiliationDemandee ? (
         <>
@@ -112,14 +146,15 @@ export default function GererAbonnement({
             type="button"
             onClick={() => void annuler()}
             disabled={enCours !== null}
-            className="mt-4 rounded-full bg-[#2A2016] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:bg-[#C4714A] disabled:opacity-60"
+            className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#2A2016] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:bg-[#C4714A] active:scale-[0.98] disabled:opacity-60"
           >
+            <ArrowCounterClockwise size={14} weight="bold" />
             {enCours === "reprendre" ? "…" : "Finalement, je garde le Confort pour cet hébergement"}
           </button>
         </>
       ) : (
         aUnAbonnement && (
-          <div className="mt-3 rounded-2xl bg-white p-4">
+          <div className="rounded-2xl border border-black/[0.055] bg-[#FAF8F5] p-4 sm:p-5">
             <p className="text-[14.5px] font-semibold text-[#2A2016]">
               Revenir à la formule Essentielle pour cet hébergement
             </p>
@@ -132,7 +167,7 @@ export default function GererAbonnement({
               type="button"
               onClick={() => void versEssentielle()}
               disabled={enCours !== null}
-              className="mt-3.5 rounded-full bg-[#2A2016] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:bg-[#C4714A] disabled:opacity-60"
+              className="mt-4 rounded-full border border-[#C4714A]/35 bg-white px-5 py-2.5 text-[13px] font-semibold text-[#A35A38] transition-all hover:border-[#C4714A] hover:bg-[#FFF8F3] active:scale-[0.98] disabled:opacity-60"
             >
               {enCours === "essentielle" ? "…" : "Revenir à l’Essentielle pour ce logement"}
             </button>
@@ -145,7 +180,7 @@ export default function GererAbonnement({
         exige une saisie. Un bouton rouge de plus se clique par réflexe ;
         recopier le nom de son propre livret, non.
       */}
-      <div className="mt-4 rounded-2xl border border-red-200 bg-red-50/60 p-4">
+      <div className="mt-4 rounded-2xl border border-red-200/80 bg-red-50/55 p-4 sm:p-5">
         <p className="flex items-start gap-2 text-[14.5px] font-semibold text-red-800">
           <Warning size={16} weight="fill" className="mt-0.5 shrink-0" />
           Supprimer définitivement cet hébergement
@@ -168,7 +203,7 @@ export default function GererAbonnement({
           type="button"
           onClick={() => void supprimer()}
           disabled={enCours !== null || confirmationSuppression.trim() !== nom.trim()}
-          className="mt-3 rounded-full bg-red-700 px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-40"
+          className="mt-3 rounded-full border border-red-300 bg-white px-5 py-2.5 text-[13px] font-semibold text-red-700 transition-all hover:border-red-700 hover:bg-red-700 hover:text-white active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {enCours === "suppression" ? "Suppression…" : "Supprimer cet hébergement"}
         </button>
@@ -184,13 +219,7 @@ export default function GererAbonnement({
         </p>
       )}
 
-      <button
-        type="button"
-        onClick={() => setOuvert(false)}
-        className="mt-4 text-[12.5px] font-medium text-[#A8998A] transition-colors hover:text-[#2A2016]"
-      >
-        Fermer
-      </button>
+      </div>
     </div>
   );
 }

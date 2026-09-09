@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   PencilSimple, Copy, Check, ArrowSquareOut, ArrowRight, Lock,
-  Eye, QrCode, Package, Warning, Sparkle, House, Plus, X, CaretDown, CreditCard,
+  Eye, QrCode, Package, Warning, Sparkle, House, Plus, X, CreditCard,
   ShoppingCart,
 } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/hooks/useAuth";
@@ -395,15 +395,74 @@ export default function EspaceClientPage() {
    * accueillir quelqu'un serait une formalité de plus à l'inscription. Le
    * premier mot suffit, et se trompe rarement.
    */
-  const prenom = (user?.displayName || "").trim().split(/\s+/)[0] || "";
+  const prenomCompte = (user?.displayName || "").trim().split(/\s+/)[0] || "";
+  const prenom = prenomCompte.length > 1 ? prenomCompte : "";
 
   return (
-    <div className="mx-auto max-w-4xl px-5 pb-24 pt-10 sm:px-8 sm:pt-16">
+    <div className="mx-auto max-w-6xl px-4 pb-24 pt-7 sm:px-8 sm:pt-10">
+      {/* ── Identité et action principale ───────────────────────────────── */}
+      <header className="guidz-apparait mb-5 overflow-hidden rounded-[28px] border border-black/[0.055] bg-[#2A2016] text-white shadow-[0_18px_50px_-28px_rgba(42,32,22,0.65)]">
+        <div className="relative p-5 sm:p-7 lg:p-8">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-[#C4714A]/30 blur-3xl"
+          />
+          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
+              {prenom && (
+                <p className="mb-2 text-[14px] text-white/60">Bonjour {prenom},</p>
+              )}
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className={`inline-flex items-center gap-2 rounded-full py-1 pr-3 text-[11.5px] font-semibold ring-1 ${estConfort ? "bg-[#C4714A]/25 pl-1 text-[#FFE0B0] ring-[#E8BE72]/30" : "bg-white/10 pl-2.5 text-white/85 ring-white/10"}`}>
+                  {estConfort && (
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#E8BE72] text-[#2A2016] shadow-[0_0_16px_rgba(232,190,114,.3)]">
+                      <Sparkle size={13} weight="fill" />
+                    </span>
+                  )}
+                  Formule {estConfort ? "Confort" : "Essentielle"}
+                </span>
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11.5px] font-semibold ${livret.enLigne ? "bg-emerald-400/15 text-emerald-200" : "bg-amber-300/15 text-amber-100"}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${livret.enLigne ? "bg-emerald-300" : "bg-amber-300"}`} />
+                  {livret.enLigne ? "En ligne" : "Brouillon"}
+                </span>
+              </div>
+              <h1 className="truncate font-[family-name:var(--font-display)] text-[36px] font-bold leading-[1.05] tracking-[-0.025em] sm:text-[48px]">
+                {livret.nom}
+              </h1>
+              <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-white/60 sm:text-[15px]">
+                {livret.enLigne
+                  ? "Votre livret est prêt à être partagé avec vos voyageurs."
+                  : "Terminez votre livret, puis commandez sa plaque pour le mettre en ligne."}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2.5">
+              {peutEditer && (
+                <Link
+                  href={`/proprietaire/dashboard/${livret.id}/edit`}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-[13.5px] font-semibold text-[#2A2016] transition-all hover:bg-[#F5EDE4] active:scale-[0.98]"
+                >
+                  <PencilSimple size={15} weight="bold" />
+                  {livret.enLigne ? "Modifier le livret" : "Continuer le livret"}
+                </Link>
+              )}
+              <a
+                href={lienPartage}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-white/20 px-5 text-[13.5px] font-semibold text-white transition-all hover:bg-white/10 active:scale-[0.98]"
+              >
+                <Eye size={15} weight="bold" /> Aperçu
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* ── Sélecteur multi-hébergements & Accès Panier ──────────────────── */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-[#F6F3ED] p-2 sm:p-2.5">
-        <div className="flex flex-wrap items-center gap-1.5">
+      <div className="mb-5 flex flex-col gap-2 rounded-[22px] border border-black/[0.05] bg-white/75 p-2 shadow-sm backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:p-2.5">
+        <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:pb-0">
           <span className="px-2.5 text-[11px] font-bold uppercase tracking-wider text-[#A8998A]">
-            Vos hébergements {tousLesLivrets.length > 1 ? `(${tousLesLivrets.length})` : ""} :
+            Hébergements {tousLesLivrets.length > 1 ? `(${tousLesLivrets.length})` : ""}
           </span>
           {tousLesLivrets.map((item) => {
             const estActif = item.id === livret.id;
@@ -413,7 +472,7 @@ export default function EspaceClientPage() {
                 type="button"
                 onClick={() => changerDeLivret(item.id)}
                 disabled={rechargementLivret}
-                className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-semibold transition-all cursor-pointer ${
+                className={`flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-[13px] font-semibold transition-all cursor-pointer ${
                   estActif
                     ? "bg-white text-[#2A2016] shadow-xs ring-1 ring-black/[0.04]"
                     : "text-[#6B5D4E] hover:bg-white/60 hover:text-[#2A2016]"
@@ -431,7 +490,7 @@ export default function EspaceClientPage() {
           })}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:shrink-0">
           {/* Bouton Panier */}
           <button
             type="button"
@@ -439,7 +498,7 @@ export default function EspaceClientPage() {
               setNotificationPanier(null);
               setPanierOuvert(true);
             }}
-            className="flex items-center gap-2 rounded-xl border border-[#C4714A]/35 bg-white px-3.5 py-2 text-[12.5px] font-bold text-[#2A2016] hover:border-[#C4714A] hover:bg-[#FFFBF5] transition-all cursor-pointer shadow-2xs"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#C4714A]/35 bg-white px-3.5 py-2 text-[12.5px] font-bold text-[#2A2016] hover:border-[#C4714A] hover:bg-[#FFFBF5] transition-all cursor-pointer shadow-2xs sm:flex-none"
             title="Ouvrir le panier de commande"
           >
             <ShoppingCart size={16} weight="duotone" className="text-[#C4714A]" />
@@ -459,7 +518,7 @@ export default function EspaceClientPage() {
               setErreurCreation(null);
               setModaleNouveauLivret(true);
             }}
-            className="flex items-center gap-1.5 rounded-xl border border-black/[0.08] bg-white px-3 py-2 text-[12px] font-semibold text-[#5C3D2E] transition-all hover:border-[#C4714A] hover:text-[#C4714A] active:scale-[0.98] cursor-pointer shadow-2xs"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-black/[0.08] bg-white px-3 py-2 text-[12px] font-semibold text-[#5C3D2E] transition-all hover:border-[#C4714A] hover:text-[#C4714A] active:scale-[0.98] cursor-pointer shadow-2xs sm:flex-none"
           >
             <Plus size={13} weight="bold" />
             <span>Nouveau livret</span>
@@ -467,39 +526,9 @@ export default function EspaceClientPage() {
         </div>
       </div>
 
-      {/* ── Bandeau panier groupé si plusieurs brouillons sont prêts ───────── */}
-      {nombreBrouillons > 1 && (
-        <div className="mb-6 rounded-[22px] border border-[#C4714A]/35 bg-gradient-to-r from-[#FFFBF7] via-white to-[#FDF8F3] p-4.5 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#C4714A]/10 text-[#C4714A]">
-              <ShoppingCart size={20} weight="duotone" />
-            </div>
-            <div>
-              <p className="font-bold text-[#2A2016] text-[14.5px]">
-                Vous avez {nombreBrouillons} livrets en attente dans votre panier
-              </p>
-              <p className="text-[12.5px] text-[#6B5D4E] mt-0.5">
-                Commandez vos plaques artisanales ensemble en un seul règlement sécurisé et cumulez vos formules.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setNotificationPanier(null);
-              setPanierOuvert(true);
-            }}
-            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#C4714A] px-5 py-2.5 text-[13px] font-bold text-white hover:bg-[#A35A38] transition-all cursor-pointer shadow-xs active:scale-[0.98]"
-          >
-            <span>Commander le panier ({nombreBrouillons} livrets)</span>
-            <ArrowRight size={14} weight="bold" />
-          </button>
-        </div>
-      )}
-
       {/* ── Bandeau pour livret en cours de création (brouillon) ──────────── */}
       {!livret.enLigne && (
-        <div className="mb-6 rounded-[22px] border border-amber-500/30 bg-gradient-to-r from-amber-50/90 via-[#FFFBF2] to-amber-50/70 p-4.5 sm:p-5 shadow-xs">
+        <div className="mb-5 rounded-[22px] border border-amber-500/25 bg-[#FFF9EB] p-4 sm:p-5">
           <div className="flex flex-col gap-3.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/15 text-amber-800">
@@ -507,14 +536,14 @@ export default function EspaceClientPage() {
               </div>
               <div>
                 <p className="font-semibold text-amber-950 text-[14.5px]">
-                  Ce livret est un brouillon en cours de création
+                  Prochaine étape : finaliser ce livret
                 </p>
                 <p className="mt-0.5 text-[13px] text-amber-900/80 leading-relaxed max-w-lg">
-                  Personnalisez son contenu dans l&apos;éditeur, ou commandez sa plaque artisanale en noyer (seul ou groupé avec vos autres livrets).
+                  Personnalisez son contenu, puis validez {nombreBrouillons > 1 ? `vos ${nombreBrouillons} livrets ensemble` : "sa plaque artisanale"} depuis le panier.
                 </p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => {
@@ -524,48 +553,21 @@ export default function EspaceClientPage() {
                 className="inline-flex items-center justify-center gap-1.5 rounded-full border border-[#C4714A] bg-white px-4 py-2.5 text-[12.5px] font-bold text-[#C4714A] hover:bg-[#FFFBF5] transition-all active:scale-[0.98] cursor-pointer shadow-2xs"
               >
                 <ShoppingCart size={15} weight="duotone" />
-                <span>Panier ({nombreBrouillons})</span>
+                <span>Ouvrir le panier ({nombreBrouillons})</span>
               </button>
-              <Link
-                href={`/proprietaire/dashboard/${livret.id}/edit`}
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#2A2016] px-5 py-2.5 text-[13px] font-semibold text-white transition-all hover:bg-[#C4714A] active:scale-[0.98]"
-              >
-                <PencilSimple size={14} weight="bold" />
-                <span>Éditer ce livret</span>
-              </Link>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Identité ─────────────────────────────────────────────────────── */}
-      <header className="guidz-apparait mb-9">
-        {/*
-          La salutation par le prénom, et rien d'autre.
-          Elle n'apparaît que si on le connaît : « Bonjour, » tout seul
-          sonnerait comme un publipostage raté, et les comptes créés avant que
-          le nom ne soit demandé n'en ont pas.
-        */}
-        {prenom && (
-          <p className="mb-2 text-[15px] text-[#6B5D4E]">Bonjour {prenom},</p>
-        )}
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Pastille ton={estConfort ? "accent" : "neutre"}>
-            Formule {estConfort ? "Confort" : "Essentielle"}
-          </Pastille>
-          <Pastille ton={livret.enLigne ? "vert" : "ambre"}>
-            {livret.enLigne ? "En ligne" : "Brouillon"}
-          </Pastille>
-        </div>
-        <h1 className="font-[family-name:var(--font-display)] text-[40px] font-bold leading-[1.05] tracking-[-0.025em] text-[#2A2016] sm:text-[54px]">
-          {livret.nom}
-        </h1>
-      </header>
-
+      <div className={peutEditer ? "grid items-start gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.65fr)]" : ""}>
       {/* ── Le lien de partage ───────────────────────────────────────────── */}
       <Surface className="mb-4 overflow-hidden" delai={40}>
         <div className="px-5 pt-5 sm:px-7 sm:pt-6">
-          <Intitule>Le lien de votre livret</Intitule>
+          <Intitule>Partager le livret</Intitule>
+          <h2 className="mt-1.5 font-[family-name:var(--font-display)] text-[23px] font-bold tracking-[-0.015em] text-[#2A2016]">
+            Prêt à envoyer aux voyageurs
+          </h2>
         </div>
 
         <div className="flex flex-col gap-2.5 px-5 py-4 sm:flex-row sm:items-center sm:px-7 sm:py-5">
@@ -632,8 +634,8 @@ export default function EspaceClientPage() {
 
       {/* ── Reprendre la main, ou passer au Confort ───────────────────────── */}
       {peutEditer ? (
-        <Surface className="mb-4 overflow-hidden" delai={80}>
-          <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+        <Surface className="mb-4 h-fit overflow-hidden" delai={80}>
+          <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-7 lg:flex-col lg:items-stretch">
             <div className="min-w-0">
               <h2 className="font-[family-name:var(--font-display)] text-[24px] font-bold tracking-[-0.015em] text-[#2A2016]">
                 {estConfort
@@ -652,7 +654,7 @@ export default function EspaceClientPage() {
             </div>
             <Link
               href={`/proprietaire/dashboard/${livret.id}/edit`}
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#2A2016] px-6 py-3.5 text-[14px] font-semibold text-white transition-all hover:bg-[#C4714A] active:scale-[0.98]"
+              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[#2A2016] px-6 py-3.5 text-[14px] font-semibold text-white transition-all hover:bg-[#C4714A] active:scale-[0.98] lg:w-full"
             >
               <PencilSimple size={15} weight="bold" />
               {estConfort || livret.editionJusquA ? "Modifier" : "Composer mon livret"}
@@ -786,6 +788,7 @@ export default function EspaceClientPage() {
           </div>
         </Surface>
       )}
+      </div>
 
       {/* ── Nouveau livret & Plaque supplémentaire (Multi-hébergements) ──── */}
       {estConfort && (
@@ -803,36 +806,14 @@ export default function EspaceClientPage() {
               </span>
             </div>
 
-            <div className="mt-3.5 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="mt-3.5 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-2xl">
-                <h2 className="font-[family-name:var(--font-display)] text-[24px] font-bold tracking-[-0.015em] text-[#2A2016]">
-                  Vous gérez un autre hébergement ?
+                <h2 className="font-[family-name:var(--font-display)] text-[22px] font-bold tracking-[-0.015em] text-[#2A2016]">
+                  Ajouter un hébergement
                 </h2>
                 <p className="mt-1.5 text-[14.5px] leading-relaxed text-[#6B5D4E]">
-                  Créez un nouveau livret d’accueil avec l’éditeur, puis commandez sa plaque artisanale gravée sur mesure pour équiper votre deuxième bien.
+                  Créez sa page et son QR code maintenant. La plaque pourra être commandée avec les autres livrets de votre panier.
                 </p>
-
-                {/* 3 piliers clairs et rassurants */}
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl bg-white/85 p-3.5 border border-black/[0.04] shadow-xs">
-                    <p className="text-[13px] font-bold text-[#2A2016]">📱 Page dédiée</p>
-                    <p className="mt-1 text-[12px] leading-relaxed text-[#6B5D4E]">
-                      Une URL propre et un QR code unique pour ce logement.
-                    </p>
-                  </div>
-                  <div className="rounded-2xl bg-white/85 p-3.5 border border-black/[0.04] shadow-xs">
-                    <p className="text-[13px] font-bold text-[#2A2016]">🪵 Nouvelle plaque</p>
-                    <p className="mt-1 text-[12px] leading-relaxed text-[#6B5D4E]">
-                      Gravée au micron en noyer véritable et expédiée chez vous.
-                    </p>
-                  </div>
-                  <div className="rounded-2xl bg-white/85 p-3.5 border border-black/[0.04] shadow-xs">
-                    <p className="text-[13px] font-bold text-[#2A2016]">💳 Règlement Stripe</p>
-                    <p className="mt-1 text-[12px] leading-relaxed text-[#6B5D4E]">
-                      Paiement sécurisé par carte lors de la publication depuis l’éditeur.
-                    </p>
-                  </div>
-                </div>
               </div>
 
               <div className="shrink-0">
@@ -846,7 +827,7 @@ export default function EspaceClientPage() {
                   className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#2A2016] px-6 py-3.5 text-[14px] font-semibold text-white transition-all hover:bg-[#C4714A] active:scale-[0.98] sm:w-auto cursor-pointer shadow-sm"
                 >
                   <Plus size={16} weight="bold" />
-                  <span>Créer un autre livret</span>
+                  <span>Ajouter un hébergement</span>
                 </button>
               </div>
             </div>

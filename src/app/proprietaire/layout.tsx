@@ -73,7 +73,7 @@ export default function ProprietaireLayout({ children }: { children: React.React
       />
 
       <header className="sticky top-0 z-40 border-b border-black/[0.06] bg-[#F6F3ED]/75 backdrop-blur-xl backdrop-saturate-150">
-        <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-5 sm:px-8">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-8">
           <Link
             href="/"
             className="font-[family-name:var(--font-display)] text-[19px] font-bold tracking-[-0.01em] text-[#2A2016] transition-opacity hover:opacity-60"
