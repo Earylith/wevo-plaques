@@ -141,9 +141,9 @@ export default function PlaqueShowcaseSection() {
   const [customTagline, setCustomTagline] = useState("Bienvenue chez vous");
   const [activeHotspot, setActiveHotspot] = useState<Hotspot | null>(null);
 
-  /* Transformation 3D */
-  const [rotX, setRotX] = useState(8);
-  const [rotY, setRotY] = useState(-14);
+  /* Transformation 3D - Initialisée en Vue de face (0°, 0°) sur mobile et PC */
+  const [rotX, setRotX] = useState(0);
+  const [rotY, setRotY] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
@@ -392,10 +392,10 @@ export default function PlaqueShowcaseSection() {
     // Désactivé sur mobile (< 768px) pour bloquer le zoom à 100% et éviter tout déplacement imprévu
     if (isMobile || (typeof window !== "undefined" && window.innerWidth < 768)) return;
     if (activeHotspot?.id === hs.id) {
-      // Désélection : retour à la vue globale
+      // Désélection : retour à la vue de face
       setActiveHotspot(null);
-      setRotX(8);
-      setRotY(-14);
+      setRotX(0);
+      setRotY(0);
       setZoom(1);
       setPanX(0);
       setPanY(0);

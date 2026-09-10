@@ -44,7 +44,7 @@ import {
   MapPin, Star, Trash, WifiHigh, Phone, DoorOpen, HandWaving,
   ArrowCounterClockwise, ArrowClockwise, CloudCheck, CloudSlash, EyeSlash,
   BookOpen, Medal, Bus, ChatCircleDots, BookBookmark, ArrowsOut, Lock,
-  ShoppingCart,
+  ShoppingCart, HouseLine, CreditCard, Sparkle, X,
 } from "@phosphor-icons/react";
 
 interface Props {
@@ -270,6 +270,15 @@ export default function AdminModernTileEditor({
   const [orderError, setOrderError] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [autosave, setAutosave] = useState(!demo);
+  /* Multi-livrets & Commande groupée */
+  const [nbLivrets, setNbLivrets] = useState<number>(1);
+  const [modaleNouveauLivret, setModaleNouveauLivret] = useState(false);
+  const [nouveauNom, setNouveauNom] = useState("");
+  const [nouvelleFormule, setNouvelleFormule] = useState<OfferType>(
+    initialData.offerType === "comfort" ? "comfort" : "essential"
+  );
+  const [creationLivretEnCours, setCreationLivretEnCours] = useState(false);
+  const [erreurCreationLivret, setErreurCreationLivret] = useState<string | null>(null);
   /** Pile d'annulation : instantanés successifs de `data`. */
   const [history, setHistory] = useState<{ past: Accommodation[]; future: Accommodation[] }>({
     past: [],
@@ -842,6 +851,65 @@ export default function AdminModernTileEditor({
     if (estAdmin) return undefined;
     const { auth } = await import("@/lib/firebase/config");
     return auth.currentUser?.getIdToken();
+  };
+
+  /* Chargement du nombre de livrets pour adapter l'affichage du panier */
+  useEffect(() => {
+    if (estAdmin || demo) return;
+    let annule = false;
+    (async () => {
+      try {
+        const jeton = await jetonHote();
+        if (!jeton) return;
+        const { chargerEspaceClient } = await import("@/app/espace-actions");
+        const espace = await chargerEspaceClient(jeton);
+        if (!annule && espace?.tousLesLivrets) {
+          setNbLivrets(espace.tousLesLivrets.length);
+        }
+      } catch {
+        // En cas d'erreur de chargement silencieuse, on conserve 1 par défaut
+      }
+    })();
+    return () => {
+      annule = true;
+    };
+  }, [estAdmin, demo]);
+
+  /**
+   * Création d'un second livret dans la foulée, qui s'ajoute au panier
+   * pour un règlement et une publication groupés.
+   */
+  const handleCreerDeuxiemeLivret = async (redirigerVers: "editeur" | "panier" = "editeur") => {
+    if (!nouveauNom.trim()) {
+      setErreurCreationLivret("Veuillez indiquer le nom de votre second hébergement.");
+      return;
+    }
+    if (demo) {
+      alert("En mode démo, la création de livrets supplémentaires nécessite un compte.");
+      return;
+    }
+    setCreationLivretEnCours(true);
+    setErreurCreationLivret(null);
+    try {
+      if (dirty) await handleSave();
+      const jeton = await jetonHote();
+      if (!jeton) {
+        throw new Error("Veuillez vous reconnecter pour créer un nouveau livret.");
+      }
+      const { creerNouveauLivret } = await import("@/app/espace-actions");
+      const nouveau = await creerNouveauLivret(jeton, nouveauNom.trim(), nouvelleFormule);
+      if (redirigerVers === "panier") {
+        window.location.assign("/proprietaire/dashboard?panier=1");
+      } else {
+        window.location.assign(`/proprietaire/dashboard/${nouveau.id}/edit`);
+      }
+    } catch (err) {
+      console.error(err);
+      setErreurCreationLivret(
+        err instanceof Error ? err.message : "La création du livret a échoué."
+      );
+      setCreationLivretEnCours(false);
+    }
   };
 
   const handleSave = async (): Promise<string | null> => {
@@ -2116,21 +2184,36 @@ export default function AdminModernTileEditor({
               <ArrowSquareOut size={13} weight="bold" />
             </a>
           ) : !estAdmin ? (
-            <button
-              type="button"
-              onClick={() => void handlePayer()}
-              disabled={paiement || isLoading}
-              className="px-4 sm:px-6 py-2.5 rounded-full bg-[#C4714A] hover:bg-[#A35A38] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#C4714A]/20 transition-all disabled:opacity-60"
-            >
-              {paiement ? (
-                "Ouverture…"
-              ) : (
-                <>
-                  Publier
-                  <span className="hidden sm:inline"> et commander ma plaque</span>
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/proprietaire/dashboard?panier=1"
+                className="px-3.5 py-2 rounded-full border border-gray-200 hover:border-[#C4714A] bg-white hover:bg-[#FAF5EE] text-[#5C3D2E] text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                title="Consulter mon panier de commande"
+              >
+                <ShoppingCart size={15} weight="duotone" className="text-[#C4714A]" />
+                <span className="hidden sm:inline">Panier</span>
+                {nbLivrets > 1 && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-[#C4714A] text-white text-[10px] font-bold leading-none">
+                    {nbLivrets}
+                  </span>
+                )}
+              </Link>
+              <button
+                type="button"
+                onClick={() => void handlePayer()}
+                disabled={paiement || isLoading}
+                className="px-4 sm:px-6 py-2.5 rounded-full bg-[#C4714A] hover:bg-[#A35A38] text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-[#C4714A]/20 transition-all disabled:opacity-60"
+              >
+                {paiement ? (
+                  "Ouverture…"
+                ) : (
+                  <>
+                    Publier
+                    <span className="hidden sm:inline"> et commander</span>
+                  </>
+                )}
+              </button>
+            </div>
           ) : (
             <button
               type="button"
@@ -2663,47 +2746,144 @@ export default function AdminModernTileEditor({
                 </div>
 
                 {!estAdmin && !data.isActive && (
-                  <>
+                  <div className="space-y-4 pt-4 border-t border-[#EDD9A3]/60">
                     {/*
                       Le rythme se choisit AVANT le paiement, et seulement en
-                      Confort — l'Essentielle n'a pas d'abonnement. La question
-                      ne se posait nulle part : un premier client partait au
-                      mois sans qu'on la lui ait posée.
+                      Confort — l'Essentielle n'a pas d'abonnement.
                     */}
-                    {estConfort && <ChoixRythme rythme={rythme} onChange={setRythme} />}
+                    {estConfort ? (
+                      <ChoixRythme rythme={rythme} onChange={setRythme} />
+                    ) : (
+                      <div className="p-3.5 rounded-2xl bg-[#FAF5EE] border border-[#EDD9A3]/70">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#A35A38]">
+                              Formule choisie
+                            </span>
+                            <h4 className="text-[14px] font-bold text-[#2A2016]">Essentielle</h4>
+                          </div>
+                          <span className="px-2.5 py-1 rounded-full bg-white border border-[#EDD9A3] text-xs font-extrabold text-[#5C3D2E]">
+                            49 € unique
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-[#6B5D4E] mt-1.5 leading-relaxed">
+                          Plaque gravée en noyer incluse, livret en ligne permanent sans abonnement.
+                        </p>
+                      </div>
+                    )}
 
-                    <button
-                      type="button"
-                      onClick={() => void handlePayer()}
-                      disabled={paiement || isLoading}
-                      className="w-full py-3 rounded-2xl bg-[#C4714A] hover:bg-[#A35A38] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-[#C4714A]/20 transition-colors disabled:opacity-60"
-                    >
-                      {paiement ? "Ouverture du paiement…" : "Valider ma page"}
-                    </button>
+                    {/* OPTION 1 : Commander ce livret seul */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10.5px] font-bold uppercase tracking-wider text-[#6B5D4E]">
+                          Option 1 · Un seul hébergement
+                        </span>
+                        <span className="text-[11px] font-semibold text-[#A35A38]">
+                          {estConfort ? "69 € + abonnement" : "49 € sans abonnement"}
+                        </span>
+                      </div>
 
-                    <div className="mt-2 text-center">
-                      <Link
-                        href="/proprietaire/dashboard?panier=1"
-                        className="text-[11.5px] font-medium text-[#6B5D4E] hover:text-[#C4714A] transition-colors inline-flex items-center gap-1.5"
+                      <button
+                        type="button"
+                        onClick={() => void handlePayer()}
+                        disabled={paiement || isLoading}
+                        className="w-full py-3.5 px-4 rounded-2xl bg-[#C4714A] hover:bg-[#A35A38] text-white text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-[#C4714A]/20 transition-all active:scale-[0.99] disabled:opacity-60 cursor-pointer"
                       >
-                        <ShoppingCart size={13} weight="duotone" />
-                        <span>Commander avec vos autres livrets dans le panier</span>
-                      </Link>
+                        {paiement ? (
+                          "Ouverture du paiement…"
+                        ) : (
+                          <>
+                            <CheckCircle size={17} weight="bold" />
+                            <span>Valider et commander ce livret ({estConfort ? "69 €" : "49 €"})</span>
+                          </>
+                        )}
+                      </button>
+                      <p className="text-[10.5px] text-center text-[#6B5D4E]">
+                        Paiement sécurisé Stripe · Mise en ligne immédiate et gravure de votre plaque.
+                      </p>
                     </div>
 
-                    {/*
-                      L'échec du paiement n'était affiché que dans l'onglet
-                      Plaque. Depuis ce bouton-ci, l'hôte cliquait et ne voyait
-                      RIEN — ni page de paiement, ni explication. Un bouton qui
-                      échoue en silence est pire qu'un bouton absent.
-                    */}
+                    {/* SÉPARATEUR ÉLÉGANT */}
+                    <div className="relative py-1 flex items-center justify-center">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-[#EDD9A3]/70" />
+                      </div>
+                      <span className="relative px-3 bg-[#FDF9F2] text-[10px] font-extrabold tracking-widest uppercase text-[#8A7561]">
+                        OU
+                      </span>
+                    </div>
+
+                    {/* OPTION 2 : Commande groupée / Multi-livrets */}
+                    <div className="rounded-2xl border-2 border-dashed border-[#C4714A]/35 bg-white p-4 space-y-3.5 shadow-sm">
+                      <div className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-[#C4714A]/10 text-[#C4714A] flex items-center justify-center shrink-0 mt-0.5">
+                          <ShoppingCart size={20} weight="duotone" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-[13.5px] font-bold text-[#2A2016]">
+                              {nbLivrets > 1 ? "Vous avez d’autres hébergements ?" : "Vous avez un autre hébergement ?"}
+                            </h4>
+                            <span className="px-2 py-0.5 rounded-full bg-[#C4714A]/10 text-[#C4714A] text-[9.5px] font-extrabold uppercase tracking-wide">
+                              Commande groupée
+                            </span>
+                          </div>
+                          <p className="text-[11.5px] text-[#5C3D2E] mt-1 leading-relaxed">
+                            Créez un autre livret <strong>dans la foulée</strong> : vous pourrez configurer tous vos hébergements à votre rythme, puis <strong>tous les régler et les publier en une seule fois dans votre panier</strong>.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl bg-[#FAF5EE] p-2.5 space-y-1.5 text-[11px] text-[#6B5D4E]">
+                        <div className="flex items-center gap-1.5">
+                          <Check size={13} weight="bold" className="text-emerald-600 shrink-0" />
+                          <span>Livraison groupée offerte pour toutes vos plaques</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Check size={13} weight="bold" className="text-emerald-600 shrink-0" />
+                          <span>Une seule facture et un règlement unique sur Stripe</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Check size={13} weight="bold" className="text-emerald-600 shrink-0" />
+                          <span>Aucun débit immédiat lors de la création d'un livret</span>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setErreurCreationLivret(null);
+                            setNouveauNom("");
+                            setModaleNouveauLivret(true);
+                          }}
+                          className="w-full py-2.5 px-4 rounded-xl bg-[#2A2016] hover:bg-[#3D2E20] text-white text-xs font-bold flex items-center justify-center gap-2 shadow transition-all active:scale-[0.99] cursor-pointer"
+                        >
+                          <Plus size={15} weight="bold" />
+                          <span>Créer un autre livret</span>
+                        </button>
+
+                        <Link
+                          href="/proprietaire/dashboard?panier=1"
+                          className="w-full py-2 px-3 rounded-xl border border-[#EDD9A3] hover:border-[#C4714A] bg-white hover:bg-[#FAF5EE] text-[#5C3D2E] hover:text-[#C4714A] text-xs font-semibold flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                        >
+                          <ShoppingCart size={14} weight="duotone" />
+                          <span>
+                            {nbLivrets > 1
+                              ? `Voir mon panier de commande (${nbLivrets} livret${nbLivrets > 1 ? "s" : ""})`
+                              : "Voir mon panier de commande"}
+                          </span>
+                        </Link>
+                      </div>
+                    </div>
+
                     {orderError && (
                       <p className="mt-2.5 flex items-start gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-[11px] leading-relaxed text-red-700">
                         <Warning size={13} weight="fill" className="mt-0.5 shrink-0" />
                         {orderError}
                       </p>
                     )}
-                  </>
+                  </div>
                 )}
 
                 {/*
@@ -2930,6 +3110,186 @@ export default function AdminModernTileEditor({
           <EssentialTemplate data={data} />
         )}
       </ApercuPleinEcran>
+
+      {/* Modale de création d'un 2ème livret */}
+      {modaleNouveauLivret && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !creationLivretEnCours) {
+              setModaleNouveauLivret(false);
+            }
+          }}
+        >
+          <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-[#EDD9A3]/60 max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setModaleNouveauLivret(false)}
+              disabled={creationLivretEnCours}
+              className="absolute top-5 right-5 p-2 rounded-full text-[#6B5D4E] hover:text-[#2A2016] hover:bg-gray-100 transition-colors cursor-pointer"
+              aria-label="Fermer"
+            >
+              <X size={18} weight="bold" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-[#C4714A]/10 text-[#C4714A] flex items-center justify-center shrink-0">
+                <HouseLine size={22} weight="duotone" />
+              </div>
+              <div>
+                <h3 className="font-[family-name:var(--font-display)] text-lg font-bold text-[#2A2016]">
+                  Créer un autre livret
+                </h3>
+                <p className="text-xs text-[#6B5D4E] mt-0.5">
+                  Préparez sa plaque et son livret numérique pour une commande groupée.
+                </p>
+              </div>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleCreerDeuxiemeLivret("editeur");
+              }}
+              className="mt-6 space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-bold text-[#5C3D2E] mb-1.5">
+                  Nom du logement / de la propriété
+                </label>
+                <input
+                  type="text"
+                  value={nouveauNom}
+                  onChange={(e) => setNouveauNom(e.target.value)}
+                  placeholder="Ex. Le Chalet des Cimes, Villa Belle Vue..."
+                  required
+                  disabled={creationLivretEnCours}
+                  autoFocus
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#EDD9A3] text-sm text-[#2A2016] placeholder:text-gray-400 focus:border-[#C4714A] focus:ring-2 focus:ring-[#C4714A]/20 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#5C3D2E] mb-1.5">
+                  Formule souhaitée
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setNouvelleFormule("comfort")}
+                    disabled={creationLivretEnCours}
+                    className={`rounded-2xl p-3.5 text-left border transition-all cursor-pointer ${
+                      nouvelleFormule === "comfort"
+                        ? "border-[#C4714A] bg-[#C4714A]/5 ring-1 ring-[#C4714A]"
+                        : "border-gray-200 bg-white hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13.5px] font-bold text-[#2A2016] flex items-center gap-1.5">
+                        <Sparkle size={14} weight="fill" className="text-[#C4714A]" />
+                        Confort
+                      </span>
+                      {nouvelleFormule === "comfort" && (
+                        <span className="w-4 h-4 rounded-full bg-[#C4714A] text-white flex items-center justify-center text-[10px]">
+                          <Check size={10} weight="bold" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[12px] font-semibold text-[#5C3D2E]">69 € à la commande</p>
+                    <p className="text-[10px] text-[#A8998A]">+ 1,99 €/m ou 19 €/an</p>
+                    <p className="mt-1.5 text-[10.5px] text-[#6B5D4E] leading-snug">
+                      Plaque noyer offerte, modifications illimitées, photos, météo & 5 langues.
+                    </p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setNouvelleFormule("essential")}
+                    disabled={creationLivretEnCours}
+                    className={`rounded-2xl p-3.5 text-left border transition-all cursor-pointer ${
+                      nouvelleFormule === "essential"
+                        ? "border-[#C4714A] bg-[#C4714A]/5 ring-1 ring-[#C4714A]"
+                        : "border-gray-200 bg-white hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13.5px] font-bold text-[#2A2016]">Essentielle</span>
+                      {nouvelleFormule === "essential" && (
+                        <span className="w-4 h-4 rounded-full bg-[#C4714A] text-white flex items-center justify-center text-[10px]">
+                          <Check size={10} weight="bold" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[12px] font-semibold text-[#5C3D2E]">49 € paiement unique</p>
+                    <p className="text-[10px] text-[#A8998A]">Sans abonnement</p>
+                    <p className="mt-1.5 text-[10.5px] text-[#6B5D4E] leading-snug">
+                      Plaque noyer incluse. Arrivée, départ, règles du logement & contacts.
+                    </p>
+                  </button>
+                </div>
+              </div>
+
+              {/* Rappel panier */}
+              <div className="rounded-2xl bg-[#F6F3ED] p-3.5 text-[11.5px] leading-relaxed text-[#6B5D4E]">
+                <p className="font-semibold text-[#2A2016] flex items-center gap-1.5">
+                  <CreditCard size={14} weight="bold" className="text-[#C4714A]" />
+                  <span>Aucun débit immédiat</span>
+                </p>
+                <p className="mt-1">
+                  Ce livret est créé en brouillon et ajouté à votre panier. Vous pourrez le configurer dès maintenant et régler tous vos livrets en une seule fois dans le panier lors de la commande finale.
+                </p>
+              </div>
+
+              {erreurCreationLivret && (
+                <p className="text-[12px] font-medium text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200">
+                  {erreurCreationLivret}
+                </p>
+              )}
+
+              <div className="pt-2 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+                <button
+                  type="button"
+                  disabled={creationLivretEnCours}
+                  onClick={() => setModaleNouveauLivret(false)}
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-[#6B5D4E] hover:bg-gray-100 transition-colors cursor-pointer"
+                >
+                  Annuler
+                </button>
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    disabled={creationLivretEnCours}
+                    onClick={() => void handleCreerDeuxiemeLivret("panier")}
+                    className="px-4 py-2.5 rounded-xl border border-[#EDD9A3] hover:border-[#C4714A] text-xs font-bold text-[#5C3D2E] hover:text-[#C4714A] bg-white transition-colors flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
+                  >
+                    <ShoppingCart size={14} weight="duotone" />
+                    <span>Créer et aller au panier</span>
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={creationLivretEnCours}
+                    className="px-5 py-2.5 rounded-xl bg-[#C4714A] hover:bg-[#A35A38] text-white text-xs font-bold shadow-md shadow-[#C4714A]/20 transition-all flex items-center justify-center gap-1.5 disabled:opacity-60 cursor-pointer"
+                  >
+                    {creationLivretEnCours ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Création en cours…</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Créer et commencer l’édition</span>
+                        <ArrowRight size={14} weight="bold" />
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
