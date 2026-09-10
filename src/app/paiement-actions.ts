@@ -1,7 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { hasValidAdminSession } from "@/lib/server/admin-auth";
 import { Accommodation } from "@/lib/types/accommodation";
 import { sessionModificationActive } from "@/lib/livret";
 import { taglineGravee } from "@/lib/plaque";
@@ -41,8 +41,7 @@ const PAYS_LIVRES = [
  * ouvrir un paiement pour le livret d'un autre — et le publier en payant.
  */
 async function verifierAcces(livret: Accommodation, jetonHote?: string) {
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value === "true") return;
+  if (await hasValidAdminSession()) return;
 
   if (!jetonHote) {
     throw new Error("Connectez-vous pour poursuivre votre commande.");

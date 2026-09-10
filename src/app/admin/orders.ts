@@ -2,8 +2,8 @@
 
 import { adminDb } from "@/lib/firebase/admin";
 import { FieldValue } from "firebase-admin/firestore";
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { requireAdminSession } from "@/lib/server/admin-auth";
 import {
   Accommodation, PlaqueOrder, PlaqueConfig, OrderStatus, AdressePostale,
 } from "@/lib/types/accommodation";
@@ -29,13 +29,6 @@ function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer)) as Promise<T>;
 }
 
-async function requireAdminAuth() {
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value !== "true") {
-    throw new Error("Unauthorized access. Admin privileges required.");
-  }
-}
-
 /* ══════════════════════════════════════════════════════════════════════════
    IDENTIFIANT PERMANENT
    ══════════════════════════════════════════════════════════════════════════ */
@@ -47,7 +40,7 @@ async function requireAdminAuth() {
  * précisément la garantie qui protège les plaques gravées.
  */
 export async function ensurePermanentId(accommodationId: string): Promise<string> {
-  await requireAdminAuth();
+  await requireAdminSession();
 
   const docRef = adminDb.collection(ACCOMMODATIONS).doc(accommodationId);
   const doc = await withTimeout(docRef.get(), `livret ${accommodationId}`);
@@ -105,7 +98,7 @@ export async function createPlaqueOrder(
   plaque: PlaqueConfig,
   origin: string
 ): Promise<PlaqueOrder> {
-  await requireAdminAuth();
+  await requireAdminSession();
 
   const docRef = adminDb.collection(ACCOMMODATIONS).doc(accommodationId);
   const doc = await withTimeout(docRef.get(), `livret ${accommodationId}`);
@@ -148,7 +141,7 @@ export async function createPlaqueOrder(
 }
 
 export async function getPlaqueOrders(): Promise<PlaqueOrder[]> {
-  await requireAdminAuth();
+  await requireAdminSession();
   const snapshot = await withTimeout(adminDb.collection(ORDERS).get(), "liste des commandes");
   return snapshot.docs
     .filter((d) => (d.data().createdAt || 0) >= DATE_LANCEMENT)
@@ -157,7 +150,7 @@ export async function getPlaqueOrders(): Promise<PlaqueOrder[]> {
 }
 
 export async function getOrdersForAccommodation(accommodationId: string): Promise<PlaqueOrder[]> {
-  await requireAdminAuth();
+  await requireAdminSession();
   const snapshot = await withTimeout(
     adminDb.collection(ORDERS).where("accommodationId", "==", accommodationId).get(),
     "commandes du livret"
@@ -169,7 +162,7 @@ export async function getOrdersForAccommodation(accommodationId: string): Promis
 }
 
 export async function updateOrderStatus(orderId: string, status: OrderStatus) {
-  await requireAdminAuth();
+  await requireAdminSession();
 
   const orderRef = adminDb.collection(ORDERS).doc(orderId);
   const snap = await withTimeout(orderRef.get(), `commande ${orderId}`);
@@ -222,7 +215,7 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
  * anomalie.
  */
 export async function getLivretStats(accommodationId: string): Promise<Record<string, unknown>> {
-  await requireAdminAuth();
+  await requireAdminSession();
   try {
     const doc = await withTimeout(
       adminDb.collection("stats").doc(accommodationId).get(),
@@ -274,7 +267,7 @@ export interface Expedition {
  * garantir qu'un des deux sera oublié.
  */
 export async function updateOrderShipping(orderId: string, expedition: Expedition) {
-  await requireAdminAuth();
+  await requireAdminSession();
 
   const orderRef = adminDb.collection(ORDERS).doc(orderId);
   const snap = await withTimeout(orderRef.get(), `commande ${orderId}`);

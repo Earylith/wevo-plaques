@@ -5,7 +5,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { Accommodation, PlaqueOrder } from "@/lib/types/accommodation";
 import { IndicateurLivret } from "@/lib/types/pilotage";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
+import { hasValidAdminSession, requireAdminSession } from "@/lib/server/admin-auth";
 
 const COLLECTION_NAME = "accommodations";
 
@@ -27,14 +27,6 @@ function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
     );
   });
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer)) as Promise<T>;
-}
-
-async function requireAdminAuth() {
-  const cookieStore = await cookies();
-  const isAdmin = cookieStore.get("admin_auth")?.value === "true";
-  if (!isAdmin) {
-    throw new Error("Unauthorized access. Admin privileges required.");
-  }
 }
 
 /**
@@ -92,7 +84,7 @@ function revalidateAccommodation(id: string, slug?: string) {
 import { DATE_LANCEMENT, estLivretDemo } from "@/lib/lancement";
 
 export async function getAdminAccommodations(): Promise<Accommodation[]> {
-  await requireAdminAuth();
+  await requireAdminSession();
   try {
     const snapshot = await withTimeout(adminDb.collection(COLLECTION_NAME).get(), "liste des livrets");
     const items = snapshot.docs.map((doc) => ({
@@ -148,7 +140,7 @@ export async function getAdminAccommodations(): Promise<Accommodation[]> {
 
 
 export async function toggleAccommodationStatus(id: string, currentStatus: boolean) {
-  await requireAdminAuth();
+  await requireAdminSession();
   try {
     const docRef = adminDb.collection(COLLECTION_NAME).doc(id);
     const doc = await docRef.get();
@@ -180,7 +172,7 @@ export async function toggleAccommodationStatus(id: string, currentStatus: boole
  * (`"ownerUid" in data` resterait vrai et piégerait toute logique ultérieure).
  */
 export async function detachOwnerAccount(id: string) {
-  await requireAdminAuth();
+  await requireAdminSession();
   try {
     const docRef = adminDb.collection(COLLECTION_NAME).doc(id);
     const doc = await docRef.get();
@@ -208,7 +200,7 @@ export async function detachOwnerAccount(id: string) {
  * n'est jamais recopié.
  */
 export async function duplicateAdminAccommodation(id: string) {
-  await requireAdminAuth();
+  await requireAdminSession();
   try {
     const source = await withTimeout(
       adminDb.collection(COLLECTION_NAME).doc(id).get(),
@@ -262,7 +254,7 @@ export async function duplicateAdminAccommodation(id: string) {
 }
 
 export async function deleteAdminAccommodation(id: string) {
-  await requireAdminAuth();
+  await requireAdminSession();
   try {
     await adminDb.collection(COLLECTION_NAME).doc(id).delete();
     revalidatePath("/admin/hebergements");
@@ -287,7 +279,7 @@ export async function seedDemos(
   demoBiarritzSeed?: DemoSeed,
   demoChamonixSeed?: DemoSeed
 ) {
-  await requireAdminAuth();
+  await requireAdminSession();
   try {
     const timestamp = Date.now();
     const demosModule = await import("@/lib/demoData");
@@ -316,7 +308,7 @@ export async function seedDemos(
 }
 
 export async function getAdminAccommodationById(id: string): Promise<Accommodation | null> {
-  await requireAdminAuth();
+  await requireAdminSession();
   try {
     const doc = await withTimeout(adminDb.collection(COLLECTION_NAME).doc(id).get(), `livret ${id}`);
     if (!doc.exists) {
@@ -383,7 +375,7 @@ async function assertSlugAvailable(slug: string | undefined, selfId?: string) {
 }
 
 export async function updateAdminAccommodation(id: string, data: Partial<Accommodation>) {
-  await requireAdminAuth();
+  await requireAdminSession();
   try {
     await assertSlugAvailable(data.slug, id);
 
@@ -426,7 +418,7 @@ export async function updateAdminAccommodation(id: string, data: Partial<Accommo
  * Idempotent — republier ne réécrit pas la date de première publication.
  */
 export async function publishAdminAccommodation(id: string) {
-  await requireAdminAuth();
+  await requireAdminSession();
   try {
     const docRef = adminDb.collection(COLLECTION_NAME).doc(id);
     const doc = await withTimeout(docRef.get(), `livret ${id}`);
@@ -456,7 +448,7 @@ export async function publishAdminAccommodation(id: string) {
 
 /** Repasse un livret en brouillon (page publique masquée). */
 export async function unpublishAdminAccommodation(id: string) {
-  await requireAdminAuth();
+  await requireAdminSession();
   try {
     const docRef = adminDb.collection(COLLECTION_NAME).doc(id);
     const doc = await withTimeout(docRef.get(), `livret ${id}`);
@@ -478,7 +470,7 @@ export async function unpublishAdminAccommodation(id: string) {
 }
 
 export async function createAdminAccommodation(data: Omit<Accommodation, "id" | "createdAt" | "updatedAt">) {
-  await requireAdminAuth();
+  await requireAdminSession();
   try {
     await assertSlugAvailable(data.slug);
 
@@ -514,8 +506,7 @@ export async function createAdminAccommodation(data: Omit<Accommodation, "id" | 
  * pour l'administration, appelée depuis l'espace client.
  */
 async function autoriserEnvoiImage(jetonHote?: string) {
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value === "true") return;
+  if (await hasValidAdminSession()) return;
 
   if (!jetonHote) {
     throw new Error("Connectez-vous pour envoyer une photo.");
@@ -580,7 +571,7 @@ export async function uploadAdminImageAction(
  * empêcher de gérer les hébergements.
  */
 export async function getIndicateursLivrets(): Promise<Record<string, IndicateurLivret>> {
-  await requireAdminAuth();
+  await requireAdminSession();
 
   const [statsSnap, ordersSnap] = await Promise.all([
     withTimeout(adminDb.collection("stats").get(), "statistiques").catch(() => null),
@@ -660,7 +651,7 @@ export async function nettoyerDonneesTestsAdmin(): Promise<{
   signalementsSupprimes: number;
   emailsSupprimes: number;
 }> {
-  await requireAdminAuth();
+  await requireAdminSession();
 
   let hebergementsSupprimes = 0;
   let commandesSupprimees = 0;
@@ -762,4 +753,3 @@ export async function nettoyerDonneesTestsAdmin(): Promise<{
     emailsSupprimes,
   };
 }
-

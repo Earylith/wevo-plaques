@@ -1,7 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { hasValidAdminSession } from "@/lib/server/admin-auth";
 import { Accommodation, OfferType } from "@/lib/types/accommodation";
 import { createEmptyAccommodation } from "@/lib/livret";
 import { slugify } from "@/lib/utils";
@@ -178,8 +178,7 @@ export async function changerFormuleBrouillon(
    * L'appelant doit être le propriétaire, ou Guidz. Sans cette vérification,
    * un identifiant deviné suffirait à changer la formule du livret d'un autre.
    */
-  const cookieStore = await cookies();
-  const estGuidz = cookieStore.get("admin_auth")?.value === "true";
+  const estGuidz = await hasValidAdminSession();
 
   if (!estGuidz) {
     if (!jetonHote) throw new Error("Connectez-vous pour changer de formule.");
@@ -236,8 +235,7 @@ export async function alignerAdresseSurLeNom(
   const livret = doc.data() as Accommodation;
 
   // L'appelant doit être le propriétaire, ou l'administration Guidz.
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value !== "true") {
+  if (!(await hasValidAdminSession())) {
     if (!jetonHote) throw new Error("Connectez-vous pour modifier votre livret.");
     const jeton = await adminAuth.verifyIdToken(jetonHote);
     if (!livret.ownerUid || livret.ownerUid !== jeton.uid) {

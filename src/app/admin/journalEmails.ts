@@ -1,7 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { adminDb } from "@/lib/firebase/admin";
+import { requireAdminSession as exigerAdmin } from "@/lib/server/admin-auth";
 import { DATE_LANCEMENT } from "@/lib/lancement";
 
 /**
@@ -23,13 +23,6 @@ import { DATE_LANCEMENT } from "@/lib/lancement";
  */
 
 const JOURNAL = "email_log";
-
-async function exigerAdmin() {
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value !== "true") {
-    throw new Error("Accès réservé.");
-  }
-}
 
 export type StatutEnvoi = "envoye" | "refuse" | "injoignable" | "non-configure";
 

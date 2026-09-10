@@ -1,8 +1,8 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { after } from "next/server";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { hasValidAdminSession } from "@/lib/server/admin-auth";
 import { Accommodation, TranslationJob } from "@/lib/types/accommodation";
 import { TranslationLayer, Translations } from "@/lib/i18n";
 
@@ -50,8 +50,7 @@ export interface TranslateResult {
  * production, et non un caprice du service de traduction.
  */
 async function autoriser(jetonHote?: string) {
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value === "true") return;
+  if (await hasValidAdminSession()) return;
   if (!jetonHote) throw new Error("Connectez-vous pour utiliser la traduction.");
   await adminAuth.verifyIdToken(jetonHote);
 }

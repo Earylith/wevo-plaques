@@ -1,7 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { adminAuth } from "@/lib/firebase/admin";
+import { hasValidAdminSession } from "@/lib/server/admin-auth";
 import { PlaceResult, LatLon, categoryFromOsm } from "@/lib/geo";
 
 /**
@@ -47,8 +47,7 @@ let lastCallAt = 0;
  * logement, qui dépend de l'adresse.
  */
 async function autoriser(jetonHote?: string) {
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value === "true") return;
+  if (await hasValidAdminSession()) return;
 
   if (!jetonHote) {
     throw new Error("Connectez-vous pour rechercher une adresse.");

@@ -1,7 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { adminDb } from "@/lib/firebase/admin";
+import { requireAdminSession } from "@/lib/server/admin-auth";
 import { DemandeDevis } from "@/app/devis-actions";
 import { DATE_LANCEMENT } from "@/lib/lancement";
 
@@ -23,15 +23,8 @@ export interface DemandeEnregistree extends DemandeDevis {
   notifiedAt?: number;
 }
 
-async function exigerAdmin() {
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value !== "true") {
-    throw new Error("Accès réservé à l’administration.");
-  }
-}
-
 export async function listerDemandesDevis(): Promise<DemandeEnregistree[]> {
-  await exigerAdmin();
+  await requireAdminSession();
 
   const snapshot = await adminDb.collection(DEMANDES).get();
 
@@ -53,7 +46,7 @@ export async function listerDemandesDevis(): Promise<DemandeEnregistree[]> {
 }
 
 export async function marquerDemandeTraitee(id: string): Promise<void> {
-  await exigerAdmin();
+  await requireAdminSession();
   await adminDb.collection(DEMANDES).doc(id).update({
     statut: "traitee",
     handledAt: Date.now(),

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { hasValidAdminSession } from "@/lib/server/admin-auth";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { parcourirSvg, lireTrace, appliquer } from "@/lib/server/gravure/svg";
@@ -21,9 +21,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value !== "true") {
-    return NextResponse.json({ error: "Accès réservé." }, { status: 403 });
+  if (!(await hasValidAdminSession())) {
+    return NextResponse.json({ error: "Session administrateur invalide." }, { status: 401 });
   }
 
   const source = readFileSync(

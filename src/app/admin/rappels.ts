@@ -1,7 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { adminDb } from "@/lib/firebase/admin";
+import { requireAdminSession as exigerAdmin } from "@/lib/server/admin-auth";
 import { Creneau } from "@/lib/rappel";
 import { DATE_LANCEMENT } from "@/lib/lancement";
 
@@ -15,13 +15,6 @@ import { DATE_LANCEMENT } from "@/lib/lancement";
  */
 
 const RAPPELS = "callbacks";
-
-async function exigerAdmin() {
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value !== "true") {
-    throw new Error("Accès réservé.");
-  }
-}
 
 export type StatutRappel = "a_rappeler" | "rappele" | "injoignable";
 

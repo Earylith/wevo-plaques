@@ -1,7 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { requireAdminSession as exigerAdmin } from "@/lib/server/admin-auth";
 import { Accommodation, PlaqueOrder, OfferType } from "@/lib/types/accommodation";
 import { DATE_LANCEMENT } from "@/lib/lancement";
 
@@ -20,13 +20,6 @@ import { DATE_LANCEMENT } from "@/lib/lancement";
 
 const ACCOMMODATIONS = "accommodations";
 const ORDERS = "orders";
-
-async function exigerAdmin() {
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value !== "true") {
-    throw new Error("Accès réservé.");
-  }
-}
 
 export interface Inscrit {
   uid: string;

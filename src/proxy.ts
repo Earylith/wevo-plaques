@@ -1,28 +1,49 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import {
+  ADMIN_SESSION_COOKIE,
+  verifyAdminSessionCookie,
+} from "@/lib/server/admin-auth";
 
-export function proxy(request: NextRequest) {
-  const isAdminPath = request.nextUrl.pathname.startsWith('/admin');
-  const isLoginPage = request.nextUrl.pathname === '/admin/login';
-  
-  if (isAdminPath) {
-    const authCookie = request.cookies.get('admin_auth');
-    const isAuthenticated = authCookie?.value === 'true';
+export async function proxy(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  const isAdminPath = pathname.startsWith("/admin");
+  const isAdminApi = pathname.startsWith("/api/admin");
+  const isLoginPage = pathname === "/admin/login";
+  const isSessionEndpoint = pathname === "/api/admin/session";
 
-    // If trying to access admin pages but not authenticated, redirect to login
-    if (!isAuthenticated && !isLoginPage) {
-      return NextResponse.redirect(new URL('/admin/login', request.url));
-    }
+  // L'endpoint de connexion vérifie lui-même l'ID token et le rôle avant de
+  // créer le cookie. Il doit rester joignable sans session existante.
+  if (isSessionEndpoint) return NextResponse.next();
 
-    // If trying to access login page but already authenticated, redirect to admin home
-    if (isAuthenticated && isLoginPage) {
-      return NextResponse.redirect(new URL('/admin/hebergements', request.url));
-    }
+  const rawSession = request.cookies.get(ADMIN_SESSION_COOKIE)?.value;
+  const session = await verifyAdminSessionCookie(rawSession);
+
+  if (isAdminApi && !session) {
+    const response = NextResponse.json({ error: "Session administrateur invalide." }, { status: 401 });
+    if (rawSession) response.cookies.delete(ADMIN_SESSION_COOKIE);
+    response.cookies.delete("admin_auth");
+    return response;
   }
 
-  return NextResponse.next();
+  if (isAdminPath && !isLoginPage && !session) {
+    const response = NextResponse.redirect(new URL("/admin/login", request.url));
+    if (rawSession) response.cookies.delete(ADMIN_SESSION_COOKIE);
+    response.cookies.delete("admin_auth");
+    return response;
+  }
+
+  if (isLoginPage && session) {
+    const response = NextResponse.redirect(new URL("/admin/hebergements", request.url));
+    response.cookies.delete("admin_auth");
+    return response;
+  }
+
+  const response = NextResponse.next();
+  response.cookies.delete("admin_auth");
+  return response;
 }
 
 export const config = {
-  matcher: '/admin/:path*',
+  matcher: ["/admin/:path*", "/api/admin/:path*"],
 };

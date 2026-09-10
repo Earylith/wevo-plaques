@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "@/lib/firebase/auth";
+import { signIn, signOut } from "@/lib/firebase/auth";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -18,15 +18,23 @@ export default function AdminLogin() {
 
     try {
       const credential = await signIn(email, password);
-      
-      // Sécurité supplémentaire : vérifier que c'est bien l'admin
-      if (credential.user.email !== "valentin.joanne33@gmail.com") {
-        throw new Error("Accès refusé. Vous n'êtes pas administrateur.");
+
+      // Le serveur vérifie la signature Firebase, la fraîcheur du login et le
+      // custom claim administrateur avant de créer un cookie HttpOnly signé.
+      const idToken = await credential.user.getIdToken(true);
+      const response = await fetch("/api/admin/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ idToken }),
+      });
+
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { error?: string } | null;
+        await signOut();
+        throw new Error(body?.error || "Accès administrateur refusé.");
       }
 
-      // Si ok, on place le cookie de session Admin
-      document.cookie = "admin_auth=true; path=/; max-age=86400"; // 24h
-      router.push("/admin/hebergements");
+      router.replace("/admin/hebergements");
       router.refresh();
 
     } catch (err: unknown) {

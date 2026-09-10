@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { hasValidAdminSession } from "@/lib/server/admin-auth";
 import { adminDb } from "@/lib/firebase/admin";
 import { PlaqueOrder } from "@/lib/types/accommodation";
 import QRCode from "qrcode";
@@ -24,9 +24,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value !== "true") {
-    return NextResponse.json({ error: "Accès réservé." }, { status: 403 });
+  if (!(await hasValidAdminSession())) {
+    return NextResponse.json({ error: "Session administrateur invalide." }, { status: 401 });
   }
 
   const { orderId } = await params;

@@ -6,6 +6,7 @@ import {
   ClockCounterClockwise, UsersThree, PhoneCall,
 } from "@phosphor-icons/react";
 import Link from "next/link";
+import { signOut } from "@/lib/firebase/auth";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -13,10 +14,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   
   const isLoginPage = pathname === "/admin/login";
 
-  const handleLogout = () => {
-    document.cookie = "admin_auth=; path=/; max-age=0";
-    router.push("/admin/login");
-    router.refresh();
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/admin/session", { method: "DELETE" });
+    } finally {
+      await signOut().catch(() => undefined);
+      router.replace("/admin/login");
+      router.refresh();
+    }
   };
 
   if (isLoginPage) {
@@ -150,7 +155,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         
         <div className="p-4">
           <button 
-            onClick={handleLogout}
+            onClick={() => void handleLogout()}
             className="flex items-center gap-3 px-4 py-3 rounded-xl text-white/50 hover:bg-white/5 hover:text-white transition-colors w-full text-left"
           >
             <SignOut size={20} />

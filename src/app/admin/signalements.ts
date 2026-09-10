@@ -1,8 +1,8 @@
 "use server";
 
 import { adminDb } from "@/lib/firebase/admin";
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { requireAdminSession as exigerAdmin } from "@/lib/server/admin-auth";
 import { MotifSignalement } from "@/lib/signalement";
 import { DATE_LANCEMENT } from "@/lib/lancement";
 
@@ -16,13 +16,6 @@ import { DATE_LANCEMENT } from "@/lib/lancement";
  */
 
 const SIGNALEMENTS = "reports";
-
-async function exigerAdmin() {
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value !== "true") {
-    throw new Error("Accès réservé.");
-  }
-}
 
 export type StatutSignalement = "nouveau" | "traite" | "rejete";
 

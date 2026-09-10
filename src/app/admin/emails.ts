@@ -1,7 +1,7 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
+import { requireAdminSession as exigerAdmin } from "@/lib/server/admin-auth";
 import {
   messageBienvenue, messageCommande, messageExpedition, messageDevis,
   messageResiliation, messageCommandeAdmin, Message,
@@ -25,13 +25,6 @@ import { envoyerCourriel, messagerieConfiguree } from "@/lib/server/email";
  * relais de courrier indésirable offert au premier venu.
  */
 
-async function exigerAdmin() {
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value !== "true") {
-    throw new Error("Accès réservé.");
-  }
-}
-
 const ADRESSE = {
   line1: "12 rue des Lauriers",
   line2: "Bâtiment B, 3e étage",
@@ -51,6 +44,8 @@ export async function exempleMessage(
   prenom = "Sami",
   textes?: TextesEmails
 ): Promise<Message> {
+  await exigerAdmin();
+
   if (type === "bienvenue") {
     return messageBienvenue({ prenom, formule: "comfort", livretId: "exemple" }, textes);
   }
@@ -186,6 +181,8 @@ export async function envoyerEssai(
 
 /** Exemple représentatif de la notification interne envoyée à contact@guidzme.fr */
 export async function exempleCommandeAdmin(): Promise<Message> {
+  await exigerAdmin();
+
   return messageCommandeAdmin({
     reference: "GUIDZ-1042",
     nomLogement: "Le Mas des Oliviers",

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { hasValidAdminSession } from "@/lib/server/admin-auth";
 import { exempleMessage, exempleCommandeAdmin } from "@/app/admin/emails";
 import { CleMessage } from "@/lib/emailsTextes";
 
@@ -19,9 +19,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const cookieStore = await cookies();
-  if (cookieStore.get("admin_auth")?.value !== "true") {
-    return NextResponse.json({ error: "Accès réservé." }, { status: 403 });
+  if (!(await hasValidAdminSession())) {
+    return NextResponse.json({ error: "Session administrateur invalide." }, { status: 401 });
   }
 
   const typeParam = request.nextUrl.searchParams.get("type") || "bienvenue";
