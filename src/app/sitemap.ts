@@ -45,6 +45,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.7,
     },
     {
+      url: urlAbsolue("/parrainage"),
+      lastModified: maintenant,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
       url: urlAbsolue("/devis"),
       lastModified: maintenant,
       changeFrequency: "monthly",

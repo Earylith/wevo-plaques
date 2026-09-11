@@ -22,6 +22,7 @@ import {
   releaseInvoiceAdjustment,
   reverseReferralAcquisition,
 } from "@/lib/server/referrals";
+import { completeCartCheckout } from "@/lib/server/cart-tracking";
 
 /**
  * Réception des événements Stripe.
@@ -749,10 +750,12 @@ export async function POST(request: NextRequest) {
           const origin =
             process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
           await traiterPaiementPanier(session, origin);
+          await completeCartCheckout(session);
         } else {
           const origin =
             process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
           await traiterPaiement(session, origin);
+          await completeCartCheckout(session);
         }
         await confirmReferralCheckout(session);
       }

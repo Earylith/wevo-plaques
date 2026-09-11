@@ -13,12 +13,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ cod
   const { code: rawCode } = await context.params;
   const code = normalizeReferralCode(rawCode);
   if (!code || !(await referralCodeExists(code))) {
-    const response = NextResponse.redirect(new URL("/parrainage", request.url));
+    const response = NextResponse.redirect(new URL("/parrainage?invitation=invalide", request.url));
     response.cookies.set({ name: REFERRAL_COOKIE, value: "", maxAge: 0, path: "/" });
     return response;
   }
 
-  const response = NextResponse.redirect(new URL("/parrainage", request.url));
+  const response = NextResponse.redirect(new URL("/parrainage?invitation=active", request.url));
   response.cookies.set({
     name: REFERRAL_COOKIE,
     value: createReferralCookieValue(code),

@@ -11,6 +11,7 @@ export type CleMessage =
   | "bienvenue"
   | "commande"
   | "commande_admin"
+  | "panier_abandonne"
   | "expedition"
   | "devis"
   | "resiliation";
@@ -53,6 +54,12 @@ export const VARIABLES: Record<CleMessage, { cle: string; sens: string }[]> = {
     { cle: "{essence}", sens: "L’essence de bois choisie" },
     { cle: "{gravure}", sens: "La mention gravée" },
     { cle: "{montant}", sens: "Le montant réglé" },
+  ],
+  panier_abandonne: [
+    { cle: "{prenom}", sens: "Le prénom de l’hôte, s’il est connu" },
+    { cle: "{nombre}", sens: "Le nombre déjà accordé, par exemple « 2 livrets »" },
+    { cle: "{logements}", sens: "Les noms des logements concernés" },
+    { cle: "{montant}", sens: "La valeur actuelle estimée du panier" },
   ],
   expedition: [
     { cle: "{prenom}", sens: "Le prénom de l’hôte" },
@@ -107,6 +114,17 @@ export const TEXTES_PAR_DEFAUT: TextesEmails = {
     ],
     postScriptum:
       "Retrouvez toutes les commandes dans l'onglet Commandes de l'administration Guidz.",
+  },
+  panier_abandonne: {
+    sujet: "Votre panier Guidzme vous attend",
+    titre: "Votre projet est toujours là, {prenom}",
+    paragraphes: [
+      "Vous aviez préparé {nombre} pour {logements}. Tout a été conservé dans votre espace : vos textes, vos choix de formule et la personnalisation de vos plaques.",
+      "Votre panier est actuellement estimé à {montant}. Vous pouvez le reprendre là où vous l’avez laissé, le modifier ou simplement vérifier son récapitulatif avant de décider.",
+      "Si une question vous bloque avant la commande, répondez simplement à ce message. Nous pouvons regarder votre projet avec vous.",
+    ],
+    postScriptum:
+      "Ce message est un rappel envoyé manuellement par l’équipe Guidzme. Rien n’a été commandé ni débité.",
   },
   expedition: {
     sujet: "Votre plaque est en route — {reference}",

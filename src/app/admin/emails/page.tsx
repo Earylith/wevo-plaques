@@ -7,7 +7,6 @@ import {
 } from "@phosphor-icons/react";
 import {
   envoyerEssai, etatMessagerie, chargerTextes, enregistrerTexte, retablirTexte,
-  envoyerEssaiCommandeAdmin,
 } from "../emails";
 import { CleMessage, TexteMessage, TextesEmails, VARIABLES } from "@/lib/emailsTextes";
 
@@ -40,6 +39,12 @@ const MESSAGES: { cle: CleMessage; titre: string; quand: string }[] = [
     titre: "Nouvelle commande (Guidz)",
     quand:
       "À l’encaissement, depuis le webhook Stripe. Envoyé à contact@guidzme.fr avec tous les détails de fabrication (essence, gravure, QR, adresse, coordonnées client).",
+  },
+  {
+    cle: "panier_abandonne",
+    titre: "Panier abandonné",
+    quand:
+      "Uniquement lorsqu’un administrateur clique sur « Envoyer la relance » depuis le centre Paniers. Jamais automatiquement.",
   },
   {
     cle: "expedition",
@@ -156,10 +161,10 @@ export default function EmailsPage() {
     <div>
       <div className="mb-6">
         <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-[#2A2016]">
-          E-mails transactionnels
+          E-mails
         </h1>
         <p className="mt-1 text-sm text-[#6B5D4E]">
-          Messages clients et alertes internes : relisez-les, modifiez le texte, essayez-les.
+          Messages automatiques et relances manuelles : relisez-les, modifiez le texte, essayez-les.
         </p>
       </div>
 

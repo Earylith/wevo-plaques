@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, CaretDown, Check, HouseLine, LockSimple, Package, PencilSimple, Plus, ShoppingCart, Sparkle, Trash, Truck, X } from "@phosphor-icons/react";
-import { type LivretResume, creerNouveauLivret, supprimerLivretBrouillon, modifierPlaqueBrouillon } from "@/app/espace-actions";
+import { type LivretResume, creerNouveauLivret, marquerConsultationPanier, supprimerLivretBrouillon, modifierPlaqueBrouillon } from "@/app/espace-actions";
 import { changerFormuleBrouillon } from "@/app/creation-actions";
 import { ouvrirPaiementPanier } from "@/app/paiement-actions";
 import type { RythmeAbonnement } from "@/lib/stripe";
@@ -49,6 +49,7 @@ export default function PanierCommande({ ouvert, onFermer, livrets, onLivretsCha
   const bodyRef = useRef<HTMLDivElement>(null);
   const ajoutRef = useRef<HTMLDivElement>(null);
   const recapRef = useRef<HTMLElement>(null);
+  const jetonHoteRef = useRef(jetonHote);
   const id = useId();
   const [rythme, setRythme] = useState<RythmeAbonnement>("mensuel");
   // Mémoriser les exclusions sélectionne aussi les nouveaux brouillons reçus après le montage.
@@ -66,6 +67,17 @@ export default function PanierCommande({ ouvert, onFermer, livrets, onLivretsCha
   const [paiementEnCours, setPaiementEnCours] = useState(false);
   const [erreurPaiement, setErreurPaiement] = useState<string | null>(null);
   const [recapVisible, setRecapVisible] = useState(false);
+
+  useEffect(() => {
+    jetonHoteRef.current = jetonHote;
+  }, [jetonHote]);
+
+  useEffect(() => {
+    if (!ouvert) return;
+    void jetonHoteRef.current()
+      .then((jeton) => jeton ? marquerConsultationPanier(jeton) : undefined)
+      .catch((error) => console.error("[consultation panier]", error));
+  }, [ouvert]);
 
   // Le dialogue natif retient le focus, rend l'arrière-plan inerte et restitue le focus à la fermeture.
   useEffect(() => {

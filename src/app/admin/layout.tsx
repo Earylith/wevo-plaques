@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import {
   List, Plus, SignOut, Package, Envelope, PaperPlaneTilt, Flag,
-  ClockCounterClockwise, UsersThree, PhoneCall,
+  ClockCounterClockwise, UsersThree, PhoneCall, Gift, ShoppingCart,
 } from "@phosphor-icons/react";
 import Link from "next/link";
 import { signOut } from "@/lib/firebase/auth";
@@ -39,7 +39,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <p className="text-xs text-white/50 uppercase tracking-widest">Espace Pro</p>
         </div>
         
-        <nav className="flex-1 px-4 space-y-2 mt-4">
+        <nav className="flex-1 overflow-y-auto px-4 space-y-2 mt-4 pb-4">
           <Link 
             href="/admin/hebergements" 
             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
@@ -136,6 +136,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             <UsersThree size={20} />
             <span className="font-medium text-sm">Utilisateurs</span>
+          </Link>
+
+          <Link
+            href="/admin/parrainages"
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+              pathname === "/admin/parrainages" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <Gift size={20} />
+            <span className="font-medium text-sm">Parrainages</span>
+          </Link>
+
+          <Link
+            href="/admin/paniers"
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+              pathname === "/admin/paniers" ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/10 hover:text-white"
+            }`}
+          >
+            <ShoppingCart size={20} />
+            <span className="font-medium text-sm">Paniers</span>
           </Link>
 
           {/*

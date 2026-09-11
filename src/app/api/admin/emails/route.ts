@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   let message;
   if (typeParam === "commande_admin" || typeParam === "commande-admin") {
     message = await exempleCommandeAdmin();
-  } else if (["bienvenue", "commande", "expedition", "devis", "resiliation"].includes(typeParam)) {
+  } else if (["bienvenue", "commande", "panier_abandonne", "expedition", "devis", "resiliation"].includes(typeParam)) {
     // Le texte en vigueur, pas le texte d’origine : l’aperçu doit montrer ce
     // qui partira réellement, modifications de l’administration comprises.
     message = await exempleMessage(typeParam as CleMessage);

@@ -19,6 +19,7 @@ const navLinks = [
   { label: "Démo", href: "/#demo" },
   { label: "Fonctionnalités", href: "/#fonctionnalites" },
   { label: "Formules", href: "/#offres" },
+  { label: "Parrainage", href: "/parrainage" },
   { label: "Pro", href: "/#pro" },
   { label: "FAQ", href: "/#faq" },
 ];
@@ -61,7 +62,7 @@ export default function Header() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex items-center gap-7 xl:gap-9">
+          <nav className="hidden lg:flex items-center gap-5 xl:gap-7">
             {navLinks.map((link) => (
               <Link
                 key={link.href}

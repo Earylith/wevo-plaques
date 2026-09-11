@@ -7,6 +7,7 @@ import { LivretStats } from "@/lib/stats";
 import { stripe, paiementConfigure } from "@/lib/stripe";
 import { createEmptyAccommodation } from "@/lib/livret";
 import { slugify } from "@/lib/utils";
+import { recordCartView } from "@/lib/server/cart-tracking";
 
 /**
  * Données de l'espace client.
@@ -531,6 +532,35 @@ export async function marquerVisiteEditeur(
     await ref.update({ derniereVisiteEditeur: Date.now() });
   } catch (error) {
     console.error("[visite éditeur]", error);
+  }
+}
+
+/**
+ * Note l'ouverture du panier par son propriétaire. La mesure reste côté
+ * serveur : un UID fourni par le navigateur ne suffit jamais à attribuer une
+ * intention d'achat à quelqu'un.
+ */
+export async function marquerConsultationPanier(jetonHote: string): Promise<void> {
+  try {
+    const jeton = await adminAuth.verifyIdToken(jetonHote, true);
+    const livrets = await adminDb
+      .collection(ACCOMMODATIONS)
+      .where("ownerUid", "==", jeton.uid)
+      .get();
+    const itemIds = livrets.docs
+      .filter((doc) => !(doc.data() as Accommodation).isActive)
+      .map((doc) => doc.id);
+    if (itemIds.length === 0) return;
+
+    await recordCartView({
+      ownerUid: jeton.uid,
+      ownerEmail: jeton.email || "",
+      ownerName: typeof jeton.name === "string" ? jeton.name : "",
+      itemIds,
+    });
+  } catch (error) {
+    // Une mesure commerciale ne doit jamais empêcher l'hôte de commander.
+    console.error("[consultation panier]", error);
   }
 }
 

@@ -137,6 +137,51 @@ export async function messageBienvenue(
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   PANIER ABANDONNÉ — relance déclenchée manuellement depuis l'administration
+   ══════════════════════════════════════════════════════════════════════════ */
+
+export async function messagePanierAbandonne(
+  donnees: {
+    prenom?: string;
+    logements: string[];
+    montant: string;
+    nombre: number;
+    confort: number;
+    essentielle: number;
+  },
+  textes?: TextesEmails
+): Promise<Message> {
+  const noms = donnees.logements.filter(Boolean).join(", ") || "votre projet";
+  const modele = rendre(await texteDe("panier_abandonne", textes), {
+    prenom: donnees.prenom,
+    nombre: `${donnees.nombre} livret${donnees.nombre > 1 ? "s" : ""}`,
+    logements: noms,
+    montant: donnees.montant,
+  });
+
+  const faits: Fait[] = [
+    { intitule: "Livrets", valeur: String(donnees.nombre), fort: true },
+  ];
+  if (donnees.confort) faits.push({ intitule: "Formule Confort", valeur: String(donnees.confort) });
+  if (donnees.essentielle) faits.push({ intitule: "Formule Essentielle", valeur: String(donnees.essentielle) });
+  faits.push({ intitule: "Panier estimé", valeur: donnees.montant, fort: true });
+
+  return composer({
+    sujet: modele.sujet,
+    apercu: "Votre projet Guidzme a été conservé dans votre espace.",
+    titre: modele.titre,
+    corps: modele.paragraphes,
+    titreFaits: "Votre panier",
+    faits,
+    bouton: {
+      libelle: "Reprendre mon panier",
+      href: urlAbsolue("/proprietaire/dashboard?panier=1"),
+    },
+    postScriptum: modele.postScriptum,
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    2. COMMANDE — le paiement est confirmé
    ══════════════════════════════════════════════════════════════════════════ */
 

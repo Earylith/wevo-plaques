@@ -19,6 +19,7 @@ import {
   stripe, tarifsFormule, tarifsBascule, tarifSessionModification,
   paiementConfigure, RythmeAbonnement, tarifAbonnement,
 } from "@/lib/stripe";
+import { recordCartCheckout } from "@/lib/server/cart-tracking";
 
 /**
  * Ouverture du paiement, quelle que soit la formule.
@@ -161,6 +162,16 @@ export async function ouvrirPaiement(
   });
 
   if (!session.url) throw new Error("Stripe n’a pas renvoyé d’adresse de paiement.");
+  if (ownerUid) {
+    await recordCartCheckout({
+      ownerUid,
+      ownerEmail: livret.owner?.email || "",
+      ownerName: livret.owner?.name || "",
+      items: [livret],
+      rhythm: rythme,
+      session,
+    }).catch((error) => console.error("[suivi panier]", error));
+  }
   if (referral) await attachCheckoutSession(referral, session.id);
   return { url: session.url, reference: session.id };
 }
@@ -433,6 +444,14 @@ export async function ouvrirPaiementPanier(
   });
 
   if (!session.url) throw new Error("Stripe n’a pas renvoyé d’adresse de paiement.");
+  await recordCartCheckout({
+    ownerUid: uid,
+    ownerEmail: jeton.email || livrets[0]?.owner?.email || "",
+    ownerName: typeof jeton.name === "string" ? jeton.name : livrets[0]?.owner?.name || "",
+    items: livrets,
+    rhythm: rythme,
+    session,
+  }).catch((error) => console.error("[suivi panier]", error));
   if (referral) await attachCheckoutSession(referral, session.id);
   return { url: session.url, reference: session.id };
 }

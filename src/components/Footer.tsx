@@ -117,7 +117,8 @@ export default function Footer() {
                 { label: 'Démo', href: '/#demo' },
                 { label: 'Tous les livrets de démonstration', href: '/livrets-demo' },
                 { label: 'Fonctionnalités', href: '/#fonctionnalites' },
-                { label: 'Formules et tarifs', href: '/#offres' }
+                { label: 'Formules et tarifs', href: '/#offres' },
+                { label: 'Programme de parrainage', href: '/parrainage' }
               ].map((item) => (
                 <li key={item.label}>
                   <Link href={item.href} className="text-[15px] text-white/60 hover:text-white hover:translate-x-1.5 transition-all inline-block font-light">

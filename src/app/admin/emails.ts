@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdminSession as exigerAdmin } from "@/lib/server/admin-auth";
 import {
   messageBienvenue, messageCommande, messageExpedition, messageDevis,
-  messageResiliation, messageCommandeAdmin, Message,
+  messageResiliation, messageCommandeAdmin, messagePanierAbandonne, Message,
 } from "@/lib/server/emails/messages";
 import {
   lireTextesEmails, ecrireTexteEmail, retablirTexteEmail,
@@ -84,6 +84,19 @@ export async function exempleMessage(
         adresse: ADRESSE,
         telephoneLivraison: "06 12 34 56 78",
         dateCommande: "7 septembre 2026 à 18:15",
+      },
+      textes
+    );
+  }
+  if (type === "panier_abandonne") {
+    return messagePanierAbandonne(
+      {
+        prenom,
+        logements: ["Le Mas des Oliviers", "La Petite Maison"],
+        montant: "139,99 €",
+        nombre: 2,
+        confort: 1,
+        essentielle: 1,
       },
       textes
     );
