@@ -2,15 +2,16 @@
 
 import { useEffect, useState, use } from "react";
 import { fetchPublicAccommodation, submitInventoryReportAction } from "@/app/public-actions";
-import { uploadImage } from "@/lib/firebase/storage";
-import { Accommodation } from "@/lib/types/accommodation";
+import type { PublicModuleAccommodation } from "@/app/public-actions";
+import { envoyerImage } from "@/lib/envoyerImage";
+import { auth } from "@/lib/firebase/config";
+import { onAuthChange } from "@/lib/firebase/auth";
 import { Camera, CheckCircle, ArrowLeft } from "@phosphor-icons/react";
 import Link from "next/link";
-import { v4 as uuidv4 } from "uuid"; // We'll just generate an ID, or we can use crypto.randomUUID
 
 export default function EtatDesLieuxPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const [accommodation, setAccommodation] = useState<Accommodation | null>(null);
+  const [accommodation, setAccommodation] = useState<PublicModuleAccommodation | null>(null);
   const [loading, setLoading] = useState(true);
   
   const [type, setType] = useState<"arrival" | "departure">("arrival");
@@ -22,9 +23,12 @@ export default function EtatDesLieuxPage({ params }: { params: Promise<{ slug: s
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    fetchPublicAccommodation(slug)
-      .then(setAccommodation)
-      .finally(() => setLoading(false));
+    const unsubscribe = onAuthChange(async (user) => {
+      const jeton = await user?.getIdToken().catch(() => undefined);
+      setAccommodation(await fetchPublicAccommodation(slug, jeton));
+      setLoading(false);
+    });
+    return unsubscribe;
   }, [slug]);
 
   if (loading) {
@@ -43,6 +47,17 @@ export default function EtatDesLieuxPage({ params }: { params: Promise<{ slug: s
         <Link href={`/h/${slug}`} className="mt-4 text-[#C4714A] hover:underline">
           Retour au livret
         </Link>
+      </div>
+    );
+  }
+
+  if (!accommodation.canManage) {
+    return (
+      <div className="min-h-screen bg-[#FBF5EC] flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-2xl font-bold text-[#2A2016] mb-2">Accès réservé</h1>
+        <p className="text-[#6B5D4E] max-w-sm">
+          L’état des lieux est réservé au propriétaire connecté ou à l’administration Guidz.
+        </p>
       </div>
     );
   }
@@ -67,17 +82,17 @@ export default function EtatDesLieuxPage({ params }: { params: Promise<{ slug: s
       // Upload photos
       const photoUrls: string[] = [];
       for (const file of files) {
-        const url = await uploadImage(file, `inventories/${slug}`);
+        const url = await envoyerImage(file, "inventories", accommodation.id);
         photoUrls.push(url);
       }
       
+      const jeton = await auth.currentUser?.getIdToken().catch(() => undefined);
       const res = await submitInventoryReportAction(slug, {
-        date: Date.now(),
         type,
         travelerName: travelerName.trim() || "Voyageur",
         notes,
         photos: photoUrls
-      });
+      }, jeton);
       
       if (res.success) {
         setSuccess(true);

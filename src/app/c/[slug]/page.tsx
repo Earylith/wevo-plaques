@@ -1,19 +1,19 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { getAccommodationsByOwnerSlug } from "@/lib/firebase/firestore";
-import { Accommodation } from "@/lib/types/accommodation";
+import { fetchPublicOwnerPortfolio } from "@/app/public-actions";
+import type { PublicPortfolioAccommodation } from "@/app/public-actions";
 import Link from "next/link";
 import { MapPin, House, Star, ArrowRight } from "@phosphor-icons/react";
 import Image from "next/image";
 
 export default function ConciergePortfolioPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
+  const [accommodations, setAccommodations] = useState<PublicPortfolioAccommodation[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getAccommodationsByOwnerSlug(slug)
+    fetchPublicOwnerPortfolio(slug)
       .then(setAccommodations)
       .finally(() => setLoading(false));
   }, [slug]);
@@ -38,7 +38,7 @@ export default function ConciergePortfolioPage({ params }: { params: Promise<{ s
     );
   }
 
-  const ownerName = accommodations[0].owner.name;
+  const ownerName = accommodations[0].ownerName;
 
   return (
     <div className="min-h-screen bg-[#FBF5EC]">

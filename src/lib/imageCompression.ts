@@ -114,5 +114,5 @@ export async function compressImage(file: File): Promise<File> {
   }
 }
 
-/** Taille maximale acceptée après compression (25 Mo pour accueillir les fichiers bruts Mac). */
-export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+/** Taille maximale acceptée après compression, également imposée côté serveur. */
+export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;

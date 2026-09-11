@@ -40,9 +40,10 @@ interface PhotoManagerProps {
    * personne ne se heurte à un « accès non autorisé ».
    */
   allowUpload?: boolean;
+  accommodationId?: string;
 }
 
-export default function PhotoManager({ photos, onChange, city, allowUpload = true }: PhotoManagerProps) {
+export default function PhotoManager({ photos, onChange, city, allowUpload = true, accommodationId }: PhotoManagerProps) {
   const [urlInput, setUrlInput] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(0);
@@ -87,7 +88,7 @@ export default function PhotoManager({ photos, onChange, city, allowUpload = tru
       const uploaded: string[] = [];
       for (const original of images) {
         try {
-          const url = await envoyerImage(original, "livrets");
+          const url = await envoyerImage(original, "livrets", accommodationId);
           uploaded.push(url);
         } catch (err) {
           console.error(err);
@@ -104,7 +105,7 @@ export default function PhotoManager({ photos, onChange, city, allowUpload = tru
       }
       if (uploaded.length) add(uploaded);
     },
-    [add]
+    [add, accommodationId]
   );
 
   /* Coller une image ou un lien depuis le presse-papiers. */

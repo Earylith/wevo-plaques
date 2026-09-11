@@ -1,0 +1,32 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && (request.auth.token.admin == true || request.auth.token.role == "admin");
+    }
+
+    function ownsAccommodation() {
+      return signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /accommodations/{accommodationId} {
+      // Les pages publiques passent par Firebase Admin et un DTO filtré.
+      // Le navigateur d'un propriétaire peut seulement lire ses propres données.
+      allow read: if isAdmin() || ownsAccommodation();
+
+      // Toute mutation passe par une Server Action qui vérifie l'UID, les
+      // droits métier et la liste exacte des champs modifiables.
+      allow create, update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

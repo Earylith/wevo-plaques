@@ -505,32 +505,73 @@ export async function createAdminAccommodation(data: Omit<Accommodation, "id" | 
  * C'est le même écueil que pour la recherche d'adresse : une action pensée
  * pour l'administration, appelée depuis l'espace client.
  */
-async function autoriserEnvoiImage(jetonHote?: string) {
+const DOSSIERS_IMAGE_AUTORISES = new Set([
+  "livrets",
+  "inventories",
+  "accommodations/main",
+  "accommodations/recs",
+  "accommodations/logos",
+]);
+const TAILLE_IMAGE_MAX = 8 * 1024 * 1024;
+
+async function autoriserEnvoiImage(jetonHote?: string, accommodationId?: string) {
   if (await hasValidAdminSession()) return;
 
-  if (!jetonHote) {
+  if (!jetonHote || !accommodationId) {
     throw new Error("Connectez-vous pour envoyer une photo.");
   }
   const { adminAuth } = await import("@/lib/firebase/admin");
-  await adminAuth.verifyIdToken(jetonHote);
+  const token = await adminAuth.verifyIdToken(jetonHote, true);
+  const doc = await adminDb.collection(COLLECTION_NAME).doc(accommodationId).get();
+  if (!doc.exists || doc.data()?.ownerUid !== token.uid) {
+    throw new Error("Vous ne pouvez pas ajouter de photo à ce livret.");
+  }
+}
+
+function formatImage(buffer: Buffer): { extension: string; contentType: string } | null {
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return { extension: "jpg", contentType: "image/jpeg" };
+  }
+  if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+    return { extension: "png", contentType: "image/png" };
+  }
+  if (
+    buffer.length >= 12
+    && buffer.subarray(0, 4).toString("ascii") === "RIFF"
+    && buffer.subarray(8, 12).toString("ascii") === "WEBP"
+  ) {
+    return { extension: "webp", contentType: "image/webp" };
+  }
+  return null;
 }
 
 export async function uploadAdminImageAction(
   formData: FormData,
   folder: string,
-  jetonHote?: string
+  jetonHote?: string,
+  accommodationId?: string
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   try {
-    await autoriserEnvoiImage(jetonHote);
-    const file = formData.get("file") as File;
-    if (!file) return { ok: false, error: "Aucun fichier d'image fourni." };
+    if (!DOSSIERS_IMAGE_AUTORISES.has(folder)) {
+      return { ok: false, error: "Dossier d’image non autorisé." };
+    }
+    await autoriserEnvoiImage(jetonHote, accommodationId);
+    const file = formData.get("file");
+    if (!(file instanceof File)) return { ok: false, error: "Aucun fichier d'image fourni." };
+    if (file.size <= 0 || file.size > TAILLE_IMAGE_MAX) {
+      return { ok: false, error: "L’image doit peser moins de 8 Mo après compression." };
+    }
     
     const buffer = Buffer.from(await file.arrayBuffer());
-    const rawExt = file.name ? file.name.split('.').pop() || "jpg" : "jpg";
-    const fileExtension = rawExt.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const detected = formatImage(buffer);
+    if (!detected) {
+      return { ok: false, error: "Format refusé. Utilisez une image JPEG, PNG ou WebP." };
+    }
     const uniqueId = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-    const fileName = `${uniqueId}.${fileExtension}`;
-    const filePath = `${folder}/${fileName}`;
+    const fileName = `${uniqueId}.${detected.extension}`;
+    const prefix = accommodationId ? `accommodations/${accommodationId}` : "admin";
+    const safeFolder = folder.replace(/[^a-z0-9/-]/gi, "").replace(/\/+/, "/");
+    const filePath = `${prefix}/${safeFolder}/${fileName}`;
 
     const token = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15);
     
@@ -540,7 +581,7 @@ export async function uploadAdminImageAction(
     
     await fileRef.save(buffer, {
       metadata: {
-        contentType: file.type || "image/jpeg",
+        contentType: detected.contentType,
         metadata: {
           firebaseStorageDownloadTokens: token
         }

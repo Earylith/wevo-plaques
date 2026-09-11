@@ -1,0 +1,12 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Les médias publiés restent lisibles. Les écritures passent exclusivement
+    // par l'action serveur, qui contrôle propriétaire, chemin, taille et format.
+    match /{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

@@ -46,7 +46,7 @@ async function verifierAcces(livret: Accommodation, jetonHote?: string) {
   if (!jetonHote) {
     throw new Error("Connectez-vous pour poursuivre votre commande.");
   }
-  const jeton = await adminAuth.verifyIdToken(jetonHote);
+  const jeton = await adminAuth.verifyIdToken(jetonHote, true);
   if (!livret.ownerUid || livret.ownerUid !== jeton.uid) {
     throw new Error("Ce livret n’est pas rattaché à votre compte.");
   }
@@ -284,7 +284,7 @@ export async function ouvrirPaiementPanier(
     throw new Error("Connectez-vous pour poursuivre votre commande.");
   }
 
-  const jeton = await adminAuth.verifyIdToken(jetonHote);
+  const jeton = await adminAuth.verifyIdToken(jetonHote, true);
   const uid = jeton.uid;
 
   // Récupérer et vérifier chaque livret

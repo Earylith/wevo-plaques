@@ -52,7 +52,7 @@ export interface TranslateResult {
 async function autoriser(jetonHote?: string) {
   if (await hasValidAdminSession()) return;
   if (!jetonHote) throw new Error("Connectez-vous pour utiliser la traduction.");
-  await adminAuth.verifyIdToken(jetonHote);
+  await adminAuth.verifyIdToken(jetonHote, true);
 }
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

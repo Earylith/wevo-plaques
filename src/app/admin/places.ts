@@ -52,7 +52,7 @@ async function autoriser(jetonHote?: string) {
   if (!jetonHote) {
     throw new Error("Connectez-vous pour rechercher une adresse.");
   }
-  await adminAuth.verifyIdToken(jetonHote);
+  await adminAuth.verifyIdToken(jetonHote, true);
 }
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

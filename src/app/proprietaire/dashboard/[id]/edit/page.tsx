@@ -3,10 +3,11 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks/useAuth";
-import { getAccommodationById, updateAccommodation } from "@/lib/firebase/firestore";
+import { getAccommodationById } from "@/lib/firebase/firestore";
 import { Accommodation } from "@/lib/types/accommodation";
 import AdminModernTileEditor from "@/components/admin/AdminModernTileEditor";
 import { marquerVisiteEditeur } from "@/app/espace-actions";
+import { enregistrerLivretProprietaire } from "@/app/creation-actions";
 
 export default function EditAccommodationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -69,7 +70,8 @@ export default function EditAccommodationPage({ params }: { params: Promise<{ id
     if (!accommodation?.id) return;
     setIsSubmitting(true);
     try {
-      await updateAccommodation(accommodation.id, data);
+      const jeton = await user?.getIdToken();
+      await enregistrerLivretProprietaire(accommodation.id, data, jeton);
     } catch (error) {
       console.error("Erreur lors de la mise à jour:", error);
       alert("Une erreur est survenue lors de la sauvegarde.");
@@ -107,4 +109,3 @@ export default function EditAccommodationPage({ params }: { params: Promise<{ id
     />
   );
 }
-

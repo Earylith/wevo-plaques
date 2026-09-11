@@ -141,7 +141,7 @@ async function livretDeLHote(
   jetonHote?: string
 ): Promise<Accommodation> {
   if (!jetonHote) throw new Error("Connectez-vous pour poursuivre.");
-  const jeton = await adminAuth.verifyIdToken(jetonHote);
+  const jeton = await adminAuth.verifyIdToken(jetonHote, true);
 
   const doc = await adminDb.collection(ACCOMMODATIONS).doc(accommodationId).get();
   if (!doc.exists) throw new Error("Livret introuvable.");
@@ -186,7 +186,7 @@ export async function creerNouveauLivret(
   formule: OfferType = "comfort"
 ): Promise<{ id: string; slug: string }> {
   if (!jetonHote) throw new Error("Connectez-vous pour créer un nouveau livret.");
-  const jeton = await adminAuth.verifyIdToken(jetonHote);
+  const jeton = await adminAuth.verifyIdToken(jetonHote, true);
   const uid = jeton.uid;
   const email = jeton.email || "";
 
@@ -221,7 +221,7 @@ export async function chargerEspaceClient(
 ): Promise<EspaceClient> {
   if (!jetonHote) throw new Error("Connectez-vous pour accéder à votre espace.");
 
-  const jeton = await adminAuth.verifyIdToken(jetonHote);
+  const jeton = await adminAuth.verifyIdToken(jetonHote, true);
 
   const trouves = await adminDb
     .collection(ACCOMMODATIONS)
@@ -518,7 +518,7 @@ export async function marquerVisiteEditeur(
   jetonHote: string
 ): Promise<void> {
   try {
-    const jeton = await adminAuth.verifyIdToken(jetonHote);
+    const jeton = await adminAuth.verifyIdToken(jetonHote, true);
     const ref = adminDb.collection(ACCOMMODATIONS).doc(accommodationId);
     const doc = await ref.get();
     if (!doc.exists) return;
@@ -569,4 +569,3 @@ export async function modifierPlaqueBrouillon(
     updatedAt: Date.now(),
   });
 }
-

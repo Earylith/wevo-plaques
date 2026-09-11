@@ -18,9 +18,79 @@ import { messageBienvenue } from "@/lib/server/emails/messages";
 
 const ACCOMMODATIONS = "accommodations";
 
+const CHAMPS_CONTENU_PROPRIETAIRE: ReadonlyArray<keyof Accommodation> = [
+  "template",
+  "shareMessage",
+  "plaque",
+  "property",
+  "wifi",
+  "codes",
+  "equipments",
+  "modules",
+  "display",
+  "practicalInfo",
+  "rules",
+  "contacts",
+  "recommendations",
+  "pointsOfInterest",
+  "transportLines",
+  "transportLink",
+  "features",
+  "standardEmergencies",
+  "comfortOptions",
+];
+
 /** Retire les `undefined`, que Firestore refuse. */
 function nettoyer<T>(valeur: T): T {
   return JSON.parse(JSON.stringify(valeur)) as T;
+}
+
+/**
+ * Enregistre le contenu éditable d'un livret sans jamais accepter les champs
+ * de paiement, publication, identité Firebase ou historique opérationnel.
+ */
+export async function enregistrerLivretProprietaire(
+  accommodationId: string,
+  donnees: Partial<Accommodation>,
+  jetonHote?: string
+): Promise<void> {
+  if (!jetonHote) throw new Error("Connectez-vous pour enregistrer votre livret.");
+  const jeton = await adminAuth.verifyIdToken(jetonHote, true);
+
+  const ref = adminDb.collection(ACCOMMODATIONS).doc(accommodationId);
+  const doc = await ref.get();
+  if (!doc.exists) throw new Error("Livret introuvable.");
+
+  const actuel = doc.data() as Accommodation;
+  if (!actuel.ownerUid || actuel.ownerUid !== jeton.uid) {
+    throw new Error("Ce livret n’est pas rattaché à votre compte.");
+  }
+
+  const sessionOuverte = Boolean(actuel.editionUntil && actuel.editionUntil > Date.now());
+  if (actuel.isActive && actuel.offerType !== "comfort" && !sessionOuverte) {
+    throw new Error("La période de modification de ce livret est terminée.");
+  }
+
+  const patch: Record<string, unknown> = {};
+  for (const champ of CHAMPS_CONTENU_PROPRIETAIRE) {
+    if (Object.prototype.hasOwnProperty.call(donnees, champ)) {
+      patch[champ] = donnees[champ];
+    }
+  }
+
+  if (donnees.owner) {
+    patch.owner = {
+      ...actuel.owner,
+      name: String(donnees.owner.name || "").trim().slice(0, 160),
+      phone: String(donnees.owner.phone || "").trim().slice(0, 40),
+      slug: String(donnees.owner.slug || actuel.owner.slug || "").trim().slice(0, 160),
+      reportEmail: String(donnees.owner.reportEmail || "").trim().slice(0, 200),
+      // L'adresse de connexion ne se modifie jamais via un formulaire métier.
+      email: actuel.owner.email,
+    };
+  }
+
+  await ref.update(nettoyer({ ...patch, updatedAt: Date.now() }));
 }
 
 /**
@@ -66,7 +136,7 @@ export async function ouvrirLivret(
 
   // Le jeton est vérifié côté serveur : un identifiant envoyé par le
   // navigateur ne prouve rien par lui-même.
-  const jeton = await adminAuth.verifyIdToken(jetonHote);
+  const jeton = await adminAuth.verifyIdToken(jetonHote, true);
   const uid = jeton.uid;
   const email = jeton.email || "";
 
@@ -182,7 +252,7 @@ export async function changerFormuleBrouillon(
 
   if (!estGuidz) {
     if (!jetonHote) throw new Error("Connectez-vous pour changer de formule.");
-    const jeton = await adminAuth.verifyIdToken(jetonHote);
+    const jeton = await adminAuth.verifyIdToken(jetonHote, true);
     if (!livret.ownerUid || livret.ownerUid !== jeton.uid) {
       throw new Error("Ce livret n’est pas rattaché à votre compte.");
     }
@@ -237,7 +307,7 @@ export async function alignerAdresseSurLeNom(
   // L'appelant doit être le propriétaire, ou l'administration Guidz.
   if (!(await hasValidAdminSession())) {
     if (!jetonHote) throw new Error("Connectez-vous pour modifier votre livret.");
-    const jeton = await adminAuth.verifyIdToken(jetonHote);
+    const jeton = await adminAuth.verifyIdToken(jetonHote, true);
     if (!livret.ownerUid || livret.ownerUid !== jeton.uid) {
       throw new Error("Ce livret n’est pas rattaché à votre compte.");
     }

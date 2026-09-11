@@ -28,7 +28,7 @@ function enMo(octets: number): string {
   return (octets / 1048576).toFixed(1).replace(".", ",");
 }
 
-export async function envoyerImage(fichier: File, dossier: string): Promise<string> {
+export async function envoyerImage(fichier: File, dossier: string, accommodationId?: string): Promise<string> {
   const estImage = fichier.type.startsWith("image/") || /\.(jpe?g|png|webp|avif|heic|heif|bmp|tiff?)$/i.test(fichier.name);
   if (!estImage) {
     throw new Error(`« ${fichier.name} » n’est pas un format d'image reconnu.`);
@@ -57,7 +57,7 @@ export async function envoyerImage(fichier: File, dossier: string): Promise<stri
   // Absent côté Guidz, qui s'authentifie par son cookie : sans effet pour lui.
   const jeton = await auth.currentUser?.getIdToken().catch(() => undefined);
 
-  const res = await uploadAdminImageAction(corps, dossier, jeton);
+  const res = await uploadAdminImageAction(corps, dossier, jeton, accommodationId);
   if (!res.ok) {
     throw new Error(res.error);
   }

@@ -6,6 +6,7 @@ import { reduireAEssentielle } from "@/lib/livret";
 import CleoTemplate from "@/components/templates/CleoTemplate";
 import { Info } from "lucide-react";
 import { adressePubliqueDemo } from "@/lib/livretsDemo";
+import { publicAccommodation } from "@/lib/server/public-accommodation";
 
 // Le livret doit refléter immédiatement ce qui vient d'être enregistré
 // dans l'admin : pas de mise en cache statique de cette route.
@@ -94,7 +95,7 @@ export default async function AccommodationPage({ params }: Props) {
   if (result.status === "unavailable") return <Unavailable />;
   if (result.status === "missing") return notFound();
 
-  const data = result.data;
+  const data = publicAccommodation(result.data);
 
   if (!data.isActive) {
     return (

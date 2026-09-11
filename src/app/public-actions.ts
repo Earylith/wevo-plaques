@@ -1,263 +1,267 @@
 "use server";
 
-import { adminDb } from "@/lib/firebase/admin";
-import { Accommodation, InventoryReport, CleaningLog } from "@/lib/types/accommodation";
+import { randomUUID } from "node:crypto";
+import type { DocumentReference } from "firebase-admin/firestore";
+import { adminAuth, adminDb } from "@/lib/firebase/admin";
+import { hasValidAdminSession } from "@/lib/server/admin-auth";
+import type { Accommodation, CleaningLog, InventoryReport } from "@/lib/types/accommodation";
 import { revalidatePath } from "next/cache";
 
 const COLLECTION_NAME = "accommodations";
 
-export async function fetchPublicAccommodation(slug: string): Promise<Accommodation | null> {
-  try {
-    const snapshot = await adminDb
-      .collection(COLLECTION_NAME)
-      .where("slug", "==", slug)
-      .get();
+export interface PublicModuleAccommodation {
+  id: string;
+  slug: string;
+  offerType: Accommodation["offerType"];
+  isActive: boolean;
+  property: { name: string };
+  features?: Accommodation["features"];
+  cleaningLogs?: CleaningLog[];
+  canManage: boolean;
+}
 
-    if (!snapshot.empty) {
-      const doc = snapshot.docs[0];
-      return { id: doc.id, ...doc.data() } as Accommodation;
+export interface PublicPortfolioAccommodation {
+  id: string;
+  slug: string;
+  offerType: Accommodation["offerType"];
+  ownerName: string;
+  property: {
+    name: string;
+    city: string;
+    type: string;
+    mainImageUrl?: string;
+  };
+}
+
+type MutationIdentity = { admin: true; uid: null } | { admin: false; uid: string };
+
+function slugValide(slug: string): boolean {
+  return /^[a-z0-9][a-z0-9-]{0,159}$/.test(slug);
+}
+
+async function identiteMutation(jetonHote?: string): Promise<MutationIdentity> {
+  if (await hasValidAdminSession()) return { admin: true, uid: null };
+  if (!jetonHote) throw new Error("Connectez-vous pour effectuer cette opération.");
+  const token = await adminAuth.verifyIdToken(jetonHote, true);
+  return { admin: false, uid: token.uid };
+}
+
+function autorisee(livret: Accommodation, identite: MutationIdentity): boolean {
+  return identite.admin || Boolean(livret.ownerUid && livret.ownerUid === identite.uid);
+}
+
+async function trouverParSlug(slug: string): Promise<DocumentReference | null> {
+  if (!slugValide(slug)) return null;
+  const snapshot = await adminDb
+    .collection(COLLECTION_NAME)
+    .where("slug", "==", slug)
+    .limit(1)
+    .get();
+  return snapshot.empty ? null : snapshot.docs[0].ref;
+}
+
+/** DTO volontairement minimal : aucun identifiant Stripe ni coordonnée privée. */
+export async function fetchPublicAccommodation(
+  slug: string,
+  jetonHote?: string
+): Promise<PublicModuleAccommodation | null> {
+  try {
+    const ref = await trouverParSlug(slug);
+    if (!ref) return null;
+    const doc = await ref.get();
+    const data = doc.data() as Accommodation;
+    if (!data.isActive) return null;
+
+    let canManage = await hasValidAdminSession();
+    if (!canManage && jetonHote) {
+      try {
+        const token = await adminAuth.verifyIdToken(jetonHote, true);
+        canManage = Boolean(data.ownerUid && data.ownerUid === token.uid);
+      } catch {
+        canManage = false;
+      }
     }
-    return null;
+
+    return {
+      id: doc.id,
+      slug: data.slug,
+      offerType: data.offerType,
+      isActive: true,
+      property: { name: data.property?.name || "" },
+      features: data.features
+        ? { inventory: data.features.inventory, cleaning: data.features.cleaning }
+        : undefined,
+      cleaningLogs: canManage ? (data.cleaningLogs || []) : undefined,
+      canManage,
+    };
   } catch (error) {
     console.error("Error fetching public accommodation:", error);
     return null;
   }
 }
 
-export async function submitCleaningLogAction(slug: string, agentName: string): Promise<{ success: boolean; error?: string }> {
+export async function fetchPublicOwnerPortfolio(
+  ownerSlug: string
+): Promise<PublicPortfolioAccommodation[]> {
+  if (!slugValide(ownerSlug)) return [];
   try {
     const snapshot = await adminDb
       .collection(COLLECTION_NAME)
-      .where("slug", "==", slug)
+      .where("owner.slug", "==", ownerSlug)
+      .where("isActive", "==", true)
+      .limit(100)
       .get();
-
-    if (snapshot.empty) {
-      return { success: false, error: "Hébergement introuvable" };
-    }
-
-    const docRef = snapshot.docs[0].ref;
-    const data = snapshot.docs[0].data() as Accommodation;
-
-    const newLog = {
-      date: Date.now(),
-      agentName: agentName.trim() || "Agent d'entretien",
-    };
-
-    const updatedLogs = [...(data.cleaningLogs || []), newLog];
-
-    await docRef.update({
-      cleaningLogs: updatedLogs,
-      updatedAt: Date.now(),
+    return snapshot.docs.map((doc) => {
+      const data = doc.data() as Accommodation;
+      return {
+        id: doc.id,
+        slug: data.slug,
+        offerType: data.offerType,
+        ownerName: data.owner?.name || "",
+        property: {
+          name: data.property?.name || "",
+          city: data.property?.city || "",
+          type: data.property?.type || "",
+          mainImageUrl: data.property?.mainImageUrl,
+        },
+      };
     });
-
-    revalidatePath(`/h/${slug}/menage`);
-    revalidatePath(`/h/${slug}`);
-    revalidatePath(`/proprietaire/dashboard`);
-
-    return { success: true };
-  } catch (error: any) {
-    console.error("Error submitting cleaning log:", error);
-    return {
-      success: false,
-      error: error?.message || "Une erreur est survenue lors de l'enregistrement",
-    };
+  } catch (error) {
+    console.error("Error fetching public portfolio:", error);
+    return [];
   }
 }
 
 export async function submitInventoryReportAction(
   slug: string,
-  reportData: Omit<InventoryReport, "id" | "date"> & { id?: string; date?: number }
+  reportData: Omit<InventoryReport, "id" | "date"> & { id?: string; date?: number },
+  jetonHote?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const snapshot = await adminDb
-      .collection(COLLECTION_NAME)
-      .where("slug", "==", slug)
-      .get();
-
-    if (snapshot.empty) {
-      return { success: false, error: "Hébergement introuvable" };
+    const [ref, identite] = await Promise.all([trouverParSlug(slug), identiteMutation(jetonHote)]);
+    if (!ref) return { success: false, error: "Hébergement introuvable" };
+    if (reportData.type !== "arrival" && reportData.type !== "departure") {
+      return { success: false, error: "Type d’état des lieux invalide" };
     }
 
-    const docRef = snapshot.docs[0].ref;
-    const data = snapshot.docs[0].data() as Accommodation;
-
+    const photos = (reportData.photos || []).slice(0, 5).filter((url) => {
+      try {
+        return new URL(url).hostname === "firebasestorage.googleapis.com";
+      } catch {
+        return false;
+      }
+    });
     const newReport: InventoryReport = {
-      id:
-        reportData.id ||
-        (typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : Math.random().toString(36).substring(2, 15) + Date.now().toString(36)),
-      date: reportData.date || Date.now(),
+      id: randomUUID(),
+      date: Date.now(),
       type: reportData.type,
-      travelerName: (reportData.travelerName || "Voyageur").trim(),
-      notes: reportData.notes || "",
-      photos: reportData.photos || [],
+      travelerName: String(reportData.travelerName || "Voyageur").trim().slice(0, 120),
+      notes: String(reportData.notes || "").trim().slice(0, 4000),
+      photos,
     };
 
-    const updatedInventories = [...(data.inventories || []), newReport];
-
-    await docRef.update({
-      inventories: updatedInventories,
-      updatedAt: Date.now(),
+    await adminDb.runTransaction(async (transaction) => {
+      const current = await transaction.get(ref);
+      if (!current.exists) throw new Error("Hébergement introuvable");
+      const data = current.data() as Accommodation;
+      if (!autorisee(data, identite)) throw new Error("Accès refusé à ce livret.");
+      if (!data.isActive || data.offerType !== "comfort" || data.features?.inventory === false) {
+        throw new Error("Le module d’état des lieux n’est pas actif.");
+      }
+      transaction.update(ref, {
+        inventories: [...(data.inventories || []).slice(-199), newReport],
+        updatedAt: Date.now(),
+      });
     });
 
     revalidatePath(`/h/${slug}/etat-des-lieux`);
-    revalidatePath(`/h/${slug}`);
     revalidatePath(`/proprietaire/dashboard`);
-
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error submitting inventory report:", error);
-    return {
-      success: false,
-      error: error?.message || "Une erreur est survenue lors de l'envoi de l'état des lieux",
-    };
+    return { success: false, error: error instanceof Error ? error.message : "Envoi impossible" };
   }
 }
 
-export async function startCleaningLogAction(slug: string, agentName: string): Promise<{ success: boolean; logId?: string; error?: string }> {
+export async function startCleaningLogAction(
+  slug: string,
+  agentName: string,
+  jetonHote?: string
+): Promise<{ success: boolean; logId?: string; error?: string }> {
   try {
-    const snapshot = await adminDb
-      .collection(COLLECTION_NAME)
-      .where("slug", "==", slug)
-      .get();
-
-    if (snapshot.empty) {
-      return { success: false, error: "Hébergement introuvable" };
-    }
-
-    const docRef = snapshot.docs[0].ref;
-    const data = snapshot.docs[0].data() as Accommodation;
-
-    const logId = typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID()
-      : Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-
+    const [ref, identite] = await Promise.all([trouverParSlug(slug), identiteMutation(jetonHote)]);
+    if (!ref) return { success: false, error: "Hébergement introuvable" };
     const now = Date.now();
+    const logId = randomUUID();
     const newLog: CleaningLog = {
       id: logId,
       date: now,
       startTime: now,
-      agentName: agentName.trim() || "Agent d'entretien / Société",
+      agentName: String(agentName || "Agent d'entretien / Société").trim().slice(0, 120),
       status: "in_progress",
     };
 
-    const updatedLogs = [...(data.cleaningLogs || []), newLog];
-
-    await docRef.update({
-      cleaningLogs: updatedLogs,
-      updatedAt: now,
-    });
-
-    revalidatePath(`/h/${slug}/menage`);
-    revalidatePath(`/h/${slug}`);
-    revalidatePath(`/proprietaire/dashboard`);
-
-    return { success: true, logId };
-  } catch (error: any) {
-    console.error("Error starting cleaning log:", error);
-    return {
-      success: false,
-      error: error?.message || "Erreur lors du pointage d'arrivée",
-    };
-  }
-}
-
-export async function endCleaningLogAction(slug: string, logId: string): Promise<{ success: boolean; durationMinutes?: number; error?: string }> {
-  try {
-    const snapshot = await adminDb
-      .collection(COLLECTION_NAME)
-      .where("slug", "==", slug)
-      .get();
-
-    if (snapshot.empty) {
-      return { success: false, error: "Hébergement introuvable" };
-    }
-
-    const docRef = snapshot.docs[0].ref;
-    const data = snapshot.docs[0].data() as Accommodation;
-    const logs = data.cleaningLogs || [];
-
-    let targetIndex = logs.findIndex((l) => l.id === logId && l.status === "in_progress");
-    if (targetIndex === -1) {
-      for (let i = logs.length - 1; i >= 0; i--) {
-        if (logs[i].status === "in_progress") {
-          targetIndex = i;
-          break;
-        }
+    await adminDb.runTransaction(async (transaction) => {
+      const current = await transaction.get(ref);
+      if (!current.exists) throw new Error("Hébergement introuvable");
+      const data = current.data() as Accommodation;
+      if (!autorisee(data, identite)) throw new Error("Accès refusé à ce livret.");
+      if (!data.isActive || data.offerType !== "comfort" || data.features?.cleaning === false) {
+        throw new Error("Le module de ménage n’est pas actif.");
       }
-    }
-
-    if (targetIndex === -1) {
-      return { success: false, error: "Aucun pointage de ménage en cours n'a été trouvé." };
-    }
-
-    const targetLog = logs[targetIndex];
-    const endTime = Date.now();
-    const startTime = targetLog.startTime || targetLog.date;
-    const durationMinutes = Math.max(1, Math.round((endTime - startTime) / 60000));
-
-    const updatedLog: CleaningLog = {
-      ...targetLog,
-      endTime,
-      durationMinutes,
-      status: "completed",
-    };
-
-    const updatedLogs = [...logs];
-    updatedLogs[targetIndex] = updatedLog;
-
-    await docRef.update({
-      cleaningLogs: updatedLogs,
-      updatedAt: endTime,
+      transaction.update(ref, {
+        cleaningLogs: [...(data.cleaningLogs || []).slice(-499), newLog],
+        updatedAt: now,
+      });
     });
 
     revalidatePath(`/h/${slug}/menage`);
-    revalidatePath(`/h/${slug}`);
     revalidatePath(`/proprietaire/dashboard`);
-
-    return { success: true, durationMinutes };
-  } catch (error: any) {
-    console.error("Error ending cleaning log:", error);
-    return {
-      success: false,
-      error: error?.message || "Erreur lors de la validation du départ",
-    };
+    return { success: true, logId };
+  } catch (error) {
+    console.error("Error starting cleaning log:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Pointage impossible" };
   }
 }
 
-export async function toggleAccommodationModuleAction(
-  id: string,
-  feature: "inventory" | "cleaning",
-  enabled: boolean
-): Promise<{ success: boolean; error?: string }> {
+export async function endCleaningLogAction(
+  slug: string,
+  logId: string,
+  jetonHote?: string
+): Promise<{ success: boolean; durationMinutes?: number; error?: string }> {
   try {
-    const docRef = adminDb.collection("accommodations").doc(id);
-    const docSnap = await docRef.get();
-    if (!docSnap.exists) {
-      return { success: false, error: "Hébergement introuvable" };
-    }
+    if (!/^[0-9a-f-]{36}$/i.test(logId)) return { success: false, error: "Pointage invalide" };
+    const [ref, identite] = await Promise.all([trouverParSlug(slug), identiteMutation(jetonHote)]);
+    if (!ref) return { success: false, error: "Hébergement introuvable" };
+    let durationMinutes = 0;
 
-    await docRef.update({
-      [`features.${feature}`]: enabled,
-      updatedAt: Date.now(),
+    await adminDb.runTransaction(async (transaction) => {
+      const current = await transaction.get(ref);
+      if (!current.exists) throw new Error("Hébergement introuvable");
+      const data = current.data() as Accommodation;
+      if (!autorisee(data, identite)) throw new Error("Accès refusé à ce livret.");
+      const logs = data.cleaningLogs || [];
+      const targetIndex = logs.findIndex((log) => log.id === logId && log.status === "in_progress");
+      if (targetIndex === -1) throw new Error("Ce pointage en cours n’existe pas.");
+
+      const endTime = Date.now();
+      const target = logs[targetIndex];
+      durationMinutes = Math.max(1, Math.round((endTime - (target.startTime || target.date)) / 60000));
+      const updatedLogs = [...logs];
+      updatedLogs[targetIndex] = {
+        ...target,
+        endTime,
+        durationMinutes,
+        status: "completed",
+      };
+      transaction.update(ref, { cleaningLogs: updatedLogs, updatedAt: endTime });
     });
 
-    revalidatePath(`/proprietaire/dashboard/${id}`);
+    revalidatePath(`/h/${slug}/menage`);
     revalidatePath(`/proprietaire/dashboard`);
-    const data = docSnap.data();
-    if (data && data.slug) {
-      revalidatePath(`/h/${data.slug}`);
-      revalidatePath(`/h/${data.slug}/menage`);
-      revalidatePath(`/h/${data.slug}/etat-des-lieux`);
-    }
-
-    return { success: true };
-  } catch (error: any) {
-    console.error("Error toggling feature:", error);
-    return {
-      success: false,
-      error: error?.message || "Erreur lors de l'activation/désactivation du module",
-    };
+    return { success: true, durationMinutes };
+  } catch (error) {
+    console.error("Error ending cleaning log:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Validation impossible" };
   }
 }

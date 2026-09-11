@@ -2,12 +2,15 @@
 
 import { useEffect, useState, use } from "react";
 import { fetchPublicAccommodation, startCleaningLogAction, endCleaningLogAction } from "@/app/public-actions";
-import { Accommodation, CleaningLog } from "@/lib/types/accommodation";
+import type { PublicModuleAccommodation } from "@/app/public-actions";
+import { CleaningLog } from "@/lib/types/accommodation";
+import { auth } from "@/lib/firebase/config";
+import { onAuthChange } from "@/lib/firebase/auth";
 import { Broom, CheckCircle, Clock, PlayCircle, StopCircle, User, Calendar } from "@phosphor-icons/react";
 
 export default function MenagePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);
-  const [accommodation, setAccommodation] = useState<Accommodation | null>(null);
+  const [accommodation, setAccommodation] = useState<PublicModuleAccommodation | null>(null);
   const [loading, setLoading] = useState(true);
   
   // States for form and active log
@@ -31,8 +34,9 @@ export default function MenagePage({ params }: { params: Promise<{ slug: string 
     const savedName = localStorage.getItem("wevo_cleaning_agent_name");
     if (savedName) setAgentName(savedName);
 
-    fetchPublicAccommodation(slug)
-      .then((acc) => {
+    const unsubscribe = onAuthChange(async (user) => {
+      const jeton = await user?.getIdToken().catch(() => undefined);
+      const acc = await fetchPublicAccommodation(slug, jeton);
         setAccommodation(acc);
         if (acc && acc.cleaningLogs) {
           const savedLogId = localStorage.getItem(`active_cleaning_${slug}`);
@@ -50,8 +54,9 @@ export default function MenagePage({ params }: { params: Promise<{ slug: string 
             localStorage.removeItem(`active_cleaning_${slug}`);
           }
         }
-      })
-      .finally(() => setLoading(false));
+      setLoading(false);
+    });
+    return unsubscribe;
   }, [slug]);
 
   if (loading) {
@@ -72,6 +77,17 @@ export default function MenagePage({ params }: { params: Promise<{ slug: string 
         <h1 className="text-2xl font-bold text-[#2A2016] mb-2 font-[family-name:var(--font-display)]">Module Inactif</h1>
         <p className="text-sm text-[#6B5D4E] max-w-xs">
           Le suivi du ménage en ligne a été désactivé par le propriétaire ou n&apos;est pas disponible pour cet hébergement.
+        </p>
+      </div>
+    );
+  }
+
+  if (!accommodation.canManage) {
+    return (
+      <div className="min-h-screen bg-[#FBF5EC] flex flex-col items-center justify-center p-6 text-center">
+        <h1 className="text-2xl font-bold text-[#2A2016] mb-2">Accès réservé</h1>
+        <p className="text-sm text-[#6B5D4E] max-w-sm">
+          Le pointage ménage est réservé au propriétaire connecté ou à l’administration Guidz.
         </p>
       </div>
     );
@@ -107,7 +123,8 @@ export default function MenagePage({ params }: { params: Promise<{ slug: string 
     }
 
     try {
-      const res = await startCleaningLogAction(slug, agentName);
+      const jeton = await auth.currentUser?.getIdToken().catch(() => undefined);
+      const res = await startCleaningLogAction(slug, agentName, jeton);
       if (res.success && res.logId) {
         const newActiveLog: CleaningLog = {
           id: res.logId,
@@ -135,7 +152,8 @@ export default function MenagePage({ params }: { params: Promise<{ slug: string 
     
     setSubmitting(true);
     try {
-      const res = await endCleaningLogAction(slug, activeLog.id || "");
+      const jeton = await auth.currentUser?.getIdToken().catch(() => undefined);
+      const res = await endCleaningLogAction(slug, activeLog.id || "", jeton);
       if (res.success) {
         localStorage.removeItem(`active_cleaning_${slug}`);
         const start = activeLog.startTime || activeLog.date;

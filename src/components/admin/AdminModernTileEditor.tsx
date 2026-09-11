@@ -2472,6 +2472,7 @@ export default function AdminModernTileEditor({
                   <div className={highlight === "property.gallery" ? "rounded-2xl animate-pulseRing" : undefined}>
                     <PhotoManager
                       allowUpload={!demo}
+                      accommodationId={docId || data.id}
                       photos={resolveGallery(data.property)}
                       onChange={setPhotos}
                       city={data.property?.city}
