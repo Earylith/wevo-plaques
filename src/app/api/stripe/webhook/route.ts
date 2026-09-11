@@ -14,6 +14,14 @@ import {
   messageCommandeAdmin,
   messageResiliation,
 } from "@/lib/server/emails/messages";
+import {
+  applyReferralInvoiceAdjustment,
+  confirmReferralCheckout,
+  consumeInvoiceAdjustment,
+  deactivateReferredSubscription,
+  releaseInvoiceAdjustment,
+  reverseReferralAcquisition,
+} from "@/lib/server/referrals";
 
 /**
  * Réception des événements Stripe.
@@ -746,7 +754,23 @@ export async function POST(request: NextRequest) {
             process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
           await traiterPaiement(session, origin);
         }
+        await confirmReferralCheckout(session);
       }
+    }
+
+    if (evenement.type === "invoice.created") {
+      await applyReferralInvoiceAdjustment(evenement.data.object as Stripe.Invoice);
+    }
+    if (evenement.type === "invoice.paid") {
+      await consumeInvoiceAdjustment(evenement.data.object as Stripe.Invoice);
+    }
+    if (
+      evenement.type === "invoice.voided" ||
+      evenement.type === "invoice.deleted" ||
+      evenement.type === "invoice.marked_uncollectible"
+    ) {
+      const invoice = evenement.data.object as Stripe.Invoice;
+      await releaseInvoiceAdjustment(invoice.id, evenement.type);
     }
 
     /*
@@ -758,10 +782,33 @@ export async function POST(request: NextRequest) {
      * que le second ne préviendrait de rien.
      */
     if (evenement.type === "customer.subscription.deleted") {
-      await traiterFinAbonnement(evenement.data.object as Stripe.Subscription);
+      const subscription = evenement.data.object as Stripe.Subscription;
+      await traiterFinAbonnement(subscription);
+      await deactivateReferredSubscription(subscription.id);
     }
     if (evenement.type === "customer.subscription.updated") {
       await traiterMajAbonnement(evenement.data.object as Stripe.Subscription);
+    }
+
+    if (evenement.type === "charge.refunded") {
+      const charge = evenement.data.object as Stripe.Charge;
+      if (charge.refunded) {
+        const paymentIntentId = typeof charge.payment_intent === "string"
+          ? charge.payment_intent
+          : charge.payment_intent?.id || null;
+        await reverseReferralAcquisition(charge.id, paymentIntentId);
+      }
+    }
+    if (evenement.type === "charge.dispute.created") {
+      const dispute = evenement.data.object as Stripe.Dispute;
+      const chargeId = typeof dispute.charge === "string" ? dispute.charge : dispute.charge?.id;
+      if (chargeId) {
+        const charge = await stripe().charges.retrieve(chargeId);
+        const paymentIntentId = typeof charge.payment_intent === "string"
+          ? charge.payment_intent
+          : charge.payment_intent?.id || null;
+        await reverseReferralAcquisition(chargeId, paymentIntentId);
+      }
     }
 
     return NextResponse.json({ received: true });

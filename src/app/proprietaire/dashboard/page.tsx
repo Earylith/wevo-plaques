@@ -16,6 +16,7 @@ import { OfferType } from "@/lib/types/accommodation";
 import PartagerLivret from "@/components/proprietaire/PartagerLivret";
 import GererAbonnement from "@/components/proprietaire/GererAbonnement";
 import PanierCommande from "@/components/proprietaire/PanierCommande";
+import ParrainageCard from "@/components/proprietaire/ParrainageCard";
 import { rankedModules, buildInsights, HOUR_LABELS } from "@/lib/stats";
 import { ORDER_STATUS_LABELS } from "@/lib/types/accommodation";
 
@@ -953,6 +954,8 @@ export default function EspaceClientPage() {
           Mesure anonyme : on compte des ouvertures, jamais des personnes.
         </p>
       </Surface>
+
+      <ParrainageCard />
 
       {/* ── Plaque et abonnement ─────────────────────────────────────────── */}
       {/* Une carte seule ne reste pas orpheline sur une moitié de page. */}

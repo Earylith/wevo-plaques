@@ -5,6 +5,16 @@ import { hasValidAdminSession } from "@/lib/server/admin-auth";
 import { Accommodation } from "@/lib/types/accommodation";
 import { sessionModificationActive } from "@/lib/livret";
 import { taglineGravee } from "@/lib/plaque";
+import { cookies } from "next/headers";
+import {
+  REFERRAL_COOKIE,
+  attachCheckoutSession,
+  comfortReferralCouponId,
+  essentialReferralCouponId,
+  hasUsableReferralBenefits,
+  prepareReferralCheckout,
+  referralMetadata,
+} from "@/lib/server/referrals";
 import {
   stripe, tarifsFormule, tarifsBascule, tarifSessionModification,
   paiementConfigure, RythmeAbonnement, tarifAbonnement,
@@ -40,16 +50,16 @@ const PAYS_LIVRES = [
  * par son jeton Firebase. Sans cette vérification, n'importe qui pourrait
  * ouvrir un paiement pour le livret d'un autre — et le publier en payant.
  */
-async function verifierAcces(livret: Accommodation, jetonHote?: string) {
-  if (await hasValidAdminSession()) return;
-
-  if (!jetonHote) {
-    throw new Error("Connectez-vous pour poursuivre votre commande.");
+async function verifierAcces(livret: Accommodation, jetonHote?: string): Promise<string | null> {
+  if (jetonHote) {
+    const jeton = await adminAuth.verifyIdToken(jetonHote, true);
+    if (!livret.ownerUid || livret.ownerUid !== jeton.uid) {
+      throw new Error("Ce livret n’est pas rattaché à votre compte.");
+    }
+    return jeton.uid;
   }
-  const jeton = await adminAuth.verifyIdToken(jetonHote, true);
-  if (!livret.ownerUid || livret.ownerUid !== jeton.uid) {
-    throw new Error("Ce livret n’est pas rattaché à votre compte.");
-  }
+  if (await hasValidAdminSession()) return null;
+  throw new Error("Connectez-vous pour poursuivre votre commande.");
 }
 
 export interface OuvertureSession {
@@ -79,12 +89,40 @@ export async function ouvrirPaiement(
   if (!doc.exists) throw new Error("Livret introuvable — enregistrez-le avant de payer.");
   const livret = { ...(doc.data() as Accommodation), id: doc.id };
 
-  await verifierAcces(livret, jetonHote);
+  const ownerUid = await verifierAcces(livret, jetonHote);
 
   // La formule du livret décide de ce qui est facturé.
   const { ponctuel, abonnement } = tarifsFormule(livret.offerType, rythme);
   const lignes = [{ price: ponctuel, quantity: 1 }];
   if (abonnement) lignes.push({ price: abonnement, quantity: 1 });
+
+  const cookieStore = await cookies();
+  const referral = ownerUid ? await prepareReferralCheckout({
+    referredUid: ownerUid,
+    cookieValue: cookieStore.get(REFERRAL_COOKIE)?.value,
+    offer: livret.offerType,
+    rhythm: rythme,
+    accommodationIds: [accommodationId],
+  }) : null;
+  const essentialCoupon = referral?.offer === "essential"
+    ? await essentialReferralCouponId()
+    : null;
+  const comfortCoupon = referral?.offer === "comfort" && abonnement
+    ? await comfortReferralCouponId(rythme, abonnement)
+    : null;
+  const checkoutCoupon = essentialCoupon || comfortCoupon;
+  const metadata = {
+    accommodationId,
+    offre: livret.offerType,
+    slug: livret.slug || "",
+    plaqueWood: livret.plaque?.wood || "noyer",
+    plaqueTagline: taglineGravee(livret.plaque, livret.offerType).trim(),
+    rythme,
+    rhythm: rythme,
+    referralBenefitSource: comfortCoupon ? "stripe_coupon" : "",
+    ...referralMetadata(referral, ownerUid || livret.ownerUid || ""),
+  };
+  const hasInternalBenefits = Boolean(abonnement && ownerUid && await hasUsableReferralBenefits(ownerUid));
 
   const session = await stripe().checkout.sessions.create({
     // Dès qu'un abonnement est dans le panier, la session doit être en mode
@@ -95,15 +133,8 @@ export async function ouvrirPaiement(
     customer_email: livret.owner?.email || undefined,
     // Ce que le webhook relira pour agir. On y fige la configuration de
     // plaque : elle pourrait changer entre le paiement et sa confirmation.
-    metadata: {
-      accommodationId,
-      offre: livret.offerType,
-      slug: livret.slug || "",
-      plaqueWood: livret.plaque?.wood || "noyer",
-      // Phrase personnalisée gravée sur la plaque
-      plaqueTagline: taglineGravee(livret.plaque, livret.offerType).trim(),
-      rythme,
-    },
+    metadata,
+    subscription_data: abonnement ? { metadata } : undefined,
     /*
      * Où envoyer la plaque.
      *
@@ -121,10 +152,16 @@ export async function ouvrirPaiement(
       ? `${origin}/proprietaire/dashboard/${accommodationId}/edit`
       : `${origin}/admin/hebergements/${accommodationId}`,
     locale: "fr",
-    allow_promotion_codes: true,
+    // Stripe considère `allow_promotion_codes`, même à `false`, comme
+    // incompatible avec un coupon déjà fourni dans `discounts`.
+    allow_promotion_codes: checkoutCoupon
+      ? undefined
+      : !(referral || hasInternalBenefits),
+    discounts: checkoutCoupon ? [{ coupon: checkoutCoupon }] : undefined,
   });
 
   if (!session.url) throw new Error("Stripe n’a pas renvoyé d’adresse de paiement.");
+  if (referral) await attachCheckoutSession(referral, session.id);
   return { url: session.url, reference: session.id };
 }
 
@@ -155,7 +192,7 @@ export async function ouvrirBasculeConfort(
   if (!doc.exists) throw new Error("Livret introuvable.");
   const livret = { ...(doc.data() as Accommodation), id: doc.id };
 
-  await verifierAcces(livret, jetonHote);
+  const ownerUid = await verifierAcces(livret, jetonHote);
 
   if (livret.offerType === "comfort") {
     throw new Error("Votre livret est déjà en formule Confort.");
@@ -169,6 +206,7 @@ export async function ouvrirBasculeConfort(
   const { ponctuel, abonnement } = tarifsBascule(rythme);
   const lignes = [{ price: ponctuel, quantity: 1 }];
   if (abonnement) lignes.push({ price: abonnement, quantity: 1 });
+  const hasInternalBenefits = Boolean(ownerUid && await hasUsableReferralBenefits(ownerUid));
 
   const session = await stripe().checkout.sessions.create({
     mode: abonnement ? "subscription" : "payment",
@@ -185,12 +223,20 @@ export async function ouvrirBasculeConfort(
       type: "bascule-confort",
       slug: livret.slug || "",
       rythme,
+      ownerUid: ownerUid || livret.ownerUid || "",
     },
+    subscription_data: abonnement ? {
+      metadata: {
+        ownerUid: ownerUid || livret.ownerUid || "",
+        rhythm: rythme,
+        referralCreditScope: "upgrade",
+      },
+    } : undefined,
     phone_number_collection: { enabled: true },
     success_url: `${origin}/proprietaire/dashboard?bascule=ok`,
     cancel_url: `${origin}/proprietaire/dashboard`,
     locale: "fr",
-    allow_promotion_codes: true,
+    allow_promotion_codes: hasInternalBenefits ? false : true,
   });
 
   if (!session.url) throw new Error("Stripe n’a pas renvoyé d’adresse de paiement.");
@@ -340,27 +386,54 @@ export async function ouvrirPaiementPanier(
 
   const mode = confortLivrets.length > 0 && priceAbo ? "subscription" : "payment";
 
+  const cookieStore = await cookies();
+  const referralOffer = confortLivrets.length > 0 ? "comfort" : "essential";
+  const referral = await prepareReferralCheckout({
+    referredUid: uid,
+    cookieValue: cookieStore.get(REFERRAL_COOKIE)?.value,
+    offer: referralOffer,
+    rhythm: rythme,
+    accommodationIds: livrets.map((livret) => livret.id),
+  });
+  const essentialCoupon = referral?.offer === "essential"
+    ? await essentialReferralCouponId()
+    : null;
+  const comfortCoupon = referral?.offer === "comfort" && priceAbo
+    ? await comfortReferralCouponId(rythme, priceAbo)
+    : null;
+  const checkoutCoupon = essentialCoupon || comfortCoupon;
+  const metadata = {
+    type: "panier",
+    isCart: "true",
+    cartCount: String(livrets.length),
+    cartItemIds: livrets.map((l) => l.id).join(","),
+    rythme,
+    rhythm: rythme,
+    referralBenefitSource: comfortCoupon ? "stripe_coupon" : "",
+    ...referralMetadata(referral, uid),
+  };
+  const hasInternalBenefits = Boolean(priceAbo && await hasUsableReferralBenefits(uid));
+
   const session = await stripe().checkout.sessions.create({
     mode,
     line_items: lignes,
     client_reference_id: uid,
     customer_email: jeton.email || livrets[0]?.owner?.email || undefined,
-    metadata: {
-      type: "panier",
-      isCart: "true",
-      cartCount: String(livrets.length),
-      cartItemIds: livrets.map((l) => l.id).join(","),
-      rythme,
-    },
+    metadata,
+    subscription_data: mode === "subscription" ? { metadata } : undefined,
     shipping_address_collection: { allowed_countries: [...PAYS_LIVRES] },
     phone_number_collection: { enabled: true },
     success_url: `${origin}/commande/merci?session_id={CHECKOUT_SESSION_ID}&cart=1`,
     cancel_url: `${origin}/proprietaire/dashboard?panier=1`,
     locale: "fr",
-    allow_promotion_codes: true,
+    allow_promotion_codes: checkoutCoupon
+      ? undefined
+      : !(referral || hasInternalBenefits),
+    discounts: checkoutCoupon ? [{ coupon: checkoutCoupon }] : undefined,
   });
 
   if (!session.url) throw new Error("Stripe n’a pas renvoyé d’adresse de paiement.");
+  if (referral) await attachCheckoutSession(referral, session.id);
   return { url: session.url, reference: session.id };
 }
 

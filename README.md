@@ -16,6 +16,21 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Parrainage Stripe
+
+Les règles fonctionnelles et techniques sont documentées dans
+[`docs/PARRAINAGE_V1_1.md`](docs/PARRAINAGE_V1_1.md).
+
+Configurer un secret dédié pour signer le cookie de parrainage :
+
+```dotenv
+REFERRAL_COOKIE_SECRET=une-valeur-aleatoire-longue-et-secrete
+```
+
+Le endpoint Stripe doit recevoir les événements listés dans la section 9 des
+spécifications. Le webhook applique les remises aux factures brouillon avant
+de répondre à `invoice.created`.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
